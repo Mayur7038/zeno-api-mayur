@@ -1,0 +1,30 @@
+import { ItemGroup } from './item-group.entity';
+import { ItemCategory } from './item-category.entity';
+import { Unit } from './unit.entity';
+import { ItemVariant } from './item-variant.entity';
+export declare class Item {
+    id: string;
+    tenantId: string;
+    companyId: string;
+    name: string;
+    sku: string;
+    itemGroupId: string;
+    itemGroup: ItemGroup;
+    itemCategoryId: string;
+    category: ItemCategory;
+    unitId: string;
+    unit: Unit;
+    hsnSac: string;
+    gstRate: number;
+    cessRate: number;
+    purchaseRate: number;
+    saleRate: number;
+    reorderLevel: number;
+    hasVariants: boolean;
+    imageUrl: string;
+    description: string;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    variants: ItemVariant[];
+}

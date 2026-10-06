@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: zeno-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: zeno_books
+    ports:
+      - '5434:5432'
+    volumes:
+      - zeno_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d zeno_books']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: zeno-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - zeno_redisdata:/data
+
+  zeno-api:
+    build:
+      context: ./zeno-api
+      dockerfile: Dockerfile
+    container_name: zeno-api
+    restart: always
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgrespassword
+      DB_NAME: zeno_books
+      DB_SYNCHRONIZE: 'true'
+      JWT_SECRET: zeno_super_secret_jwt_key_2026_enterprise_books
+      JWT_REFRESH_SECRET: zeno_refresh_secret_key_2026_enterprise_books
+    ports:
+      - '4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  zeno_pgdata:
+  zeno_redisdata:

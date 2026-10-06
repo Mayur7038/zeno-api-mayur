@@ -1,0 +1,34 @@
+import { PurchaseType, SalesInvoiceStatus } from '../../../common/enums';
+import { Ledger } from '../../masters/entities/ledger.entity';
+import { Branch } from '../../tenancy/entities/branch.entity';
+import { SalesInvoiceItem } from './sales-invoice-item.entity';
+import { SalesInvoiceDcMapping } from './sales-invoice-dc-mapping.entity';
+export declare class SalesInvoice {
+    id: string;
+    tenantId: string;
+    companyId: string;
+    branchId: string;
+    branch: Branch;
+    voucherNo: string;
+    invoiceDate: string;
+    salesType: PurchaseType;
+    customerLedgerId: string;
+    customerLedger: Ledger;
+    dueDate: string;
+    paymentTerms: string;
+    taxableTotal: number;
+    cgstTotal: number;
+    sgstTotal: number;
+    igstTotal: number;
+    discountTotal: number;
+    roundOffTotal: number;
+    grandTotal: number;
+    paidAmount: number;
+    status: SalesInvoiceStatus;
+    notes: string;
+    createdBy: string;
+    createdAt: Date;
+    updatedAt: Date;
+    items: SalesInvoiceItem[];
+    deliveryChallans: SalesInvoiceDcMapping[];
+}

@@ -1,0 +1,31 @@
+import { GstActiveLevel } from '../../../common/enums';
+export declare class CompanySettings {
+    id: string;
+    tenantId: string;
+    companyId: string;
+    gstActiveLevel: GstActiveLevel;
+    defaultPurchaseLedgerId: string;
+    defaultSalesLedgerId: string;
+    defaultCgstInputLedgerId: string;
+    defaultSgstInputLedgerId: string;
+    defaultIgstInputLedgerId: string;
+    defaultCgstOutputLedgerId: string;
+    defaultSgstOutputLedgerId: string;
+    defaultIgstOutputLedgerId: string;
+    defaultCessInputLedgerId: string;
+    defaultDiscountLedgerId: string;
+    defaultRoundOffLedgerId: string;
+    defaultCashLedgerId: string;
+    defaultBankLedgerId: string;
+    defaultDiscountAllowedLedgerId: string;
+    defaultDiscountReceivedLedgerId: string;
+    defaultSalesReturnLedgerId: string;
+    defaultPurchaseReturnLedgerId: string;
+    defaultFreightLedgerId: string;
+    voucherConfig: Record<string, any>;
+    salesSettings: Record<string, any>;
+    purchaseSettings: Record<string, any>;
+    inventorySettings: Record<string, any>;
+    createdAt: Date;
+    updatedAt: Date;
+}

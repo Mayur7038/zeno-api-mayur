@@ -1,0 +1,17 @@
+{
+  "name": "zeno-books",
+  "version": "1.0.0",
+  "description": "Zeno Books - Multi-Tenant Enterprise ERP & Accounting Platform",
+  "private": true,
+  "scripts": {
+    "dev": "npm run start:dev --prefix zeno-api",
+    "dev:api": "npm run start:dev --prefix zeno-api",
+    "dev:web": "npm start --prefix zeno-web",
+    "start:api": "npm run start:dev --prefix zeno-api",
+    "start:web": "npm start --prefix zeno-web",
+    "start": "npm start --prefix zeno-web",
+    "build:api": "npm run build --prefix zeno-api",
+    "build:web": "npm run build --prefix zeno-web",
+    "build": "npm run build --prefix zeno-api && npm run build --prefix zeno-web"
+  }
+}

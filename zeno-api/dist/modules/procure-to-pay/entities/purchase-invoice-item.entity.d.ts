@@ -1,0 +1,30 @@
+import { PurchaseInvoice } from './purchase-invoice.entity';
+import { GrnItem } from './grn-item.entity';
+import { Item } from '../../masters/entities/item.entity';
+import { ItemVariant } from '../../masters/entities/item-variant.entity';
+import { Unit } from '../../masters/entities/unit.entity';
+export declare class PurchaseInvoiceItem {
+    id: string;
+    purchaseInvoiceId: string;
+    purchaseInvoice: PurchaseInvoice;
+    grnItemId: string;
+    grnItem: GrnItem;
+    itemId: string;
+    item: Item;
+    variantId: string;
+    variant: ItemVariant;
+    unitId: string;
+    unit: Unit;
+    orderedQty: number;
+    receivedQty: number;
+    rate: number;
+    discountAmount: number;
+    taxableAmount: number;
+    gstRate: number;
+    cgstAmount: number;
+    sgstAmount: number;
+    igstAmount: number;
+    cessAmount: number;
+    totalAmount: number;
+    createdAt: Date;
+}

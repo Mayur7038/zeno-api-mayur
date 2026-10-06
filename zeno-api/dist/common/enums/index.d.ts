@@ -1,0 +1,124 @@
+export declare enum RoleType {
+    SUPER_ADMIN = "SUPER_ADMIN",
+    ADMIN = "ADMIN",
+    ACCOUNTANT = "ACCOUNTANT",
+    PURCHASE_MANAGER = "PURCHASE_MANAGER",
+    STORE_KEEPER = "STORE_KEEPER",
+    VIEWER = "VIEWER"
+}
+export declare enum PermissionAction {
+    VIEW = "VIEW",
+    CREATE = "CREATE",
+    EDIT = "EDIT",
+    DELETE = "DELETE",
+    PRINT = "PRINT",
+    EXPORT = "EXPORT"
+}
+export declare enum PermissionModule {
+    LEDGER_GROUP = "LEDGER_GROUP",
+    LEDGER = "LEDGER",
+    UNIT = "UNIT",
+    ITEM_GROUP = "ITEM_GROUP",
+    ITEM_CATEGORY = "ITEM_CATEGORY",
+    ITEM = "ITEM",
+    VARIANT = "VARIANT",
+    GODOWN = "GODOWN",
+    RACK_BIN = "RACK_BIN",
+    PURCHASE_ORDER = "PURCHASE_ORDER",
+    GOODS_RECEIPT_NOTE = "GOODS_RECEIPT_NOTE",
+    PURCHASE_INVOICE = "PURCHASE_INVOICE",
+    PURCHASE_RETURN = "PURCHASE_RETURN",
+    VENDOR_PAYMENT = "VENDOR_PAYMENT",
+    SALES_ORDER = "SALES_ORDER",
+    DELIVERY_CHALLAN = "DELIVERY_CHALLAN",
+    SALES_INVOICE = "SALES_INVOICE",
+    SALES_RETURN = "SALES_RETURN",
+    CUSTOMER_RECEIPT = "CUSTOMER_RECEIPT",
+    SETTINGS = "SETTINGS",
+    ROLES = "ROLES",
+    USERS = "USERS",
+    AUDIT_LOG = "AUDIT_LOG",
+    REPORTS = "REPORTS"
+}
+export declare enum GstActiveLevel {
+    COMPANY = "COMPANY",
+    ITEM_GROUP = "ITEM_GROUP",
+    ITEM_CATEGORY = "ITEM_CATEGORY",
+    ITEM = "ITEM"
+}
+export declare enum LedgerGroupNature {
+    ASSET = "ASSET",
+    LIABILITY = "LIABILITY",
+    INCOME = "INCOME",
+    EXPENSE = "EXPENSE"
+}
+export declare enum BalanceType {
+    DR = "DR",
+    CR = "CR"
+}
+export declare enum PurchaseType {
+    GOODS = "GOODS",
+    SERVICES = "SERVICES"
+}
+export declare enum PurchaseOrderStatus {
+    PENDING = "PENDING",
+    PARTIALLY_CLEARED = "PARTIALLY_CLEARED",
+    CLEARED = "CLEARED",
+    CANCELLED = "CANCELLED"
+}
+export declare enum GrnStatus {
+    PENDING = "PENDING",
+    PARTIALLY_CLEARED = "PARTIALLY_CLEARED",
+    CLEARED = "CLEARED"
+}
+export declare enum PurchaseInvoiceStatus {
+    PENDING = "PENDING",
+    PARTIALLY_PAID = "PARTIALLY_PAID",
+    PAID = "PAID"
+}
+export declare enum SalesOrderStatus {
+    PENDING = "PENDING",
+    PARTIALLY_DISPATCHED = "PARTIALLY_DISPATCHED",
+    CLEARED = "CLEARED",
+    CANCELLED = "CANCELLED"
+}
+export declare enum DeliveryChallanStatus {
+    PENDING = "PENDING",
+    PARTIALLY_INVOICED = "PARTIALLY_INVOICED",
+    CLEARED = "CLEARED"
+}
+export declare enum SalesInvoiceStatus {
+    PENDING = "PENDING",
+    PARTIALLY_PAID = "PARTIALLY_PAID",
+    PAID = "PAID"
+}
+export declare enum VoucherType {
+    PURCHASE_ORDER = "PO",
+    GOODS_RECEIPT_NOTE = "GRN",
+    PURCHASE_INVOICE = "PURCHASE_INVOICE",
+    PURCHASE_RETURN = "PURCHASE_RETURN",
+    VENDOR_PAYMENT = "VENDOR_PAYMENT",
+    SALES_ORDER = "SO",
+    DELIVERY_CHALLAN = "DC",
+    SALES_INVOICE = "SALES_INVOICE",
+    SALES_RETURN = "SALES_RETURN",
+    CUSTOMER_RECEIPT = "CUSTOMER_RECEIPT",
+    JOURNAL = "JOURNAL",
+    PAYMENT = "PAYMENT",
+    RECEIPT = "RECEIPT",
+    CONTRA = "CONTRA",
+    DEBIT_NOTE = "DEBIT_NOTE",
+    CREDIT_NOTE = "CREDIT_NOTE"
+}
+export declare enum FeatureKey {
+    GST = "GST",
+    PURCHASE_ORDER = "PURCHASE_ORDER",
+    GRN = "GRN",
+    VARIANTS = "VARIANTS",
+    RACK_BIN = "RACK_BIN",
+    MANUFACTURING = "MANUFACTURING"
+}
+export declare enum OtpPurpose {
+    SIGNUP = "SIGNUP",
+    FORGOT_PASSWORD = "FORGOT_PASSWORD"
+}
