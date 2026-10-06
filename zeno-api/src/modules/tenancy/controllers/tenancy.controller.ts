@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TenancyService } from '../services/tenancy.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -16,6 +16,16 @@ export class TenancyController {
   @ApiOperation({ summary: 'Get all companies in the current tenant' })
   async getCompanies(@CurrentTenant() tenantId: string) {
     return this.tenancyService.getCompanies(tenantId);
+  }
+
+  @Put('companies/:id')
+  @ApiOperation({ summary: 'Update company details & branding' })
+  async updateCompany(
+    @CurrentTenant() tenantId: string,
+    @Param('id') companyId: string,
+    @Body() data: any,
+  ) {
+    return this.tenancyService.updateCompany(tenantId, companyId, data);
   }
 
   @Get('branches')
@@ -43,9 +53,28 @@ export class TenancyController {
   }
 
   @Post('godowns')
-  @ApiOperation({ summary: 'Create new godown' })
+  @ApiOperation({ summary: 'Create new godown / warehouse' })
   async createGodown(@CurrentTenant() tenantId: string, @Body() data: any) {
     return this.tenancyService.createGodown(tenantId, data);
+  }
+
+  @Put('godowns/:id')
+  @ApiOperation({ summary: 'Update godown / warehouse' })
+  async updateGodown(
+    @CurrentTenant() tenantId: string,
+    @Param('id') godownId: string,
+    @Body() data: any,
+  ) {
+    return this.tenancyService.updateGodown(tenantId, godownId, data);
+  }
+
+  @Delete('godowns/:id')
+  @ApiOperation({ summary: 'Delete godown / warehouse' })
+  async deleteGodown(
+    @CurrentTenant() tenantId: string,
+    @Param('id') godownId: string,
+  ) {
+    return this.tenancyService.deleteGodown(tenantId, godownId);
   }
 
   @Get('racks-bins')

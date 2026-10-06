@@ -12,10 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="login-wrapper">
       <div class="login-panel">
         <div class="brand-header">
-          <div class="logo-box">
-            <i class="pi pi-book"></i>
-          </div>
-          <h1>ZENO BOOKS</h1>
+          <img src="/zeno-books-logo.png" alt="ZENO BOOKS" class="auth-brand-logo" />
           <p class="subtitle">Cloud ERP & Financial Accounting Platform</p>
         </div>
 
@@ -91,18 +88,12 @@ import { AuthService } from '../../core/services/auth.service';
       text-align: center;
       margin-bottom: 24px;
 
-      .logo-box {
-        width: 52px;
-        height: 52px;
-        margin: 0 auto 12px;
-        background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
-        border-radius: var(--radius-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff;
-        font-size: 1.5rem;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      .auth-brand-logo {
+        height: 68px;
+        max-width: 280px;
+        object-fit: contain;
+        margin: 0 auto 16px;
+        display: block;
       }
 
       h1 {

@@ -132,6 +132,8 @@ var FeatureKey;
     FeatureKey["GST"] = "GST";
     FeatureKey["PURCHASE_ORDER"] = "PURCHASE_ORDER";
     FeatureKey["GRN"] = "GRN";
+    FeatureKey["SALES_ORDER"] = "SALES_ORDER";
+    FeatureKey["DELIVERY_CHALLAN"] = "DELIVERY_CHALLAN";
     FeatureKey["VARIANTS"] = "VARIANTS";
     FeatureKey["RACK_BIN"] = "RACK_BIN";
     FeatureKey["MANUFACTURING"] = "MANUFACTURING";

@@ -94,38 +94,17 @@ interface ReportCard {
           </div>
         }
         @for (rep of filteredReports; track rep.id) {
-          <div class="report-card zeno-card">
-            <div class="card-top">
-              <div class="report-icon-box" [class]="rep.iconColor">
-                <i [class]="rep.icon"></i>
-              </div>
-              <div class="badge-wrap">
-                <span class="category-pill">{{ rep.category }}</span>
-                @if (rep.badge) {
-                  <span class="live-pill">{{ rep.badge }}</span>
-                }
-              </div>
-            </div>
-
-            <div class="card-body">
+          @if (rep.route) {
+            <a class="report-card zeno-card" [routerLink]="rep.route">
+              <h3 class="report-title">{{ rep.title }}</h3>
+              <p class="report-desc">{{ rep.description }}</p>
+            </a>
+          } @else {
+            <div class="report-card zeno-card" (click)="openQuickModal(rep)">
               <h3 class="report-title">{{ rep.title }}</h3>
               <p class="report-desc">{{ rep.description }}</p>
             </div>
-
-            <div class="card-footer">
-              @if (rep.route) {
-                <a [routerLink]="rep.route" class="btn-open-report">
-                  <span>{{ rep.actionText }}</span>
-                  <i class="pi pi-arrow-right"></i>
-                </a>
-              } @else {
-                <button type="button" class="btn-open-report" (click)="openQuickModal(rep)">
-                  <span>{{ rep.actionText }}</span>
-                  <i class="pi pi-arrow-right"></i>
-                </button>
-              }
-            </div>
-          </div>
+          }
         }
       </div>
 
@@ -188,30 +167,42 @@ interface ReportCard {
     .category-tabs button:hover { background: var(--surface-100); color: var(--surface-900); }
     .category-tabs button.active { background: var(--primary-600); color: #fff; border-color: var(--primary-600); box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
 
-    .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
-    .report-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
-    .report-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.06); border-color: var(--primary-300); }
+    .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .report-card {
+      background: #fff;
+      border: 1px solid var(--surface-200);
+      border-radius: 12px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .report-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.07);
+      border-color: var(--primary-400);
+    }
+    .report-card:hover .report-title {
+      color: var(--primary-600);
+    }
 
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-    .report-icon-box { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
-    .report-icon-box.blue { background: #EFF6FF; color: #2563EB; }
-    .report-icon-box.green { background: #F0FDF4; color: #16A34A; }
-    .report-icon-box.orange { background: #FFF7ED; color: #EA580C; }
-    .report-icon-box.purple { background: #FAF5FF; color: #9333EA; }
-    .report-icon-box.emerald { background: #ECFDF5; color: #059669; }
-    .report-icon-box.amber { background: #FEF3C7; color: #D97706; }
-
-    .badge-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    .category-pill { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--surface-500); background: var(--surface-100); padding: 3px 8px; border-radius: 6px; }
-    .live-pill { font-size: 0.7rem; font-weight: 700; color: #047857; background: #D1FAE5; padding: 2px 6px; border-radius: 4px; }
-
-    .card-body { margin-bottom: 16px; flex: 1; }
-    .report-title { font-size: 1.05rem; font-weight: 700; color: var(--surface-900); margin: 0 0 6px 0; }
-    .report-desc { font-size: 0.8125rem; color: var(--surface-600); line-height: 1.45; margin: 0; }
-
-    .card-footer { border-top: 1px solid var(--surface-100); padding-top: 12px; }
-    .btn-open-report { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; color: var(--primary-600); font-weight: 600; font-size: 0.875rem; text-decoration: none; background: transparent; border: none; cursor: pointer; padding: 4px 0; transition: color 0.15s ease; }
-    .btn-open-report:hover { color: var(--primary-700); }
+    .report-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--surface-900);
+      margin: 0 0 6px 0;
+      transition: color 0.15s ease;
+    }
+    .report-desc {
+      font-size: 0.84rem;
+      color: var(--surface-600);
+      line-height: 1.45;
+      margin: 0;
+    }
 
     .no-reports-card { grid-column: 1 / -1; padding: 48px; text-align: center; color: var(--surface-500); }
 

@@ -9,6 +9,12 @@ export declare class Godown {
     name: string;
     code: string;
     isActive: boolean;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    contactPerson: string;
+    contactPhone: string;
     createdAt: Date;
     updatedAt: Date;
     racksBins: RackBin[];

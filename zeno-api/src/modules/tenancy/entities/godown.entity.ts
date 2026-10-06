@@ -42,6 +42,24 @@ export class Godown {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @Column({ length: 255, nullable: true })
+  address: string;
+
+  @Column({ length: 100, nullable: true })
+  city: string;
+
+  @Column({ length: 100, nullable: true })
+  state: string;
+
+  @Column({ length: 20, nullable: true })
+  pincode: string;
+
+  @Column({ name: 'contact_person', length: 100, nullable: true })
+  contactPerson: string;
+
+  @Column({ name: 'contact_phone', length: 50, nullable: true })
+  contactPhone: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

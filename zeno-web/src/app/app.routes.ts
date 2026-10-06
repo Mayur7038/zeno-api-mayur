@@ -154,6 +154,35 @@ export const routes: Routes = [
             './features/accounting/accounting-vouchers.component'
           ).then((m) => m.AccountingVouchersComponent),
       },
+      // Inventory Management
+      {
+        path: 'inventory/stock-transfer',
+        loadComponent: () =>
+          import(
+            './features/inventory/stock-transfer/stock-transfer.component'
+          ).then((m) => m.StockTransferComponent),
+      },
+      {
+        path: 'inventory/stock-adjustment',
+        loadComponent: () =>
+          import(
+            './features/inventory/stock-adjustment/stock-adjustment.component'
+          ).then((m) => m.StockAdjustmentComponent),
+      },
+      {
+        path: 'inventory/opening-balance',
+        loadComponent: () =>
+          import(
+            './features/inventory/opening-balance/opening-balance.component'
+          ).then((m) => m.OpeningBalanceComponent),
+      },
+      {
+        path: 'inventory/price-list',
+        loadComponent: () =>
+          import(
+            './features/inventory/price-list/price-list.component'
+          ).then((m) => m.PriceListComponent),
+      },
       // Masters
       {
         path: 'masters/ledgers',

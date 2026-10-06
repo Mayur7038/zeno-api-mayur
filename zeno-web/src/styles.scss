@@ -506,3 +506,10 @@ html, body {
   }
 }
 
+/* Hide PrimeUI development license toast */
+#p-license-host {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+

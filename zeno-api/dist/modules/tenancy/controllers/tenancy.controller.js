@@ -27,6 +27,9 @@ let TenancyController = class TenancyController {
     async getCompanies(tenantId) {
         return this.tenancyService.getCompanies(tenantId);
     }
+    async updateCompany(tenantId, companyId, data) {
+        return this.tenancyService.updateCompany(tenantId, companyId, data);
+    }
     async getBranches(tenantId, companyId) {
         return this.tenancyService.getBranches(tenantId, companyId);
     }
@@ -38,6 +41,12 @@ let TenancyController = class TenancyController {
     }
     async createGodown(tenantId, data) {
         return this.tenancyService.createGodown(tenantId, data);
+    }
+    async updateGodown(tenantId, godownId, data) {
+        return this.tenancyService.updateGodown(tenantId, godownId, data);
+    }
+    async deleteGodown(tenantId, godownId) {
+        return this.tenancyService.deleteGodown(tenantId, godownId);
     }
     async getRacksBins(tenantId, godownId) {
         return this.tenancyService.getRacksBins(tenantId, godownId);
@@ -55,6 +64,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], TenancyController.prototype, "getCompanies", null);
+__decorate([
+    (0, common_1.Put)('companies/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update company details & branding' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], TenancyController.prototype, "updateCompany", null);
 __decorate([
     (0, common_1.Get)('branches'),
     (0, swagger_1.ApiOperation)({ summary: 'Get branches for tenant/company' }),
@@ -84,13 +103,32 @@ __decorate([
 ], TenancyController.prototype, "getGodowns", null);
 __decorate([
     (0, common_1.Post)('godowns'),
-    (0, swagger_1.ApiOperation)({ summary: 'Create new godown' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Create new godown / warehouse' }),
     __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], TenancyController.prototype, "createGodown", null);
+__decorate([
+    (0, common_1.Put)('godowns/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update godown / warehouse' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], TenancyController.prototype, "updateGodown", null);
+__decorate([
+    (0, common_1.Delete)('godowns/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete godown / warehouse' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], TenancyController.prototype, "deleteGodown", null);
 __decorate([
     (0, common_1.Get)('racks-bins'),
     (0, swagger_1.ApiOperation)({ summary: 'Get racks & bins for a godown' }),

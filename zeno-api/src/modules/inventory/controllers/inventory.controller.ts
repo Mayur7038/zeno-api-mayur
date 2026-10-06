@@ -1,23 +1,45 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StockLedger } from '../entities/stock-ledger.entity';
 import { InventoryService } from '../services/inventory.service';
+import { StockTransferService } from '../services/stock-transfer.service';
+import { StockAdjustmentService } from '../services/stock-adjustment.service';
+import { PriceListService } from '../services/price-list.service';
+import { PricingDimension } from '../entities/price-list.entity';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
 
-@ApiTags('Inventory & Stock Ledger')
+@ApiTags('Inventory Management')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('inventory')
 export class InventoryController {
   constructor(
     private inventoryService: InventoryService,
+    private transferService: StockTransferService,
+    private adjustmentService: StockAdjustmentService,
+    private priceListService: PriceListService,
     @InjectRepository(StockLedger)
     private stockRepo: Repository<StockLedger>,
   ) {}
+
+  // =========================================================================
+  // 1. STOCK SUMMARY & BALANCE
+  // =========================================================================
 
   @Get('summary')
   @ApiOperation({ summary: 'Get stock summary report with available quantity and valuation' })
@@ -89,5 +111,193 @@ export class InventoryController {
       variantId: variantId || null,
       currentBalance: balance,
     };
+  }
+
+  // =========================================================================
+  // 2. OPENING BALANCE MANAGEMENT
+  // =========================================================================
+
+  @Get('opening-balance')
+  @ApiOperation({ summary: 'Get opening stock balances for items in a warehouse' })
+  async getOpeningBalances(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+    @Query('godownId') godownId: string,
+  ) {
+    if (!godownId) throw new BadRequestException('Warehouse ID is required');
+    return this.inventoryService.getOpeningBalances(
+      this.stockRepo.manager,
+      tenantId,
+      companyId,
+      godownId,
+    );
+  }
+
+  @Post('opening-balance')
+  @ApiOperation({ summary: 'Set or update opening stock balances for items in a warehouse' })
+  async updateOpeningBalances(
+    @CurrentTenant() tenantId: string,
+    @Body() body: any,
+  ) {
+    return this.inventoryService.updateOpeningBalances(
+      this.stockRepo.manager,
+      tenantId,
+      body.companyId,
+      body,
+    );
+  }
+
+  // =========================================================================
+  // 3. STOCK TRANSFER
+  // =========================================================================
+
+  @Get('transfers')
+  @ApiOperation({ summary: 'List all stock transfer vouchers' })
+  async getTransfers(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+  ) {
+    return this.transferService.getTransfers(tenantId, companyId);
+  }
+
+  @Get('transfers/:id')
+  @ApiOperation({ summary: 'Get stock transfer details by ID' })
+  async getTransferById(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.transferService.getTransferById(tenantId, id);
+  }
+
+  @Post('transfers')
+  @ApiOperation({ summary: 'Create and complete warehouse-to-warehouse stock transfer' })
+  async createTransfer(
+    @CurrentTenant() tenantId: string,
+    @Body() body: any,
+  ) {
+    return this.transferService.createTransfer(tenantId, body.companyId, body);
+  }
+
+  @Put('transfers/:id/cancel')
+  @ApiOperation({ summary: 'Cancel stock transfer and reverse ledger movement' })
+  async cancelTransfer(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.transferService.cancelTransfer(tenantId, id);
+  }
+
+  // =========================================================================
+  // 4. STOCK ADJUSTMENT
+  // =========================================================================
+
+  @Get('adjustments')
+  @ApiOperation({ summary: 'List all stock adjustment vouchers' })
+  async getAdjustments(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+  ) {
+    return this.adjustmentService.getAdjustments(tenantId, companyId);
+  }
+
+  @Get('adjustments/:id')
+  @ApiOperation({ summary: 'Get stock adjustment details by ID' })
+  async getAdjustmentById(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.adjustmentService.getAdjustmentById(tenantId, id);
+  }
+
+  @Post('adjustments')
+  @ApiOperation({ summary: 'Create and post manual stock adjustment (increase / decrease)' })
+  async createAdjustment(
+    @CurrentTenant() tenantId: string,
+    @Body() body: any,
+  ) {
+    return this.adjustmentService.createAdjustment(tenantId, body.companyId, body);
+  }
+
+  @Put('adjustments/:id/cancel')
+  @ApiOperation({ summary: 'Cancel stock adjustment and reverse ledger movement' })
+  async cancelAdjustment(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.adjustmentService.cancelAdjustment(tenantId, id);
+  }
+
+  // =========================================================================
+  // 5. PRICE LISTS (STOCK GROUP WISE, CUSTOMER WISE, PRODUCT WISE)
+  // =========================================================================
+
+  @Get('price-lists')
+  @ApiOperation({ summary: 'Get price lists filtered by type, customer, or group' })
+  async getPriceLists(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+    @Query('pricingType') pricingType?: PricingDimension,
+    @Query('activeOnly') activeOnly?: string,
+  ) {
+    return this.priceListService.getPriceLists(tenantId, companyId, {
+      pricingType,
+      activeOnly: activeOnly === 'true',
+    });
+  }
+
+  @Get('price-lists/effective-price')
+  @ApiOperation({ summary: 'Resolve effective selling price for an item based on customer & group rules' })
+  async getEffectivePrice(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+    @Query('itemId') itemId: string,
+    @Query('customerId') customerId?: string,
+    @Query('asOfDate') asOfDate?: string,
+  ) {
+    if (!itemId) throw new BadRequestException('Item ID is required');
+    return this.priceListService.getEffectivePrice(
+      tenantId,
+      companyId,
+      itemId,
+      customerId,
+      asOfDate,
+    );
+  }
+
+  @Get('price-lists/:id')
+  @ApiOperation({ summary: 'Get price list by ID' })
+  async getPriceListById(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.priceListService.getPriceListById(tenantId, id);
+  }
+
+  @Post('price-lists')
+  @ApiOperation({ summary: 'Create new price list rule with effective dates' })
+  async createPriceList(
+    @CurrentTenant() tenantId: string,
+    @Body() body: any,
+  ) {
+    return this.priceListService.createPriceList(tenantId, body.companyId, body);
+  }
+
+  @Put('price-lists/:id')
+  @ApiOperation({ summary: 'Update price list rule' })
+  async updatePriceList(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.priceListService.updatePriceList(tenantId, id, body);
+  }
+
+  @Delete('price-lists/:id')
+  @ApiOperation({ summary: 'Delete price list rule' })
+  async deletePriceList(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.priceListService.deletePriceList(tenantId, id);
   }
 }

@@ -212,20 +212,6 @@ interface LedgerGroupItem {
                     }
                   </select>
                 </div>
-
-                <div class="form-group full-width" style="margin-top: 6px;">
-                  <label style="margin-bottom: 8px;">Party Designation</label>
-                  <div class="checkbox-row">
-                    <label class="checkbox-label">
-                      <input type="checkbox" [(ngModel)]="formData.isDebtorCustomer" />
-                      Sundry Debtor / Customer Group
-                    </label>
-                    <label class="checkbox-label">
-                      <input type="checkbox" [(ngModel)]="formData.isCreditorVendor" />
-                      Sundry Creditor / Vendor Group
-                    </label>
-                  </div>
-                </div>
               </div>
             </div>
 

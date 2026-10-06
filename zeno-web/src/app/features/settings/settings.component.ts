@@ -16,25 +16,43 @@ import { MastersService } from '../../core/services/masters.service';
       <!-- HEADER -->
       <div class="page-header">
         <div class="header-back-title">
-          <button class="btn-back" (click)="goHome()" title="Back to Home / Dashboard">
+          <button class="btn-back" (click)="roleViewMode !== 'list' && activeTab === 'roles' ? backToRoleList() : goHome()" [title]="roleViewMode !== 'list' && activeTab === 'roles' ? 'Back to Roles List' : 'Back to Home / Dashboard'">
             <i class="pi pi-arrow-left"></i>
           </button>
           <h1>{{ getActiveTabTitle() }}</h1>
         </div>
         <div class="header-actions">
-          @if (activeTab === 'roles') {
-            <button class="btn-primary" (click)="openNewRoleModal()">
-              <i class="pi pi-plus"></i> New Custom Role
+          @if (activeTab === 'company') {
+            <button class="btn-primary" (click)="saveCompanyProfile()" [disabled]="savingCompany">
+              <i class="pi pi-check"></i> {{ savingCompany ? 'Saving...' : 'Save Company Profile' }}
             </button>
-            <button class="btn-primary" (click)="saveRolePermissions(selectedRole)" [disabled]="savingRole || !selectedRole">
-              <i class="pi pi-check"></i> {{ savingRole ? 'Saving...' : 'Save Role & Note' }}
+          } @else if (activeTab === 'warehouses') {
+            <button class="btn-primary" (click)="openCreateWarehouseModal()">
+              <i class="pi pi-plus"></i> Add New Warehouse
             </button>
+          } @else if (activeTab === 'roles') {
+            @if (roleViewMode === 'list') {
+              <button class="btn-primary" (click)="startCreateRole()">
+                <i class="pi pi-plus"></i> Create New Role
+              </button>
+            } @else if (roleViewMode === 'create') {
+              <button class="btn-secondary" (click)="backToRoleList()">
+                <i class="pi pi-arrow-left"></i> Back to Roles
+              </button>
+              <button class="btn-primary" (click)="submitCreateRole()" [disabled]="savingRole || !newRole.name.trim()">
+                <i class="pi pi-check"></i> {{ savingRole ? 'Creating...' : 'Create Role & Save' }}
+              </button>
+            } @else {
+              <button class="btn-secondary" (click)="backToRoleList()">
+                <i class="pi pi-arrow-left"></i> Back to Roles
+              </button>
+              <button class="btn-primary" (click)="saveRolePermissions(selectedRole)" [disabled]="savingRole || !selectedRole">
+                <i class="pi pi-check"></i> {{ savingRole ? 'Saving...' : 'Save Role & Privileges' }}
+              </button>
+            }
           } @else if (activeTab === 'users') {
             <button class="btn-primary" (click)="openNewUserModal()">
               <i class="pi pi-user-plus"></i> Add User
-            </button>
-            <button class="btn-primary" (click)="saveAllUsers()" [disabled]="saving">
-              <i class="pi pi-check"></i> {{ saving ? 'Saving...' : 'Save User Roles' }}
             </button>
           } @else {
             <button class="btn-primary" (click)="saveSettings()" [disabled]="saving || savingRole">
@@ -90,130 +108,627 @@ import { MastersService } from '../../core/services/masters.service';
 
       <!-- TAB 2: USER ROLE & PERMISSION -->
       @if (activeTab === 'roles') {
-        <div class="roles-container">
-          <div class="matrix-layout">
-            <!-- ROLES SIDEBAR -->
-            <div class="roles-list-panel zeno-card">
-              <div class="panel-header">
-                <span class="panel-title">Defined Roles ({{ roles.length }})</span>
-                <button class="btn-primary btn-sm" (click)="openNewRoleModal()" title="Add Custom Role">
-                  <i class="pi pi-plus"></i> New Role
+        <!-- VIEW 1: ROLES LIST PAGE (DEFAULT) -->
+        @if (roleViewMode === 'list') {
+          <div class="roles-list-view">
+            <!-- STATS / KPI SUMMARY CARDS -->
+            <div class="roles-stats-grid">
+              <div class="kpi-card" (click)="roleTypeFilter = 'all'" [class.kpi-selected]="roleTypeFilter === 'all'" style="cursor: pointer;">
+                <div class="kpi-icon-wrap primary">
+                  <i class="pi pi-shield"></i>
+                </div>
+                <div class="kpi-info">
+                  <div class="kpi-value">{{ roles.length }}</div>
+                  <div class="kpi-label">Defined Roles</div>
+                </div>
+              </div>
+
+              <div class="kpi-card" (click)="roleTypeFilter = 'system'" [class.kpi-selected]="roleTypeFilter === 'system'" style="cursor: pointer;">
+                <div class="kpi-icon-wrap system">
+                  <i class="pi pi-lock"></i>
+                </div>
+                <div class="kpi-info">
+                  <div class="kpi-value">{{ getSystemRolesCount() }}</div>
+                  <div class="kpi-label">System Predefined</div>
+                </div>
+              </div>
+
+              <div class="kpi-card" (click)="roleTypeFilter = 'custom'" [class.kpi-selected]="roleTypeFilter === 'custom'" style="cursor: pointer;">
+                <div class="kpi-icon-wrap custom">
+                  <i class="pi pi-sparkles"></i>
+                </div>
+                <div class="kpi-info">
+                  <div class="kpi-value">{{ getCustomRolesCount() }}</div>
+                  <div class="kpi-label">Custom Tenant Roles</div>
+                </div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon-wrap users">
+                  <i class="pi pi-users"></i>
+                </div>
+                <div class="kpi-info">
+                  <div class="kpi-value">{{ users.length }}</div>
+                  <div class="kpi-label">Tenant Users</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SEARCH, FILTERS & ACTION BAR -->
+            <div class="roles-toolbar zeno-card">
+              <div class="search-input-wrap">
+                <i class="pi pi-search"></i>
+                <input 
+                  type="text" 
+                  [(ngModel)]="roleSearchQuery" 
+                  placeholder="Search roles by title, keyword, or duties..." 
+                />
+                @if (roleSearchQuery) {
+                  <button class="clear-search-btn" (click)="roleSearchQuery = ''">
+                    <i class="pi pi-times"></i>
+                  </button>
+                }
+              </div>
+
+              <div class="filter-pills-group">
+                <button 
+                  type="button" 
+                  class="filter-pill" 
+                  [class.active]="roleTypeFilter === 'all'" 
+                  (click)="roleTypeFilter = 'all'"
+                >
+                  All ({{ roles.length }})
+                </button>
+                <button 
+                  type="button" 
+                  class="filter-pill" 
+                  [class.active]="roleTypeFilter === 'system'" 
+                  (click)="roleTypeFilter = 'system'"
+                >
+                  <i class="pi pi-lock"></i> System ({{ getSystemRolesCount() }})
+                </button>
+                <button 
+                  type="button" 
+                  class="filter-pill" 
+                  [class.active]="roleTypeFilter === 'custom'" 
+                  (click)="roleTypeFilter = 'custom'"
+                >
+                  <i class="pi pi-sparkles"></i> Custom ({{ getCustomRolesCount() }})
                 </button>
               </div>
-              <div class="roles-list">
-                @for (r of roles; track r.id) {
-                  <div 
-                    class="role-card-item" 
-                    [class.selected]="selectedRole?.id === r.id"
-                    (click)="selectRole(r)"
+            </div>
+
+            <!-- ROLES DATA TABLE -->
+            <div class="zeno-card roles-table-card">
+              <div class="roles-table-wrap">
+                <table class="zeno-table roles-table">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 220px;">Role & Classification</th>
+                      <th style="min-width: 260px;">Functional Duties / Scope</th>
+                      <th style="min-width: 220px;">Privilege Coverage</th>
+                      <th style="min-width: 140px; text-align: center;">Assigned Users</th>
+                      <th style="min-width: 240px; text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of filteredRoles(); track r.id) {
+                      <tr class="role-row">
+                        <td>
+                          <div class="role-cell-title">
+                            <div class="role-avatar" [class.system]="r.isSystem">
+                              <i [class]="r.isSystem ? 'pi pi-shield' : 'pi pi-user'"></i>
+                            </div>
+                            <div class="role-text-info">
+                              <div class="role-row-name">{{ r.name }}</div>
+                              @if (r.isSystem) {
+                                <span class="badge-system">
+                                  <i class="pi pi-lock"></i> SYSTEM
+                                </span>
+                              } @else {
+                                <span class="badge-custom">
+                                  <i class="pi pi-sparkles"></i> CUSTOM
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <p class="role-row-desc">{{ r.description || 'Predefined system role for ' + r.name }}</p>
+                        </td>
+                        <td>
+                          <div class="privilege-coverage-cell">
+                            <div class="privilege-count-line">
+                              <span class="priv-count"><strong>{{ (r.permissions || []).length }}</strong> / 126</span>
+                              <span class="priv-pct">{{ getPrivilegePercentage(r) }}%</span>
+                            </div>
+                            <div class="priv-progress-bar">
+                              <div class="priv-progress-fill" [style.width.%]="getPrivilegePercentage(r)"></div>
+                            </div>
+                            <div class="priv-categories-tags">
+                              @for (cat of getRoleCategoryBreakdown(r); track cat) {
+                                <span class="cat-micro-tag">{{ cat }}</span>
+                              }
+                            </div>
+                          </div>
+                        </td>
+                        <td style="text-align: center;">
+                          <div class="users-count-badge" [class.has-users]="getUserCountForRole(r.id) > 0">
+                            <i class="pi pi-users"></i>
+                            <span>{{ getUserCountForRole(r.id) }} users</span>
+                          </div>
+                        </td>
+                        <td style="text-align: right;">
+                          <div class="role-actions-row">
+                            <button 
+                              type="button" 
+                              class="btn-action-primary" 
+                              (click)="startConfigurePermissions(r)"
+                              title="Configure Module Permissions & Privileges"
+                            >
+                              <i class="pi pi-sliders-h"></i> Permissions
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn-action-secondary" 
+                              (click)="cloneRole(r)"
+                              title="Clone this role into a new custom role"
+                            >
+                              <i class="pi pi-copy"></i>
+                            </button>
+                            <button 
+                              type="button" 
+                              class="btn-action-secondary" 
+                              (click)="openEditRoleModal(r)"
+                              title="Edit Role Name & Note"
+                            >
+                              <i class="pi pi-pencil"></i>
+                            </button>
+                            @if (!r.isSystem) {
+                              <button 
+                                type="button" 
+                                class="btn-action-danger" 
+                                (click)="confirmDeleteRole(r)"
+                                title="Delete Custom Role"
+                              >
+                                <i class="pi pi-trash"></i>
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                    @if (filteredRoles().length === 0) {
+                      <tr>
+                        <td colspan="5" class="empty-state-cell">
+                          <div class="empty-state-content">
+                            <i class="pi pi-filter-slash empty-icon"></i>
+                            <h4>No matching roles found</h4>
+                            <p>Try modifying your search query or reset the filter.</p>
+                            <button class="btn-secondary btn-sm" (click)="roleSearchQuery = ''; roleTypeFilter = 'all'">
+                              Reset Filters
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- VIEW 2: CREATE NEW ROLE PAGE -->
+        @else if (roleViewMode === 'create') {
+          <div class="role-create-view">
+            <!-- SUB-NAV / BREADCRUMB -->
+            <div class="view-subnav">
+              <button type="button" class="btn-subnav-back" (click)="backToRoleList()">
+                <i class="pi pi-arrow-left"></i> Back to Roles List
+              </button>
+              <div class="subnav-title-wrap">
+                <span class="subnav-title">New Custom Role</span>
+                <span class="badge-custom"><i class="pi pi-sparkles"></i> CUSTOM</span>
+              </div>
+            </div>
+
+            <!-- ROLE DETAILS FORM CARD -->
+            <div class="zeno-card role-form-card">
+              <div class="card-title">1. Role Definition & Baseline Template</div>
+              <p class="card-description">
+                Define the role title, description, and optionally pre-fill privileges from an existing role template.
+              </p>
+
+              <div class="role-form-grid">
+                <div class="form-group">
+                  <label>Role Name <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="newRole.name" 
+                    placeholder="e.g. Sales Executive, Inventory Auditor, Junior Accountant" 
+                    autofocus
+                  />
+                  <span class="helper-text">Unique name identifying this organizational role</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Clone Base Privileges (Optional Template)</label>
+                  <select [(ngModel)]="createBaseRoleId" (change)="onBaseRoleChanged()">
+                    <option value="">-- Start with Blank Permissions --</option>
+                    @for (r of roles; track r.id) {
+                      <option [value]="r.id">
+                        Clone from: {{ r.name }} ({{ (r.permissions || []).length }} privileges)
+                      </option>
+                    }
+                  </select>
+                  <span class="helper-text">Copies initial permission checkboxes from an existing role</span>
+                </div>
+
+                <div class="form-group full-width">
+                  <label>Role Description & Functional Scope</label>
+                  <textarea 
+                    rows="2" 
+                    [(ngModel)]="newRole.description" 
+                    placeholder="Specify functional duties, reporting hierarchy, and module access scope..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERMISSION MATRIX FOR NEW ROLE -->
+            <div class="zeno-card matrix-editor-card">
+              <div class="card-title">2. Configure Module Permissions</div>
+              <p class="card-description">
+                Grant or restrict granular capabilities across Masters, Procure-to-Pay, Sales, and Administration.
+              </p>
+
+              <!-- MATRIX TOOLBAR -->
+              <div class="matrix-filter-bar">
+                <div class="matrix-search">
+                  <i class="pi pi-search"></i>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="moduleSearchQuery" 
+                    placeholder="Filter modules (e.g. Sales, Invoice, Ledger)..." 
+                  />
+                  @if (moduleSearchQuery) {
+                    <button class="clear-search-btn" (click)="moduleSearchQuery = ''">
+                      <i class="pi pi-times"></i>
+                    </button>
+                  }
+                </div>
+
+                <div class="category-tabs">
+                  <button 
+                    type="button" 
+                    class="cat-tab" 
+                    [class.active]="selectedCategoryFilter === 'ALL'" 
+                    (click)="selectedCategoryFilter = 'ALL'"
                   >
-                    <div class="role-item-top">
-                      <span class="role-name">{{ r.name }}</span>
-                      @if (r.isSystem) {
-                        <span class="badge-system">SYSTEM</span>
-                      } @else {
-                        <span class="badge-custom">CUSTOM</span>
+                    All Modules ({{ permissionModules.length }})
+                  </button>
+                  @for (cat of getUniqueCategories(); track cat) {
+                    <button 
+                      type="button" 
+                      class="cat-tab" 
+                      [class.active]="selectedCategoryFilter === cat" 
+                      (click)="selectedCategoryFilter = cat"
+                    >
+                      {{ cat }} ({{ getCategoryModuleCount(cat) }})
+                    </button>
+                  }
+                </div>
+
+                <div class="matrix-bulk-actions">
+                  <button type="button" class="btn-bulk" (click)="grantAllViewOnly(newRole)" title="Grant Read-Only View to all modules">
+                    <i class="pi pi-eye"></i> View Only
+                  </button>
+                  <button type="button" class="btn-bulk" (click)="grantFullAccess(newRole)" title="Grant all actions across all modules">
+                    <i class="pi pi-check-circle"></i> Grant All
+                  </button>
+                  <button type="button" class="btn-bulk text-danger" (click)="revokeAllPermissions(newRole)" title="Clear all granted privileges">
+                    <i class="pi pi-ban"></i> Revoke All
+                  </button>
+                </div>
+              </div>
+
+              <!-- MATRIX TABLE -->
+              <div class="matrix-table-wrap">
+                <table class="zeno-table matrix-table">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 220px;">Module & Resource</th>
+                      <th style="min-width: 130px;">Category</th>
+                      @for (act of permissionActions; track act.key) {
+                        <th style="text-align: center; width: 95px;">
+                          <div class="th-action-col">
+                            <span>{{ act.label }}</span>
+                            <button 
+                              type="button" 
+                              class="btn-th-col-toggle" 
+                              (click)="toggleColumnAll(newRole, act.key)"
+                              [title]="'Toggle ' + act.label + ' column for all modules'"
+                            >
+                              <i class="pi pi-sort-alt"></i>
+                            </button>
+                          </div>
+                        </th>
                       }
-                    </div>
-                    <p class="role-desc">{{ r.description || 'Custom role definition' }}</p>
-                    <div class="role-stats">
-                      <i class="pi pi-lock"></i> {{ (r.permissions || []).length }} active privileges
-                    </div>
-                  </div>
+                      <th style="text-align: center; width: 100px;">Grant Row</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (mod of filteredPermissionModules(); track mod.key) {
+                      <tr [class.row-highlight]="isModuleActive(newRole, mod.key)">
+                        <td class="module-cell">
+                          <div class="module-identity">
+                            <div class="module-icon">
+                              <i [class]="mod.icon || 'pi pi-folder'"></i>
+                            </div>
+                            <div class="module-text">
+                              <span class="module-name">{{ mod.label }}</span>
+                              <span class="module-key font-mono">{{ mod.key }}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="category-pill">{{ mod.category }}</span>
+                        </td>
+                        @for (act of permissionActions; track act.key) {
+                          <td style="text-align: center;">
+                            <input 
+                              type="checkbox" 
+                              class="perm-checkbox"
+                              [checked]="hasPermission(newRole, mod.key, act.key)"
+                              (change)="togglePermission(newRole, mod.key, act.key)"
+                            />
+                          </td>
+                        }
+                        <td style="text-align: center;">
+                          <button 
+                            type="button" 
+                            class="btn-toggle-all"
+                            [class.btn-all-active]="isModuleFullyGranted(newRole, mod.key)"
+                            (click)="toggleAllModulePermissions(newRole, mod.key)"
+                            title="Toggle all 6 privileges for this module"
+                          >
+                            {{ isModuleFullyGranted(newRole, mod.key) ? 'Clear' : 'Toggle' }}
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- STICKY BOTTOM SAVE ACTIONS -->
+            <div class="sticky-save-bar">
+              <div class="save-bar-info">
+                <i class="pi pi-shield"></i>
+                <span>Configuring <strong>{{ (newRole.permissions || []).length }}</strong> active privileges for <strong>{{ newRole.name || 'New Role' }}</strong></span>
+              </div>
+              <div class="save-bar-actions">
+                <button type="button" class="btn-secondary" (click)="backToRoleList()">Cancel</button>
+                <button 
+                  type="button" 
+                  class="btn-primary" 
+                  (click)="submitCreateRole()" 
+                  [disabled]="savingRole || !newRole.name.trim()"
+                >
+                  <i class="pi pi-check"></i> {{ savingRole ? 'Creating Role...' : 'Create Role & Save Privileges' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- VIEW 3: MANAGE PERMISSIONS MATRIX VIEW -->
+        @else if (roleViewMode === 'permissions' && selectedRole) {
+          <div class="role-permissions-view">
+            <!-- SUB-NAV / BREADCRUMB -->
+            <div class="view-subnav">
+              <button type="button" class="btn-subnav-back" (click)="backToRoleList()">
+                <i class="pi pi-arrow-left"></i> Back to Roles List
+              </button>
+              <div class="subnav-title-wrap">
+                <span class="subnav-title">{{ selectedRole.name }}</span>
+                @if (selectedRole.isSystem) {
+                  <span class="badge-system"><i class="pi pi-lock"></i> SYSTEM PREDEFINED</span>
+                } @else {
+                  <span class="badge-custom"><i class="pi pi-sparkles"></i> CUSTOM ROLE</span>
                 }
               </div>
             </div>
 
-            <!-- PERMISSIONS MATRIX PANEL -->
-            <div class="matrix-panel zeno-card">
-              @if (selectedRole) {
-                <div class="matrix-header">
-                  <div class="role-header-info">
-                    <div class="matrix-role-title">
-                      @if (selectedRole.isSystem) {
-                        <h2>{{ selectedRole.name }} Permissions</h2>
-                        <span class="badge-system">Predefined System Role</span>
-                      } @else {
-                        <div class="role-name-edit-group">
-                          <input 
-                            type="text" 
-                            class="role-title-input" 
-                            [(ngModel)]="selectedRole.name" 
-                            placeholder="Role Name *" 
-                          />
-                          <span class="badge-custom">Custom Role</span>
-                        </div>
-                      }
+            <!-- ROLE DETAILS / NOTES CARD -->
+            <div class="zeno-card role-edit-header-card">
+              <div class="role-header-content">
+                <div class="role-meta-row">
+                  @if (!selectedRole.isSystem) {
+                    <div class="form-group" style="flex: 1; max-width: 320px;">
+                      <label>Role Name *</label>
+                      <input type="text" [(ngModel)]="selectedRole.name" placeholder="Role Name *" />
                     </div>
-                    <div class="role-desc-group">
-                      <label class="role-note-label">
-                        <i class="pi pi-file-edit"></i> Role Note / Description:
-                      </label>
-                      <input 
-                            type="text" 
-                            class="role-note-input" 
-                            [(ngModel)]="selectedRole.description" 
-                            placeholder="Add role note or functional description..." 
-                      />
-                    </div>
-                  </div>
-                  <div class="matrix-header-actions">
-                    <button class="btn-primary" (click)="saveRolePermissions(selectedRole)" [disabled]="savingRole">
-                      <i class="pi pi-check"></i> {{ savingRole ? 'Saving...' : 'Save Role & Note' }}
-                    </button>
+                  }
+                  <div class="form-group" style="flex: 2;">
+                    <label>Role Note / Functional Scope</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="selectedRole.description" 
+                      placeholder="Add role note or functional description..." 
+                    />
                   </div>
                 </div>
 
-                <div class="matrix-table-wrap">
-                  <table class="zeno-table matrix-table">
-                    <thead>
-                      <tr>
-                        <th style="min-width: 200px;">Module & Resource</th>
-                        <th>Category</th>
-                        @for (act of permissionActions; track act.key) {
-                          <th style="text-align: center; width: 85px;">{{ act.label }}</th>
-                        }
-                        <th style="text-align: center; width: 85px;">Grant All</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (mod of permissionModules; track mod.key) {
-                        <tr>
-                          <td class="module-cell">
-                            <span class="module-name">{{ mod.label }}</span>
-                          </td>
-                          <td>
-                            <span class="category-pill">{{ mod.category }}</span>
-                          </td>
-                          @for (act of permissionActions; track act.key) {
-                            <td style="text-align: center;">
-                              <input 
-                                type="checkbox" 
-                                class="perm-checkbox"
-                                [checked]="hasPermission(selectedRole, mod.key, act.key)"
-                                (change)="togglePermission(selectedRole, mod.key, act.key)"
-                              />
-                            </td>
-                          }
-                          <td style="text-align: center;">
+                <div class="role-privilege-summary-bar">
+                  <div class="summary-stat">
+                    <span class="stat-number">{{ (selectedRole.permissions || []).length }}</span>
+                    <span class="stat-text">of 126 Privileges Active ({{ getPrivilegePercentage(selectedRole) }}%)</span>
+                  </div>
+                  <div class="summary-progress">
+                    <div class="summary-progress-fill" [style.width.%]="getPrivilegePercentage(selectedRole)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MATRIX TOOLBAR -->
+            <div class="matrix-filter-bar zeno-card">
+              <div class="matrix-search">
+                <i class="pi pi-search"></i>
+                <input 
+                  type="text" 
+                  [(ngModel)]="moduleSearchQuery" 
+                  placeholder="Filter modules (e.g. Sales, Invoice, Ledger, Inventory)..." 
+                />
+                @if (moduleSearchQuery) {
+                  <button class="clear-search-btn" (click)="moduleSearchQuery = ''">
+                    <i class="pi pi-times"></i>
+                  </button>
+                }
+              </div>
+
+              <div class="category-tabs">
+                <button 
+                  type="button" 
+                  class="cat-tab" 
+                  [class.active]="selectedCategoryFilter === 'ALL'" 
+                  (click)="selectedCategoryFilter = 'ALL'"
+                >
+                  All Modules ({{ permissionModules.length }})
+                </button>
+                @for (cat of getUniqueCategories(); track cat) {
+                  <button 
+                    type="button" 
+                    class="cat-tab" 
+                    [class.active]="selectedCategoryFilter === cat" 
+                    (click)="selectedCategoryFilter = cat"
+                  >
+                    {{ cat }} ({{ getCategoryModuleCount(cat) }})
+                  </button>
+                }
+              </div>
+
+              <div class="matrix-bulk-actions">
+                <button type="button" class="btn-bulk" (click)="grantAllViewOnly(selectedRole)" title="Grant Read-Only View to all modules">
+                  <i class="pi pi-eye"></i> View Only
+                </button>
+                <button type="button" class="btn-bulk" (click)="grantFullAccess(selectedRole)" title="Grant all actions across all modules">
+                  <i class="pi pi-check-circle"></i> Grant All
+                </button>
+                <button type="button" class="btn-bulk text-danger" (click)="revokeAllPermissions(selectedRole)" title="Clear all granted privileges">
+                  <i class="pi pi-ban"></i> Revoke All
+                </button>
+              </div>
+            </div>
+
+            <!-- PERMISSION MATRIX TABLE -->
+            <div class="zeno-card matrix-card">
+              <div class="matrix-table-wrap">
+                <table class="zeno-table matrix-table">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 220px;">Module & Resource</th>
+                      <th style="min-width: 130px;">Category</th>
+                      @for (act of permissionActions; track act.key) {
+                        <th style="text-align: center; width: 95px;">
+                          <div class="th-action-col">
+                            <span>{{ act.label }}</span>
                             <button 
                               type="button" 
-                              class="btn-toggle-all"
-                              (click)="toggleAllModulePermissions(selectedRole, mod.key)"
-                              title="Toggle All Privileges for this Module"
+                              class="btn-th-col-toggle" 
+                              (click)="toggleColumnAll(selectedRole, act.key)"
+                              [title]="'Toggle ' + act.label + ' column for all modules'"
                             >
-                              Toggle
+                              <i class="pi pi-sort-alt"></i>
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+                        </th>
                       }
-                    </tbody>
-                  </table>
-                </div>
-              }
+                      <th style="text-align: center; width: 100px;">Grant Row</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (mod of filteredPermissionModules(); track mod.key) {
+                      <tr [class.row-highlight]="isModuleActive(selectedRole, mod.key)">
+                        <td class="module-cell">
+                          <div class="module-identity">
+                            <div class="module-icon">
+                              <i [class]="mod.icon || 'pi pi-folder'"></i>
+                            </div>
+                            <div class="module-text">
+                              <span class="module-name">{{ mod.label }}</span>
+                              <span class="module-key font-mono">{{ mod.key }}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="category-pill">{{ mod.category }}</span>
+                        </td>
+                        @for (act of permissionActions; track act.key) {
+                          <td style="text-align: center;">
+                            <input 
+                              type="checkbox" 
+                              class="perm-checkbox"
+                              [checked]="hasPermission(selectedRole, mod.key, act.key)"
+                              (change)="togglePermission(selectedRole, mod.key, act.key)"
+                            />
+                          </td>
+                        }
+                        <td style="text-align: center;">
+                          <button 
+                            type="button" 
+                            class="btn-toggle-all"
+                            [class.btn-all-active]="isModuleFullyGranted(selectedRole, mod.key)"
+                            (click)="toggleAllModulePermissions(selectedRole, mod.key)"
+                            title="Toggle all 6 privileges for this module"
+                          >
+                            {{ isModuleFullyGranted(selectedRole, mod.key) ? 'Clear' : 'Toggle' }}
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                    @if (filteredPermissionModules().length === 0) {
+                      <tr>
+                        <td colspan="8" class="empty-state-cell">
+                          <div class="empty-state-content">
+                            <i class="pi pi-search empty-icon"></i>
+                            <h4>No modules match your filter</h4>
+                            <p>Adjust your search query or category filter above.</p>
+                            <button class="btn-secondary btn-sm" (click)="moduleSearchQuery = ''; selectedCategoryFilter = 'ALL'">
+                              Reset Filter
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- STICKY BOTTOM SAVE ACTIONS -->
+            <div class="sticky-save-bar">
+              <div class="save-bar-info">
+                <i class="pi pi-check-circle"></i>
+                <span>Role: <strong>{{ selectedRole.name }}</strong> &bull; <strong>{{ (selectedRole.permissions || []).length }}</strong> active privileges</span>
+              </div>
+              <div class="save-bar-actions">
+                <button type="button" class="btn-secondary" (click)="backToRoleList()">Back to Roles</button>
+                <button 
+                  type="button" 
+                  class="btn-primary" 
+                  (click)="saveRolePermissions(selectedRole)" 
+                  [disabled]="savingRole"
+                >
+                  <i class="pi pi-check"></i> {{ savingRole ? 'Saving...' : 'Save Role & Privileges' }}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        }
       }
 
       <!-- TAB 2.5: USERS -->
@@ -223,14 +738,6 @@ import { MastersService } from '../../core/services/masters.service';
             <div>
               <div class="card-title">User Directory & Role Assignments ({{ users.length }})</div>
               <p class="card-description">Manage tenant users, assign functional roles, and control account active status.</p>
-            </div>
-            <div class="card-header-actions">
-              <button class="btn-primary" (click)="openNewUserModal()">
-                <i class="pi pi-user-plus"></i> Add User
-              </button>
-              <button class="btn-primary" (click)="saveAllUsers()" [disabled]="saving">
-                <i class="pi pi-check"></i> {{ saving ? 'Saving...' : 'Save User Roles' }}
-              </button>
             </div>
           </div>
           <div class="zeno-card-table-wrap">
@@ -1060,66 +1567,899 @@ import { MastersService } from '../../core/services/masters.service';
         </div>
       }
 
-      <!-- TAB 9: COMPANY PROFILE (ACTIVE COMPANY & BRANCH DISPLAY) -->
+      <!-- TAB: COMPANY PROFILE (TABBED CONFIGURATION) -->
       @if (activeTab === 'company') {
-        <div class="zeno-card padded-card">
-          <div class="card-title">Company & Branch Identity</div>
-          <p class="card-description">Active organizational details, statutory tax IDs, and jurisdictional registrations.</p>
+        <div class="company-profile-wrapper">
+          <!-- SUB-TABS NAVIGATION -->
+          <div class="company-subnav-tabs">
+            <button 
+              type="button" 
+              class="subnav-tab" 
+              [class.active]="companySubTab === 'basic'" 
+              (click)="companySubTab = 'basic'"
+            >
+              <i class="pi pi-id-card"></i>
+              <span>Basic Details</span>
+            </button>
+            <button 
+              type="button" 
+              class="subnav-tab" 
+              [class.active]="companySubTab === 'address'" 
+              (click)="companySubTab = 'address'"
+            >
+              <i class="pi pi-map-marker"></i>
+              <span>Address Details</span>
+            </button>
+            <button 
+              type="button" 
+              class="subnav-tab" 
+              [class.active]="companySubTab === 'gst'" 
+              (click)="companySubTab = 'gst'"
+            >
+              <i class="pi pi-percentage"></i>
+              <span>GST & Tax Registration</span>
+            </button>
+            <button 
+              type="button" 
+              class="subnav-tab" 
+              [class.active]="companySubTab === 'contact'" 
+              (click)="companySubTab = 'contact'"
+            >
+              <i class="pi pi-phone"></i>
+              <span>Contact Information</span>
+            </button>
+            <button 
+              type="button" 
+              class="subnav-tab" 
+              [class.active]="companySubTab === 'logo'" 
+              (click)="companySubTab = 'logo'"
+            >
+              <i class="pi pi-image"></i>
+              <span>Logo & Branding</span>
+            </button>
+          </div>
 
-          <div class="company-profile-grid">
-            <div class="profile-item">
-              <span class="profile-label">Company Legal Name</span>
-              <span class="profile-value bold">{{ companyDisplayName }}</span>
+          <!-- TAB 1: BASIC DETAILS -->
+          @if (companySubTab === 'basic') {
+            <div class="zeno-card padded-card">
+              <div class="card-title">Basic Organizational Information</div>
+              <p class="card-description">Core registration identity, entity structure, and statutory accounting year cycle.</p>
+
+              <div class="form-grid-2col">
+                <div class="form-group">
+                  <label>Company Legal Name <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.legalName" 
+                    placeholder="e.g. Apex Technologies Private Limited" 
+                  />
+                  <span class="field-hint">Registered name as per certificate of incorporation.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Trade / Brand Name</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.tradeName" 
+                    placeholder="e.g. Apex Tech" 
+                  />
+                  <span class="field-hint">Public trade name used on customer invoices and slips.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Company Code <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.code" 
+                    placeholder="e.g. APEX-01" 
+                    class="font-mono uppercase" 
+                  />
+                  <span class="field-hint">Unique identifier prefix used in multi-entity accounting.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Business Entity Type</label>
+                  <select [(ngModel)]="companyForm.businessType">
+                    <option value="Private Limited Company">Private Limited Company</option>
+                    <option value="Public Limited Company">Public Limited Company</option>
+                    <option value="Partnership Firm">Partnership Firm</option>
+                    <option value="Limited Liability Partnership (LLP)">Limited Liability Partnership (LLP)</option>
+                    <option value="Sole Proprietorship">Sole Proprietorship</option>
+                    <option value="One Person Company (OPC)">One Person Company (OPC)</option>
+                    <option value="Trust / Society / Non-Profit">Trust / Society / Non-Profit</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Financial Year Starts From <span class="required">*</span></label>
+                  <input 
+                    type="date" 
+                    [(ngModel)]="companyForm.financialYearStart" 
+                  />
+                  <span class="field-hint">Standard fiscal year opening date (typically 1st April).</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Financial Year Ends On <span class="required">*</span></label>
+                  <input 
+                    type="date" 
+                    [(ngModel)]="companyForm.financialYearEnd" 
+                  />
+                  <span class="field-hint">Standard fiscal year closing date (typically 31st March).</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Books Begin From <span class="required">*</span></label>
+                  <input 
+                    type="date" 
+                    [(ngModel)]="companyForm.booksBeginFrom" 
+                  />
+                  <span class="field-hint">Date from which ledger vouchers and opening balances are recorded.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Base Currency Code</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.currencyCode" 
+                    placeholder="INR" 
+                    class="font-mono" 
+                  />
+                </div>
+              </div>
             </div>
-            <div class="profile-item">
-              <span class="profile-label">GSTIN / Tax ID</span>
-              <span class="profile-value code-badge">{{ companyGstin }}</span>
+          }
+
+          <!-- TAB 2: ADDRESS DETAILS -->
+          @if (companySubTab === 'address') {
+            <div class="addresses-layout-grid">
+              <!-- BILLING ADDRESS CARD -->
+              <div class="zeno-card padded-card">
+                <div class="card-title"><i class="pi pi-home"></i> Registered Billing Address</div>
+                <p class="card-description">Official statutory office location appearing on tax invoices and filings.</p>
+
+                <div class="form-stack">
+                  <div class="form-group">
+                    <label>Address Line 1 <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.billingAddress.addressLine1" 
+                      placeholder="Floor, Building, Plot / Street Number" 
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Address Line 2</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.billingAddress.addressLine2" 
+                      placeholder="Landmark, Area, Industrial Zone" 
+                    />
+                  </div>
+
+                  <div class="form-grid-2col">
+                    <div class="form-group">
+                      <label>City <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.billingAddress.city" 
+                        placeholder="e.g. Mumbai" 
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label>State <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.billingAddress.state" 
+                        placeholder="e.g. Maharashtra" 
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2col">
+                    <div class="form-group">
+                      <label>Pincode / Postal Code <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.billingAddress.pincode" 
+                        placeholder="e.g. 400021" 
+                        class="font-mono" 
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label>Country</label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.billingAddress.country" 
+                        placeholder="India" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SHIPPING ADDRESS CARD -->
+              <div class="zeno-card padded-card">
+                <div class="card-header-flex">
+                  <div>
+                    <div class="card-title"><i class="pi pi-truck"></i> Primary Shipping / Plant Address</div>
+                    <p class="card-description">Physical dispatch godown, warehouse or plant location for goods movements.</p>
+                  </div>
+                  <button type="button" class="btn-secondary btn-sm" (click)="copyBillingToShipping()">
+                    <i class="pi pi-copy"></i> Copy from Billing
+                  </button>
+                </div>
+
+                <div class="form-stack">
+                  <div class="form-group">
+                    <label>Address Line 1 <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.shippingAddress.addressLine1" 
+                      placeholder="Gate / Warehouse, Plot / Sector" 
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Address Line 2</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.shippingAddress.addressLine2" 
+                      placeholder="Industrial Area, Logistic Park" 
+                    />
+                  </div>
+
+                  <div class="form-grid-2col">
+                    <div class="form-group">
+                      <label>City <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.shippingAddress.city" 
+                        placeholder="e.g. Navi Mumbai" 
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label>State <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.shippingAddress.state" 
+                        placeholder="e.g. Maharashtra" 
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2col">
+                    <div class="form-group">
+                      <label>Pincode / Postal Code <span class="required">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.shippingAddress.pincode" 
+                        placeholder="e.g. 410208" 
+                        class="font-mono" 
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label>Country</label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="companyForm.shippingAddress.country" 
+                        placeholder="India" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="profile-item">
-              <span class="profile-label">PAN Number</span>
-              <span class="profile-value code-badge">{{ companyPan }}</span>
+          }
+
+          <!-- TAB 3: GST & TAX REGISTRATION -->
+          @if (companySubTab === 'gst') {
+            <div class="zeno-card padded-card">
+              <div class="card-title">GST & Statutory Tax Identifiers</div>
+              <p class="card-description">State tax jurisdiction, GSTIN format compliance, and return filing periodicity.</p>
+
+              <div class="form-grid-2col">
+                <div class="form-group">
+                  <label>GST Registration Type</label>
+                  <select [(ngModel)]="companyForm.gstRegistrationType">
+                    <option value="Regular">Regular / Normal Taxpayer</option>
+                    <option value="Composition">Composition Scheme</option>
+                    <option value="SEZ Unit">SEZ Unit (Zero Rated)</option>
+                    <option value="SEZ Developer">SEZ Developer</option>
+                    <option value="Deemed Export / EOU">Deemed Export / EOU</option>
+                    <option value="Unregistered">Unregistered Entity</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>GSTIN (15-Digit GST Identification Number) <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.gstin" 
+                    placeholder="27AABCU9603R1ZM" 
+                    maxlength="15" 
+                    class="font-mono uppercase font-bold" 
+                  />
+                  <span class="field-hint">e.g. 27 (State) + AABCU9603R (PAN) + 1ZM (Check digits).</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Permanent Account Number (PAN) <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.pan" 
+                    placeholder="AABCU9603R" 
+                    maxlength="10" 
+                    class="font-mono uppercase font-bold" 
+                  />
+                  <span class="field-hint">10-digit income tax permanent account number.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Jurisdiction State & State Code</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.stateName" 
+                    placeholder="e.g. Maharashtra (27)" 
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>GST Return Filing Frequency</label>
+                  <select [(ngModel)]="companyForm.filingFrequency">
+                    <option value="Monthly">Monthly (GSTR-1, GSTR-3B)</option>
+                    <option value="Quarterly (QRMP)">Quarterly (QRMP Scheme with monthly IFF)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Application Reference Number (ARN)</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.arnNumber" 
+                    placeholder="e.g. AA270425000123P" 
+                    class="font-mono uppercase" 
+                  />
+                </div>
+              </div>
             </div>
-            <div class="profile-item">
-              <span class="profile-label">Active Branch</span>
-              <span class="profile-value">{{ branchDisplayName }}</span>
+          }
+
+          <!-- TAB 4: CONTACT INFORMATION -->
+          @if (companySubTab === 'contact') {
+            <div class="zeno-card padded-card">
+              <div class="card-title">Corporate Contact & Communication Directory</div>
+              <p class="card-description">Designated point of contact, accounts desk email, and official customer helpline.</p>
+
+              <div class="form-grid-2col">
+                <div class="form-group">
+                  <label>Primary Contact Person <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.contactDetails.contactPerson" 
+                    placeholder="e.g. Rajesh Sharma" 
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Official Accounts / Finance Email <span class="required">*</span></label>
+                  <input 
+                    type="email" 
+                    [(ngModel)]="companyForm.contactDetails.email" 
+                    placeholder="e.g. finance@apextechnologies.com" 
+                  />
+                  <span class="field-hint">Used for automated invoice PDFs and statement dispatches.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Primary Phone / Mobile <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.contactDetails.phone" 
+                    placeholder="e.g. +91 98200 12345" 
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Alternate / Landline Helpline</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="companyForm.contactDetails.alternatePhone" 
+                    placeholder="e.g. 022-28493921" 
+                  />
+                </div>
+
+                <div class="form-group full-width">
+                  <label>Official Corporate Website</label>
+                  <input 
+                    type="url" 
+                    [(ngModel)]="companyForm.contactDetails.website" 
+                    placeholder="e.g. https://www.apextechnologies.com" 
+                  />
+                </div>
+              </div>
             </div>
-            <div class="profile-item">
-              <span class="profile-label">Branch Code</span>
-              <span class="profile-value code-badge">{{ branchCodeDisplay }}</span>
+          }
+
+          <!-- TAB 5: LOGO & BRANDING -->
+          @if (companySubTab === 'logo') {
+            <div class="zeno-card padded-card">
+              <div class="card-title">Logo, Brand Identity & Invoice Letterhead</div>
+              <p class="card-description">Upload corporate emblem, set document letterheads, and print declarations.</p>
+
+              <div class="branding-layout">
+                <!-- LOGO PREVIEW BOX -->
+                <div class="logo-preview-card">
+                  <div class="logo-box">
+                    @if (companyForm.logoUrl) {
+                      <img [src]="companyForm.logoUrl" alt="Company Logo" class="logo-img" />
+                    } @else {
+                      <div class="logo-placeholder">
+                        <i class="pi pi-building" style="font-size: 2.5rem; color: var(--primary-600);"></i>
+                        <span>No Logo Set</span>
+                      </div>
+                    }
+                  </div>
+                  <div class="logo-meta">
+                    <strong>{{ companyForm.legalName || 'Apex Technologies' }}</strong>
+                    <span class="text-muted">{{ companyForm.extraDetails?.tagline || 'Enterprise ERP Profile' }}</span>
+                  </div>
+                </div>
+
+                <!-- LOGO INPUTS & PRESETS -->
+                <div class="logo-controls">
+                  <div class="form-group">
+                    <label>Logo Image URL / CDN Link</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.logoUrl" 
+                      placeholder="https://example.com/assets/logo.png" 
+                    />
+                    <span class="field-hint">Direct HTTPS URL of PNG, JPG, or SVG logo.</span>
+                  </div>
+
+                  <div class="logo-presets">
+                    <label class="text-xs uppercase font-bold text-muted">Quick Demo Logos:</label>
+                    <div class="preset-buttons">
+                      <button type="button" class="preset-btn" (click)="setLogoPreset('zeno')">
+                        <i class="pi pi-check"></i> Zeno Modern
+                      </button>
+                      <button type="button" class="preset-btn" (click)="setLogoPreset('tech')">
+                        <i class="pi pi-bolt"></i> Apex Tech
+                      </button>
+                      <button type="button" class="preset-btn" (click)="setLogoPreset('corp')">
+                        <i class="pi pi-globe"></i> Global Corp
+                      </button>
+                      <button type="button" class="preset-btn text-danger" (click)="companyForm.logoUrl = ''">
+                        <i class="pi pi-trash"></i> Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Brand Tagline / Slogan</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.extraDetails.tagline" 
+                      placeholder="e.g. Engineered for Precision & Reliability" 
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Print Invoice Header Note</label>
+                    <textarea 
+                      rows="2" 
+                      [(ngModel)]="companyForm.extraDetails.invoiceHeaderNote" 
+                      placeholder="e.g. ISO 9001:2015 Certified Manufacturing Facility"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Print Invoice Footer Declaration & Jurisdiction</label>
+                    <textarea 
+                      rows="2" 
+                      [(ngModel)]="companyForm.extraDetails.invoiceFooterNote" 
+                      placeholder="e.g. Certified that all particulars are true and correct. Subject to local jurisdiction."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="profile-item">
-              <span class="profile-label">State / Jurisdiction</span>
-              <span class="profile-value">{{ branchState }}</span>
+          }
+        </div>
+      }
+
+      <!-- TAB: WAREHOUSE MASTER (AFTER COMPANY PROFILE) -->
+      @if (activeTab === 'warehouses') {
+        <div class="warehouses-page-view">
+          <!-- STATS / KPI SUMMARY CARDS -->
+          <div class="warehouse-stats-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap primary">
+                <i class="pi pi-warehouse"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ warehouses.length }}</div>
+                <div class="kpi-label">Total Warehouses / Godowns</div>
+              </div>
             </div>
-            <div class="profile-item full-width">
-              <span class="profile-label">Registered Office Address</span>
-              <span class="profile-value">{{ branchAddress }}</span>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap custom">
+                <i class="pi pi-check-circle"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ getActiveWarehousesCount() }}</div>
+                <div class="kpi-label">Active Storage Facilities</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap users">
+                <i class="pi pi-sitemap"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ getUniqueBranchesCount() }}</div>
+                <div class="kpi-label">Associated Branches</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOLBAR: SEARCH & BRANCH FILTER -->
+          <div class="warehouse-toolbar zeno-card">
+            <div class="search-input-wrap">
+              <i class="pi pi-search"></i>
+              <input 
+                type="text" 
+                [(ngModel)]="warehouseSearchQuery" 
+                placeholder="Search warehouse by name, code, city, or contact..." 
+              />
+              @if (warehouseSearchQuery) {
+                <button class="clear-search-btn" (click)="warehouseSearchQuery = ''">
+                  <i class="pi pi-times"></i>
+                </button>
+              }
+            </div>
+
+            <div class="warehouse-filters">
+              <label><i class="pi pi-filter"></i> Branch:</label>
+              <select [(ngModel)]="warehouseBranchFilter">
+                <option value="ALL">All Branches</option>
+                @for (b of tenant.branches(); track b.id) {
+                  <option [value]="b.id">{{ b.branchName }} ({{ b.branchCode }})</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- WAREHOUSES TABLE -->
+          <div class="zeno-card warehouse-table-card">
+            <div class="table-responsive">
+              <table class="zeno-table">
+                <thead>
+                  <tr>
+                    <th style="min-width: 220px;">Warehouse / Godown</th>
+                    <th style="min-width: 160px;">Linked Branch</th>
+                    <th style="min-width: 240px;">Physical Address</th>
+                    <th style="min-width: 180px;">Contact Person</th>
+                    <th style="min-width: 100px;">Status</th>
+                    <th style="min-width: 110px; text-align: center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (filteredWarehouses.length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center py-8 text-muted">
+                        <i class="pi pi-warehouse" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                        No warehouses or storage facilities matched the criteria.
+                      </td>
+                    </tr>
+                  }
+                  @for (wh of filteredWarehouses; track wh.id) {
+                    <tr>
+                      <td>
+                        <div class="warehouse-cell">
+                          <div class="wh-icon"><i class="pi pi-box"></i></div>
+                          <div>
+                            <strong class="wh-name">{{ wh.name }}</strong>
+                            <div class="wh-code font-mono">{{ wh.code }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge-pill badge-primary">
+                          <i class="pi pi-map-marker"></i> {{ wh.branch?.branchName || 'Main Branch' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="wh-address">
+                          {{ wh.address || '—' }}
+                          @if (wh.city || wh.pincode) {
+                            <div class="text-xs text-muted">{{ wh.city }} {{ wh.state }} {{ wh.pincode }}</div>
+                          }
+                        </div>
+                      </td>
+                      <td>
+                        <div>{{ wh.contactPerson || '—' }}</div>
+                        @if (wh.contactPhone) {
+                          <div class="text-xs font-mono text-muted">{{ wh.contactPhone }}</div>
+                        }
+                      </td>
+                      <td>
+                        <span class="badge-pill" [class.badge-active]="wh.isActive" [class.badge-inactive]="!wh.isActive">
+                          {{ wh.isActive ? 'Active' : 'Inactive' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="action-buttons-wrap">
+                          <button class="btn-icon" (click)="openEditWarehouseModal(wh)" title="Edit Warehouse">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button class="btn-icon text-danger" (click)="openDeleteWarehouseModal(wh)" title="Delete Warehouse">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: CREATE NEW WAREHOUSE -->
+        @if (createWarehouseModalVisible) {
+          <div class="modal-backdrop">
+            <div class="modal-dialog">
+              <div class="modal-header">
+                <h3>Add New Warehouse / Godown</h3>
+                <button class="close-btn" (click)="createWarehouseModalVisible = false"><i class="pi pi-times"></i></button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label>Warehouse Name <span class="required">*</span></label>
+                  <input type="text" [(ngModel)]="newWarehouse.name" placeholder="e.g. Central Finished Goods Warehouse" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Warehouse Code <span class="required">*</span></label>
+                    <input type="text" [(ngModel)]="newWarehouse.code" placeholder="e.g. WH-01" class="font-mono uppercase" />
+                  </div>
+                  <div class="form-group">
+                    <label>Associated Branch <span class="required">*</span></label>
+                    <select [(ngModel)]="newWarehouse.branchId">
+                      @for (b of tenant.branches(); track b.id) {
+                        <option [value]="b.id">{{ b.branchName }} ({{ b.branchCode }})</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Address Line</label>
+                  <input type="text" [(ngModel)]="newWarehouse.address" placeholder="Plot / Shed / Logistic Hub Address" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>City</label>
+                    <input type="text" [(ngModel)]="newWarehouse.city" placeholder="e.g. Mumbai" />
+                  </div>
+                  <div class="form-group">
+                    <label>State</label>
+                    <input type="text" [(ngModel)]="newWarehouse.state" placeholder="e.g. Maharashtra" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Pincode</label>
+                    <input type="text" [(ngModel)]="newWarehouse.pincode" placeholder="e.g. 400072" class="font-mono" />
+                  </div>
+                  <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" [(ngModel)]="newWarehouse.contactPerson" placeholder="Godown Manager Name" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Contact Phone</label>
+                    <input type="text" [(ngModel)]="newWarehouse.contactPhone" placeholder="+91 98000 00000" />
+                  </div>
+                  <div class="form-group flex-center-start" style="padding-top: 24px;">
+                    <label class="switch-inline">
+                      <input type="checkbox" [(ngModel)]="newWarehouse.isActive" />
+                      <span>Active Storage Facility</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn-secondary" (click)="createWarehouseModalVisible = false">Cancel</button>
+                <button class="btn-primary" (click)="submitCreateWarehouse()" [disabled]="savingWarehouse || !newWarehouse.name.trim() || !newWarehouse.code.trim()">
+                  <i class="pi pi-check"></i> {{ savingWarehouse ? 'Creating...' : 'Save Warehouse' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- MODAL: EDIT WAREHOUSE -->
+        @if (editWarehouseModalVisible && warehouseToEdit) {
+          <div class="modal-backdrop">
+            <div class="modal-dialog">
+              <div class="modal-header">
+                <h3>Edit Warehouse Information</h3>
+                <button class="close-btn" (click)="editWarehouseModalVisible = false"><i class="pi pi-times"></i></button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label>Warehouse Name <span class="required">*</span></label>
+                  <input type="text" [(ngModel)]="warehouseToEdit.name" placeholder="Warehouse Name" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Warehouse Code <span class="required">*</span></label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.code" placeholder="Code" class="font-mono uppercase" />
+                  </div>
+                  <div class="form-group">
+                    <label>Associated Branch</label>
+                    <select [(ngModel)]="warehouseToEdit.branchId">
+                      @for (b of tenant.branches(); track b.id) {
+                        <option [value]="b.id">{{ b.branchName }} ({{ b.branchCode }})</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Address</label>
+                  <input type="text" [(ngModel)]="warehouseToEdit.address" placeholder="Address" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>City</label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.city" placeholder="City" />
+                  </div>
+                  <div class="form-group">
+                    <label>State</label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.state" placeholder="State" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Pincode</label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.pincode" placeholder="Pincode" class="font-mono" />
+                  </div>
+                  <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.contactPerson" placeholder="Contact Person" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Contact Phone</label>
+                    <input type="text" [(ngModel)]="warehouseToEdit.contactPhone" placeholder="Phone" />
+                  </div>
+                  <div class="form-group flex-center-start" style="padding-top: 24px;">
+                    <label class="switch-inline">
+                      <input type="checkbox" [(ngModel)]="warehouseToEdit.isActive" />
+                      <span>Active Storage Facility</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn-secondary" (click)="editWarehouseModalVisible = false">Cancel</button>
+                <button class="btn-primary" (click)="submitEditWarehouse()" [disabled]="savingWarehouse || !warehouseToEdit.name.trim()">
+                  <i class="pi pi-check"></i> {{ savingWarehouse ? 'Updating...' : 'Save Changes' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- MODAL: CONFIRM DELETE WAREHOUSE -->
+        @if (deleteWarehouseModalVisible && warehouseToDelete) {
+          <div class="modal-backdrop">
+            <div class="modal-dialog">
+              <div class="modal-header">
+                <h3>Delete Warehouse</h3>
+                <button class="close-btn" (click)="deleteWarehouseModalVisible = false"><i class="pi pi-times"></i></button>
+              </div>
+              <div class="modal-body">
+                <div class="delete-dialog-content">
+                  <i class="pi pi-exclamation-triangle warning-icon"></i>
+                  <div>
+                    <p>Are you sure you want to delete warehouse <strong>{{ warehouseToDelete.name }} ({{ warehouseToDelete.code }})</strong>?</p>
+                    <p class="text-sm text-muted">This will remove the godown definition from branch listings. Note that historical vouchers will retain their audit records.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn-secondary" (click)="deleteWarehouseModalVisible = false">Cancel</button>
+                <button class="btn-danger" (click)="confirmDeleteWarehouse()" [disabled]="savingWarehouse">
+                  <i class="pi pi-trash"></i> {{ savingWarehouse ? 'Deleting...' : 'Confirm Delete' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- MODAL: EDIT ROLE DETAILS -->
+      @if (editRoleModalVisible && editingRole) {
+        <div class="modal-backdrop">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h3>Edit Role Information</h3>
+              <button class="close-btn" (click)="editRoleModalVisible = false"><i class="pi pi-times"></i></button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>Role Name <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="editingRole.name" 
+                  [disabled]="editingRole.isSystem" 
+                  placeholder="Role Name *" 
+                />
+                @if (editingRole.isSystem) {
+                  <span class="helper-text">System predefined role names cannot be renamed.</span>
+                }
+              </div>
+              <div class="form-group">
+                <label>Functional Duties / Description</label>
+                <textarea 
+                  rows="3" 
+                  [(ngModel)]="editingRole.description" 
+                  placeholder="Specify functional duties, reporting hierarchy, and notes..."
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-secondary" (click)="editRoleModalVisible = false">Cancel</button>
+              <button class="btn-primary" (click)="submitEditRole()" [disabled]="savingRole || !editingRole.name.trim()">
+                <i class="pi pi-check"></i> {{ savingRole ? 'Saving...' : 'Save Changes' }}
+              </button>
             </div>
           </div>
         </div>
       }
 
-      <!-- MODAL: CREATE CUSTOM ROLE -->
-      @if (showNewRoleModal) {
+      <!-- MODAL: CONFIRM DELETE CUSTOM ROLE -->
+      @if (deleteRoleModalVisible && roleToDelete) {
         <div class="modal-backdrop">
           <div class="modal-dialog">
             <div class="modal-header">
-              <h3>Create Custom Role</h3>
-              <button class="close-btn" (click)="showNewRoleModal = false"><i class="pi pi-times"></i></button>
+              <h3>Delete Custom Role</h3>
+              <button class="close-btn" (click)="deleteRoleModalVisible = false"><i class="pi pi-times"></i></button>
             </div>
             <div class="modal-body">
-              <div class="form-group">
-                <label>Role Name *</label>
-                <input type="text" [(ngModel)]="newRole.name" placeholder="e.g. Sales Executive, Inventory Auditor" />
-              </div>
-              <div class="form-group">
-                <label>Role Description</label>
-                <textarea rows="3" [(ngModel)]="newRole.description" placeholder="Specify functional duties and access scope..."></textarea>
+              <div class="delete-dialog-content">
+                <div class="delete-icon-wrap">
+                  <i class="pi pi-exclamation-triangle"></i>
+                </div>
+                <div>
+                  <p class="delete-msg">
+                    Are you sure you want to delete role <strong>"{{ roleToDelete.name }}"</strong>?
+                  </p>
+                  @if (getUserCountForRole(roleToDelete.id) > 0) {
+                    <div class="user-warning-box">
+                      <i class="pi pi-users"></i>
+                      <span>Warning: <strong>{{ getUserCountForRole(roleToDelete.id) }}</strong> active user(s) currently assigned to this role will lose these privileges.</span>
+                    </div>
+                  }
+                  <p class="delete-subtext">This action cannot be undone. All custom permission mappings associated with this role will be permanently removed.</p>
+                </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn-secondary" (click)="showNewRoleModal = false">Cancel</button>
-              <button class="btn-primary" (click)="submitNewRole()">Create Role</button>
+              <button class="btn-secondary" (click)="deleteRoleModalVisible = false">Cancel</button>
+              <button class="btn-primary btn-danger-action" (click)="deleteRoleConfirmed()" [disabled]="deletingRole">
+                <i class="pi pi-trash"></i> {{ deletingRole ? 'Deleting...' : 'Confirm Delete' }}
+              </button>
             </div>
           </div>
         </div>
@@ -1516,213 +2856,738 @@ import { MastersService } from '../../core/services/masters.service';
       }
     }
 
-    .matrix-layout {
+    /* =========================================================
+       USER ROLES & PERMISSIONS DESIGN SYSTEM
+       ========================================================= */
+    .roles-list-view {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* KPI Summary Cards Grid */
+    .roles-stats-grid {
       display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 18px;
-      align-items: start;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 8px;
     }
 
-    .roles-list-panel {
-      padding: 16px;
+    .kpi-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
       background: #ffffff;
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-subtle);
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--primary-300);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-card);
+      }
+
+      &.kpi-selected {
+        border-color: var(--primary-500);
+        box-shadow: 0 0 0 1px var(--primary-500);
+        background: #f8fbff;
+      }
     }
 
-    .panel-header {
+    .kpi-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+
+      &.primary {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
+      &.system {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      &.custom {
+        background: #ecfdf5;
+        color: #059669;
+      }
+
+      &.users {
+        background: #faf5ff;
+        color: #9333ea;
+      }
+    }
+
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--surface-900);
+      line-height: 1.1;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--surface-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 3px;
+    }
+
+    /* Roles Toolbar */
+    .roles-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+      max-width: 380px;
+
+      i.pi-search {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--surface-400);
+        font-size: 0.875rem;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px 32px 8px 34px;
+        font-size: 0.8125rem;
+        border: 1px solid var(--surface-300);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+        color: var(--surface-900);
+
+        &:focus {
+          border-color: var(--primary-500);
+          outline: none;
+        }
+      }
+
+      .clear-search-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--surface-400);
+        cursor: pointer;
+        font-size: 0.75rem;
+        padding: 4px;
+
+        &:hover {
+          color: var(--surface-700);
+        }
+      }
+    }
+
+    .filter-pills-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-pill {
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--surface-200);
+      background: var(--surface-50);
+      color: var(--surface-600);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--surface-100);
+        color: var(--surface-800);
+      }
+
+      &.active {
+        background: var(--primary-600);
+        color: #ffffff;
+        border-color: var(--primary-600);
+      }
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Roles Table Card */
+    .roles-table-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .roles-table-wrap {
+      overflow-x: auto;
+    }
+
+    .roles-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th {
+        background: var(--surface-50);
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--surface-600);
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--surface-200);
+        letter-spacing: 0.04em;
+      }
+
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--surface-100);
+        font-size: 0.8125rem;
+        vertical-align: middle;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+    }
+
+    .role-row {
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #fbfcfe;
+      }
+    }
+
+    .role-cell-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      background: #eff6ff;
+      color: #2563eb;
+      flex-shrink: 0;
+
+      &.system {
+        background: #f1f5f9;
+        color: #475569;
+      }
+    }
+
+    .role-text-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .role-row-name {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--surface-900);
+    }
+
+    .badge-system {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      background: var(--surface-100);
+      color: var(--surface-700);
+      border: 1px solid var(--surface-200);
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      width: fit-content;
+    }
+
+    .badge-custom {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      width: fit-content;
+    }
+
+    .role-row-desc {
+      font-size: 0.8125rem;
+      color: var(--surface-600);
+      margin: 0;
+      line-height: 1.4;
+      max-width: 360px;
+    }
+
+    .privilege-coverage-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-width: 200px;
+    }
+
+    .privilege-count-line {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 12px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--surface-200);
+      font-size: 0.75rem;
     }
 
-    .panel-title {
+    .priv-count {
+      color: var(--surface-700);
+      strong {
+        color: var(--surface-900);
+      }
+    }
+
+    .priv-pct {
       font-weight: 700;
-      font-size: 0.875rem;
-      color: var(--surface-800);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--primary-600);
     }
 
-    .roles-list {
+    .priv-progress-bar {
+      height: 6px;
+      background: var(--surface-100);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .priv-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .priv-categories-tags {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 2px;
     }
 
-    .role-card-item {
-      padding: 12px 14px;
-      border: 1px solid var(--surface-200);
+    .cat-micro-tag {
+      font-size: 0.625rem;
+      font-weight: 600;
+      background: var(--surface-100);
+      color: var(--surface-600);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    .users-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--surface-500);
+      padding: 4px 10px;
+      background: var(--surface-100);
+      border-radius: var(--radius-full);
+
+      &.has-users {
+        color: #0369a1;
+        background: #f0f9ff;
+      }
+    }
+
+    .role-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .btn-action-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: all 0.15s ease;
 
       &:hover {
-        background: var(--surface-50);
-        border-color: var(--surface-300);
-      }
-
-      &.selected {
-        background: #f0f7ff;
-        border-color: var(--primary-500);
-        box-shadow: 0 0 0 1px var(--primary-500);
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
       }
     }
 
-    .role-item-top {
-      display: flex;
-      justify-content: space-between;
+    .btn-action-secondary {
+      display: inline-flex;
       align-items: center;
-      margin-bottom: 4px;
-    }
-
-    .role-name {
-      font-weight: 700;
-      font-size: 0.875rem;
-      color: var(--surface-900);
-    }
-
-    .badge-system {
-      font-size: 0.625rem;
-      font-weight: 700;
-      background: var(--surface-200);
-      color: var(--surface-700);
-      padding: 2px 6px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    .badge-custom {
-      font-size: 0.625rem;
-      font-weight: 700;
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 2px 6px;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-
-    .role-desc {
-      font-size: 0.75rem;
-      color: var(--surface-500);
-      margin: 0 0 8px 0;
-      line-height: 1.35;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .role-stats {
-      font-size: 0.6875rem;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      font-size: 0.8125rem;
+      background: var(--surface-50);
       color: var(--surface-600);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
 
-    /* Matrix Panel */
-    .matrix-panel {
-      padding: 20px 24px;
-      background: #ffffff;
-    }
-
-    .matrix-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 20px;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--surface-200);
-    }
-
-    .role-header-info {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex: 1;
-      max-width: 680px;
-    }
-
-    .matrix-role-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      h2 {
-        margin: 0;
-        font-size: 1.125rem;
-        font-weight: 700;
+      &:hover {
+        background: var(--surface-200);
         color: var(--surface-900);
       }
     }
 
-    .role-name-edit-group {
+    .btn-action-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      font-size: 0.8125rem;
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #dc2626;
+        color: #ffffff;
+        border-color: #dc2626;
+      }
+    }
+
+    .empty-state-cell {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .empty-state-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+
+      .empty-icon {
+        font-size: 2.25rem;
+        color: var(--surface-400);
+        margin-bottom: 4px;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--surface-800);
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--surface-500);
+      }
+    }
+
+    /* Sub-nav / Breadcrumb */
+    .view-subnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: #ffffff;
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .btn-subnav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      background: var(--surface-100);
+      color: var(--surface-700);
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--surface-200);
+        color: var(--surface-900);
+      }
+    }
+
+    .subnav-title-wrap {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .role-title-input {
+    .subnav-title {
       font-size: 1.125rem;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--surface-900);
-      border: 1px solid var(--surface-300);
-      border-radius: var(--radius-sm);
-      padding: 4px 10px;
-      background: #ffffff;
-
-      &:focus {
-        border-color: var(--primary-500);
-        outline: none;
-      }
     }
 
-    .role-desc-group {
+    /* Role Create & Edit Cards */
+    .role-create-view,
+    .role-permissions-view {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 16px;
+      padding-bottom: 72px; /* for sticky bottom bar */
     }
 
-    .role-note-label {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--surface-500);
+    .role-form-card,
+    .role-edit-header-card {
+      padding: 20px 24px;
+      background: #ffffff;
+    }
+
+    .role-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .role-header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .role-meta-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .role-privilege-summary-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 14px;
+      background: var(--surface-50);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--surface-200);
+    }
+
+    .summary-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .stat-number {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary-600);
+    }
+
+    .stat-text {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--surface-600);
+    }
+
+    .summary-progress {
+      height: 6px;
+      background: var(--surface-200);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .summary-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    /* Matrix Toolbar */
+    .matrix-filter-bar {
       display: flex;
       align-items: center;
-      gap: 5px;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 20px;
+      flex-wrap: wrap;
     }
 
-    .role-note-input {
-      width: 100%;
-      padding: 6px 12px;
-      font-size: 0.8125rem;
-      border: 1px solid var(--surface-300);
-      border-radius: var(--radius-sm);
-      background: var(--surface-50);
-      color: var(--surface-800);
+    .matrix-search {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      max-width: 340px;
 
-      &:focus {
-        background: #ffffff;
-        border-color: var(--primary-500);
-        outline: none;
+      i.pi-search {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--surface-400);
+        font-size: 0.875rem;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px 30px 8px 34px;
+        font-size: 0.8125rem;
+        border: 1px solid var(--surface-300);
+        border-radius: var(--radius-sm);
+
+        &:focus {
+          border-color: var(--primary-500);
+          outline: none;
+        }
+      }
+
+      .clear-search-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--surface-400);
+        cursor: pointer;
+        padding: 4px;
       }
     }
 
-    .matrix-header-actions {
+    .category-tabs {
       display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cat-tab {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--surface-200);
+      background: var(--surface-50);
+      color: var(--surface-600);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--surface-100);
+        color: var(--surface-800);
+      }
+
+      &.active {
+        background: var(--primary-600);
+        color: #ffffff;
+        border-color: var(--primary-600);
+      }
+    }
+
+    .matrix-bulk-actions {
+      display: flex;
+      gap: 8px;
       align-items: center;
+    }
+
+    .btn-bulk {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--surface-100);
+      color: var(--surface-700);
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--surface-200);
+        color: var(--surface-900);
+      }
+
+      &.text-danger {
+        color: #dc2626;
+        border-color: #fecaca;
+        background: #fef2f2;
+
+        &:hover {
+          background: #dc2626;
+          color: #ffffff;
+        }
+      }
+    }
+
+    /* Matrix Card & Table */
+    .matrix-card,
+    .matrix-editor-card {
+      padding: 20px 24px;
+      background: #ffffff;
     }
 
     .matrix-table-wrap {
       overflow-x: auto;
       border: 1px solid var(--surface-200);
       border-radius: var(--radius-sm);
+      margin-top: 12px;
     }
 
     .matrix-table {
@@ -1731,12 +3596,13 @@ import { MastersService } from '../../core/services/masters.service';
 
       th {
         background: var(--surface-50);
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.75rem;
         text-transform: uppercase;
         color: var(--surface-600);
         padding: 10px 12px;
         border-bottom: 1px solid var(--surface-200);
+        letter-spacing: 0.04em;
       }
 
       td {
@@ -1751,14 +3617,67 @@ import { MastersService } from '../../core/services/masters.service';
       }
     }
 
+    .th-action-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .btn-th-col-toggle {
+      background: none;
+      border: none;
+      color: var(--surface-400);
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+
+      &:hover {
+        color: var(--primary-600);
+        background: var(--surface-200);
+      }
+    }
+
     .module-cell {
       display: flex;
+      align-items: center;
+    }
+
+    .module-identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .module-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      background: var(--surface-100);
+      color: var(--surface-700);
+      flex-shrink: 0;
+    }
+
+    .module-text {
+      display: flex;
       flex-direction: column;
+      gap: 1px;
     }
 
     .module-name {
       font-weight: 600;
-      color: var(--surface-800);
+      color: var(--surface-900);
+      font-size: 0.8125rem;
+    }
+
+    .module-key {
+      font-size: 0.625rem;
+      color: var(--surface-400);
     }
 
     .category-pill {
@@ -1785,13 +3704,119 @@ import { MastersService } from '../../core/services/masters.service';
       color: var(--surface-700);
       font-size: 0.6875rem;
       font-weight: 600;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 4px;
       cursor: pointer;
+      transition: all 0.15s ease;
 
       &:hover {
         background: var(--surface-200);
         color: var(--surface-900);
+      }
+
+      &.btn-all-active {
+        background: #ecfdf5;
+        color: #047857;
+        border-color: #a7f3d0;
+      }
+    }
+
+    .row-highlight {
+      background: #fafcfe;
+    }
+
+    /* Sticky Bottom Save Bar */
+    .sticky-save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 240px;
+      right: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--surface-200);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .save-bar-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      color: var(--surface-700);
+
+      i {
+        font-size: 1.125rem;
+        color: var(--primary-600);
+      }
+    }
+
+    .save-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Delete Dialog Content */
+    .delete-dialog-content {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 8px 0;
+    }
+
+    .delete-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .delete-msg {
+      font-size: 0.9375rem;
+      color: var(--surface-900);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .user-warning-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius-sm);
+      color: #b45309;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .delete-subtext {
+      font-size: 0.75rem;
+      color: var(--surface-500);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    .btn-danger-action {
+      background: #dc2626 !important;
+      border-color: #dc2626 !important;
+
+      &:hover {
+        background: #b91c1c !important;
+        border-color: #b91c1c !important;
       }
     }
 
@@ -2189,14 +4214,386 @@ import { MastersService } from '../../core/services/masters.service';
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+
+    /* Company Sub-tabs */
+    .company-profile-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .company-subnav-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #ffffff;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--surface-200);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .subnav-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--surface-600);
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      i { font-size: 0.875rem; color: var(--surface-400); }
+
+      &:hover {
+        background: var(--surface-100);
+        color: var(--surface-900);
+      }
+
+      &.active {
+        background: var(--primary-50);
+        color: var(--primary-700);
+        border-color: var(--primary-200);
+        i { color: var(--primary-600); }
+      }
+    }
+
+    .form-grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px 24px;
+      margin-top: 16px;
+    }
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .field-hint {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--surface-500);
+      margin-top: 4px;
+    }
+
+    .addresses-layout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+    }
+
+    /* Branding & Logo */
+    .branding-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 28px;
+      margin-top: 16px;
+      align-items: start;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .logo-preview-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      background: var(--surface-50);
+      text-align: center;
+    }
+
+    .logo-box {
+      width: 140px;
+      height: 140px;
+      border-radius: var(--radius-md);
+      border: 2px dashed var(--surface-300);
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .logo-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .logo-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--surface-400);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .logo-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      strong { font-size: 0.95rem; color: var(--surface-900); }
+    }
+
+    .logo-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .logo-presets {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #ffffff;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: var(--surface-100);
+        border-color: var(--surface-400);
+      }
+
+      &.text-danger {
+        color: #dc2626;
+        &:hover { background: #fef2f2; border-color: #fca5a5; }
+      }
+    }
+
+    /* Warehouse Master Styles */
+    .warehouses-page-view {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .warehouse-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .warehouse-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 18px;
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--surface-200);
+
+      @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+
+    .warehouse-filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--surface-600);
+
+      select {
+        padding: 6px 12px;
+        border: 1px solid var(--surface-300);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+        font-size: 0.8125rem;
+        outline: none;
+      }
+    }
+
+    .warehouse-table-card {
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--surface-200);
+      overflow: hidden;
+    }
+
+    .warehouse-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .wh-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .wh-name {
+      font-size: 0.875rem;
+      color: var(--surface-900);
+      display: block;
+    }
+
+    .wh-code {
+      font-size: 0.72rem;
+      color: var(--surface-500);
+    }
+
+    .wh-address {
+      font-size: 0.8125rem;
+      color: var(--surface-700);
+      line-height: 1.4;
+    }
+
+    .badge-active {
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 700;
+    }
+
+    .badge-inactive {
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .switch-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--surface-800);
+      cursor: pointer;
+    }
+
+    .delete-dialog-content {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 10px 0;
+
+      .warning-icon {
+        font-size: 2rem;
+        color: #dc2626;
+      }
+    }
   `],
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' | 'company' = 'toggles';
+  activeTab: 'company' | 'warehouses' | 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' = 'company';
   gstSubTab: 'hierarchy' | 'slabs' = 'hierarchy';
+  companySubTab: 'basic' | 'address' | 'gst' | 'contact' | 'logo' = 'basic';
   saving = false;
+  savingCompany = false;
+  savingWarehouse = false;
   saveSuccess = false;
   saveMessage = '';
+
+  companyForm: any = {
+    legalName: '',
+    tradeName: '',
+    code: '',
+    businessType: 'Private Limited Company',
+    financialYearStart: '2025-04-01',
+    financialYearEnd: '2026-03-31',
+    booksBeginFrom: '2025-04-01',
+    currencyCode: 'INR',
+    gstRegistrationType: 'Regular',
+    gstin: '',
+    pan: '',
+    stateName: 'Maharashtra (27)',
+    filingFrequency: 'Monthly',
+    arnNumber: '',
+    billingAddress: {
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: 'India',
+    },
+    shippingAddress: {
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: 'India',
+    },
+    contactDetails: {
+      contactPerson: '',
+      email: '',
+      phone: '',
+      alternatePhone: '',
+      website: '',
+    },
+    logoUrl: '/zeno-books-logo.png',
+    extraDetails: {
+      tagline: 'Precision Accounting & Financial ERP',
+      invoiceHeaderNote: '',
+      invoiceFooterNote: '',
+    },
+  };
+
+  // Warehouse Master State
+  warehouses: any[] = [];
+  warehouseSearchQuery: string = '';
+  warehouseBranchFilter: string = 'ALL';
+  createWarehouseModalVisible = false;
+  editWarehouseModalVisible = false;
+  deleteWarehouseModalVisible = false;
+  warehouseToEdit: any = null;
+  warehouseToDelete: any = null;
+
+  newWarehouse: any = {
+    name: '',
+    code: '',
+    branchId: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    contactPerson: '',
+    contactPhone: '',
+    isActive: true,
+  };
 
   get currentCompany() {
     return this.tenant.currentCompany();
@@ -2279,11 +4676,13 @@ export class SettingsComponent implements OnInit {
     inventorySettings: {},
   };
 
-  // Pre-seed all 6 system capability toggles immediately so UI is never blank
+  // Pre-seed all system capability toggles including Sales Order & Delivery Challan
   toggles: any[] = [
     { featureKey: 'GST', isEnabled: true },
     { featureKey: 'PURCHASE_ORDER', isEnabled: true },
     { featureKey: 'GRN', isEnabled: true },
+    { featureKey: 'SALES_ORDER', isEnabled: true },
+    { featureKey: 'DELIVERY_CHALLAN', isEnabled: true },
     { featureKey: 'VARIANTS', isEnabled: true },
     { featureKey: 'RACK_BIN', isEnabled: true },
     { featureKey: 'MANUFACTURING', isEnabled: true },
@@ -2296,12 +4695,23 @@ export class SettingsComponent implements OnInit {
   roles: any[] = [];
   users: any[] = [];
   selectedRole: any = null;
-  rolesViewMode: 'matrix' | 'users' = 'matrix';
+  roleViewMode: 'list' | 'permissions' | 'create' = 'list';
+  roleSearchQuery: string = '';
+  roleTypeFilter: 'all' | 'system' | 'custom' = 'all';
+  moduleSearchQuery: string = '';
+  selectedCategoryFilter: string = 'ALL';
+  createBaseRoleId: string = '';
   savingRole = false;
   showNewRoleModal = false;
-  newRole = { name: '', description: '' };
+  newRole: any = { name: '', description: '', permissions: [] };
   showNewUserModal = false;
   newUser = { fullName: '', email: '', phone: '', roleId: '' };
+
+  editRoleModalVisible = false;
+  editingRole: any = { id: '', name: '', description: '', isSystem: false };
+  deleteRoleModalVisible = false;
+  roleToDelete: any = null;
+  deletingRole = false;
 
   showTaxModal = false;
   newTax: any = {
@@ -2354,27 +4764,27 @@ export class SettingsComponent implements OnInit {
   };
 
   permissionModules = [
-    { key: 'LEDGER_GROUP', label: 'Ledger Groups', category: 'Masters' },
-    { key: 'LEDGER', label: 'Ledgers', category: 'Masters' },
-    { key: 'ITEM', label: 'Products & SKUs', category: 'Masters' },
-    { key: 'ITEM_GROUP', label: 'Stock Groups', category: 'Masters' },
-    { key: 'ITEM_CATEGORY', label: 'Stock Categories', category: 'Masters' },
-    { key: 'UNIT', label: 'Units of Measure', category: 'Masters' },
-    { key: 'VARIANT', label: 'Item Variants', category: 'Masters' },
-    { key: 'PURCHASE_ORDER', label: 'Purchase Orders', category: 'Procure to Pay' },
-    { key: 'GOODS_RECEIPT_NOTE', label: 'Goods Receipt (GRN)', category: 'Procure to Pay' },
-    { key: 'PURCHASE_INVOICE', label: 'Purchase Invoices', category: 'Procure to Pay' },
-    { key: 'PURCHASE_RETURN', label: 'Purchase Returns', category: 'Procure to Pay' },
-    { key: 'VENDOR_PAYMENT', label: 'Vendor Payments', category: 'Procure to Pay' },
-    { key: 'SALES_ORDER', label: 'Sales Orders', category: 'Sales & Billing' },
-    { key: 'DELIVERY_CHALLAN', label: 'Delivery Challans', category: 'Sales & Billing' },
-    { key: 'SALES_INVOICE', label: 'Sales Invoices', category: 'Sales & Billing' },
-    { key: 'SALES_RETURN', label: 'Sales Returns', category: 'Sales & Billing' },
-    { key: 'CUSTOMER_RECEIPT', label: 'Customer Receipts', category: 'Sales & Billing' },
-    { key: 'SETTINGS', label: 'System Settings', category: 'Administration' },
-    { key: 'ROLES', label: 'Roles & Privileges', category: 'Administration' },
-    { key: 'USERS', label: 'User Directory', category: 'Administration' },
-    { key: 'REPORTS', label: 'Financial Reports', category: 'Administration' },
+    { key: 'LEDGER_GROUP', label: 'Ledger Groups', category: 'Masters', icon: 'pi pi-sitemap' },
+    { key: 'LEDGER', label: 'Ledgers', category: 'Masters', icon: 'pi pi-file-edit' },
+    { key: 'ITEM', label: 'Products & SKUs', category: 'Masters', icon: 'pi pi-tags' },
+    { key: 'ITEM_GROUP', label: 'Stock Groups', category: 'Masters', icon: 'pi pi-folder' },
+    { key: 'ITEM_CATEGORY', label: 'Stock Categories', category: 'Masters', icon: 'pi pi-tag' },
+    { key: 'UNIT', label: 'Units of Measure', category: 'Masters', icon: 'pi pi-compass' },
+    { key: 'VARIANT', label: 'Item Variants', category: 'Masters', icon: 'pi pi-sliders-v' },
+    { key: 'PURCHASE_ORDER', label: 'Purchase Orders', category: 'Procure to Pay', icon: 'pi pi-shopping-bag' },
+    { key: 'GOODS_RECEIPT_NOTE', label: 'Goods Receipt (GRN)', category: 'Procure to Pay', icon: 'pi pi-box' },
+    { key: 'PURCHASE_INVOICE', label: 'Purchase Invoices', category: 'Procure to Pay', icon: 'pi pi-file' },
+    { key: 'PURCHASE_RETURN', label: 'Purchase Returns', category: 'Procure to Pay', icon: 'pi pi-replay' },
+    { key: 'VENDOR_PAYMENT', label: 'Vendor Payments', category: 'Procure to Pay', icon: 'pi pi-credit-card' },
+    { key: 'SALES_ORDER', label: 'Sales Orders', category: 'Sales & Billing', icon: 'pi pi-shopping-cart' },
+    { key: 'DELIVERY_CHALLAN', label: 'Delivery Challans', category: 'Sales & Billing', icon: 'pi pi-truck' },
+    { key: 'SALES_INVOICE', label: 'Sales Invoices', category: 'Sales & Billing', icon: 'pi pi-receipt' },
+    { key: 'SALES_RETURN', label: 'Sales Returns', category: 'Sales & Billing', icon: 'pi pi-backward' },
+    { key: 'CUSTOMER_RECEIPT', label: 'Customer Receipts', category: 'Sales & Billing', icon: 'pi pi-wallet' },
+    { key: 'SETTINGS', label: 'System Settings', category: 'Administration', icon: 'pi pi-cog' },
+    { key: 'ROLES', label: 'Roles & Privileges', category: 'Administration', icon: 'pi pi-shield' },
+    { key: 'USERS', label: 'User Directory', category: 'Administration', icon: 'pi pi-users' },
+    { key: 'REPORTS', label: 'Financial Reports', category: 'Administration', icon: 'pi pi-chart-line' },
   ];
 
   permissionActions = [
@@ -2388,7 +4798,7 @@ export class SettingsComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private tenant: TenantService,
+    public tenant: TenantService,
     private masters: MastersService,
     private route: ActivatedRoute,
     private router: Router,
@@ -2405,7 +4815,7 @@ export class SettingsComponent implements OnInit {
         this.gstSubTab = 'hierarchy';
       } else if (
         tab &&
-        ['toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory', 'company'].includes(tab)
+        ['company', 'warehouses', 'toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory'].includes(tab)
       ) {
         this.activeTab = tab as any;
       }
@@ -2423,16 +4833,26 @@ export class SettingsComponent implements OnInit {
 
   getActiveTabTitle(): string {
     switch (this.activeTab) {
+      case 'company':
+        return 'Company Profile';
+      case 'warehouses':
+        return 'Warehouse';
       case 'toggles':
-        return 'Feature Toggles';
+        return 'Features';
       case 'roles':
-        return 'User Role & Permission';
+        if (this.roleViewMode === 'permissions' && this.selectedRole) {
+          return `${this.selectedRole.name} Permissions`;
+        }
+        if (this.roleViewMode === 'create') {
+          return 'Create New Custom Role';
+        }
+        return 'User Roles';
       case 'users':
         return 'Users';
       case 'mappings':
-        return 'Default Ledger Mapping';
+        return 'Default Ledgers';
       case 'vouchers':
-        return 'Voucher Number Configuration';
+        return 'Voucher Numbers';
       case 'sales':
         return 'Sales Configuration';
       case 'purchase':
@@ -2441,9 +4861,7 @@ export class SettingsComponent implements OnInit {
         return 'Inventory Configuration';
       case 'gst':
       case 'taxes':
-        return 'GST & Tax Management';
-      case 'company':
-        return 'Company Profile';
+        return 'GST';
       default:
         return 'Enterprise Settings';
     }
@@ -2493,6 +4911,8 @@ export class SettingsComponent implements OnInit {
   }
 
   loadAll() {
+    this.loadCompanyProfile();
+    this.loadWarehouses();
     const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
 
     // Load Settings
@@ -2672,31 +5092,342 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  // Roles View Helpers & Filters
+  getSystemRolesCount(): number {
+    return (this.roles || []).filter((r) => r.isSystem).length;
+  }
+
+  getCustomRolesCount(): number {
+    return (this.roles || []).filter((r) => !r.isSystem).length;
+  }
+
+  getUserCountForRole(roleId: string): number {
+    if (!roleId || !this.users) return 0;
+    return this.users.filter((u) => u.roleId === roleId || (u.role && u.role.id === roleId)).length;
+  }
+
+  filteredRoles(): any[] {
+    let list = this.roles || [];
+    if (this.roleTypeFilter === 'system') {
+      list = list.filter((r) => r.isSystem);
+    } else if (this.roleTypeFilter === 'custom') {
+      list = list.filter((r) => !r.isSystem);
+    }
+    if (this.roleSearchQuery && this.roleSearchQuery.trim()) {
+      const q = this.roleSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (r) =>
+          (r.name && r.name.toLowerCase().includes(q)) ||
+          (r.description && r.description.toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  }
+
+  getPrivilegeCount(role: any): number {
+    return (role?.permissions || []).length;
+  }
+
+  getPrivilegePercentage(role: any): number {
+    const total = this.permissionModules.length * this.permissionActions.length;
+    if (!total || !role) return 0;
+    const count = this.getPrivilegeCount(role);
+    return Math.min(100, Math.round((count / total) * 100));
+  }
+
+  getRoleCategoryBreakdown(role: any): string[] {
+    if (!role || !role.permissions || role.permissions.length === 0) return [];
+    const activeMods = new Set(
+      role.permissions.map((p: any) => p.moduleName || p.module),
+    );
+    const cats = new Set<string>();
+    for (const mod of this.permissionModules) {
+      if (activeMods.has(mod.key)) {
+        cats.add(mod.category);
+      }
+    }
+    return Array.from(cats);
+  }
+
+  getUniqueCategories(): string[] {
+    const cats = new Set<string>();
+    this.permissionModules.forEach((m) => cats.add(m.category));
+    return Array.from(cats);
+  }
+
+  getCategoryModuleCount(category: string): number {
+    return this.permissionModules.filter((m) => m.category === category).length;
+  }
+
+  filteredPermissionModules(): any[] {
+    let list = this.permissionModules || [];
+    if (this.selectedCategoryFilter && this.selectedCategoryFilter !== 'ALL') {
+      list = list.filter((m) => m.category === this.selectedCategoryFilter);
+    }
+    if (this.moduleSearchQuery && this.moduleSearchQuery.trim()) {
+      const q = this.moduleSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (m) =>
+          m.label.toLowerCase().includes(q) ||
+          m.key.toLowerCase().includes(q) ||
+          m.category.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }
+
+  isModuleActive(role: any, moduleKey: string): boolean {
+    if (!role || !role.permissions) return false;
+    return role.permissions.some(
+      (p: any) => p.moduleName === moduleKey || p.module === moduleKey,
+    );
+  }
+
+  isModuleFullyGranted(role: any, moduleKey: string): boolean {
+    if (!role || !role.permissions) return false;
+    return this.permissionActions.every((act) =>
+      this.hasPermission(role, moduleKey, act.key),
+    );
+  }
+
+  // Navigation and mode switching
+  startCreateRole() {
+    this.newRole = {
+      name: '',
+      description: '',
+      permissions: [],
+    };
+    this.createBaseRoleId = '';
+    this.moduleSearchQuery = '';
+    this.selectedCategoryFilter = 'ALL';
+    this.roleViewMode = 'create';
+  }
+
+  onBaseRoleChanged() {
+    if (!this.createBaseRoleId) {
+      this.newRole.permissions = [];
+      return;
+    }
+    const base = this.roles.find((r) => r.id === this.createBaseRoleId);
+    if (base && base.permissions) {
+      this.newRole.permissions = base.permissions.map((p: any) => ({
+        moduleName: p.moduleName || p.module,
+        module: p.moduleName || p.module,
+        action: p.action,
+      }));
+    } else {
+      this.newRole.permissions = [];
+    }
+  }
+
+  startConfigurePermissions(role: any) {
+    this.selectedRole = role;
+    this.moduleSearchQuery = '';
+    this.selectedCategoryFilter = 'ALL';
+    this.roleViewMode = 'permissions';
+  }
+
+  backToRoleList() {
+    this.roleViewMode = 'list';
+  }
+
+  cloneRole(role: any) {
+    this.newRole = {
+      name: `${role.name} Copy`,
+      description: `Cloned from ${role.name}. ${role.description || ''}`.trim(),
+      permissions: (role.permissions || []).map((p: any) => ({
+        moduleName: p.moduleName || p.module,
+        module: p.moduleName || p.module,
+        action: p.action,
+      })),
+    };
+    this.createBaseRoleId = role.id;
+    this.moduleSearchQuery = '';
+    this.selectedCategoryFilter = 'ALL';
+    this.roleViewMode = 'create';
+  }
+
+  submitCreateRole() {
+    if (!this.newRole.name || !this.newRole.name.trim()) return;
+
+    this.savingRole = true;
+    const permsPayload = (this.newRole.permissions || []).map((p: any) => ({
+      module: p.moduleName || p.module,
+      action: p.action,
+    }));
+
+    this.api
+      .post('/rbac/roles', {
+        name: this.newRole.name.trim(),
+        description: (this.newRole.description || '').trim(),
+        permissions: permsPayload,
+      })
+      .subscribe({
+        next: (created: any) => {
+          this.savingRole = false;
+          this.roles.push(created);
+          this.selectedRole = created;
+          this.roleViewMode = 'list';
+          this.saveSuccess = true;
+          this.saveMessage = `New role "${created.name}" created with ${permsPayload.length} privileges!`;
+          setTimeout(() => (this.saveSuccess = false), 3500);
+        },
+        error: (err: any) => {
+          this.savingRole = false;
+          alert(err?.error?.message || 'Failed to create role. Ensure role name is unique.');
+        },
+      });
+  }
+
+  openEditRoleModal(role: any) {
+    this.editingRole = {
+      id: role.id,
+      name: role.name,
+      description: role.description || '',
+      isSystem: role.isSystem,
+    };
+    this.editRoleModalVisible = true;
+  }
+
+  submitEditRole() {
+    if (!this.editingRole.name.trim()) return;
+    this.savingRole = true;
+
+    this.api
+      .put(`/rbac/roles/${this.editingRole.id}`, {
+        name: this.editingRole.name.trim(),
+        description: (this.editingRole.description || '').trim(),
+      })
+      .subscribe({
+        next: (updated: any) => {
+          this.savingRole = false;
+          this.editRoleModalVisible = false;
+          const target = this.roles.find((r) => r.id === this.editingRole.id);
+          if (target) {
+            target.name = updated.name || this.editingRole.name.trim();
+            target.description = updated.description !== undefined ? updated.description : this.editingRole.description;
+          }
+          this.saveSuccess = true;
+          this.saveMessage = `Role details updated successfully!`;
+          setTimeout(() => (this.saveSuccess = false), 3000);
+        },
+        error: (err: any) => {
+          this.savingRole = false;
+          alert(err?.error?.message || 'Failed to update role details.');
+        },
+      });
+  }
+
+  confirmDeleteRole(role: any) {
+    if (role.isSystem) return;
+    this.roleToDelete = role;
+    this.deleteRoleModalVisible = true;
+  }
+
+  deleteRoleConfirmed() {
+    if (!this.roleToDelete) return;
+    this.deletingRole = true;
+
+    this.api.delete(`/rbac/roles/${this.roleToDelete.id}`).subscribe({
+      next: () => {
+        this.deletingRole = false;
+        this.roles = this.roles.filter((r) => r.id !== this.roleToDelete.id);
+        if (this.selectedRole?.id === this.roleToDelete.id) {
+          this.selectedRole = this.roles.length > 0 ? this.roles[0] : null;
+        }
+        this.deleteRoleModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Role "${this.roleToDelete.name}" deleted successfully.`;
+        this.roleToDelete = null;
+        setTimeout(() => (this.saveSuccess = false), 3000);
+      },
+      error: (err: any) => {
+        this.deletingRole = false;
+        alert(err?.error?.message || 'Failed to delete role. It may still be in use.');
+      },
+    });
+  }
+
+  // Bulk actions on permission matrix
+  toggleColumnAll(role: any, actionKey: string) {
+    if (!role) return;
+    if (!role.permissions) role.permissions = [];
+
+    const visibleMods = this.filteredPermissionModules();
+    const allHaveIt = visibleMods.every((mod) =>
+      this.hasPermission(role, mod.key, actionKey),
+    );
+
+    if (allHaveIt) {
+      // Remove this action for all visible modules
+      const modKeys = new Set(visibleMods.map((m) => m.key));
+      role.permissions = role.permissions.filter(
+        (p: any) => !(modKeys.has(p.moduleName || p.module) && p.action === actionKey),
+      );
+    } else {
+      // Add this action for all visible modules
+      visibleMods.forEach((mod) => {
+        if (!this.hasPermission(role, mod.key, actionKey)) {
+          role.permissions.push({
+            moduleName: mod.key,
+            module: mod.key,
+            action: actionKey,
+          });
+        }
+      });
+    }
+  }
+
+  grantAllViewOnly(role: any) {
+    if (!role) return;
+    if (!role.permissions) role.permissions = [];
+    const visibleMods = this.filteredPermissionModules();
+    visibleMods.forEach((mod) => {
+      if (!this.hasPermission(role, mod.key, 'VIEW')) {
+        role.permissions.push({
+          moduleName: mod.key,
+          module: mod.key,
+          action: 'VIEW',
+        });
+      }
+    });
+  }
+
+  grantFullAccess(role: any) {
+    if (!role) return;
+    if (!role.permissions) role.permissions = [];
+    const visibleMods = this.filteredPermissionModules();
+    visibleMods.forEach((mod) => {
+      this.permissionActions.forEach((act) => {
+        if (!this.hasPermission(role, mod.key, act.key)) {
+          role.permissions.push({
+            moduleName: mod.key,
+            module: mod.key,
+            action: act.key,
+          });
+        }
+      });
+    });
+  }
+
+  revokeAllPermissions(role: any) {
+    if (!role) return;
+    if (this.selectedCategoryFilter === 'ALL' && !this.moduleSearchQuery) {
+      role.permissions = [];
+    } else {
+      const visibleModKeys = new Set(this.filteredPermissionModules().map((m) => m.key));
+      role.permissions = (role.permissions || []).filter(
+        (p: any) => !visibleModKeys.has(p.moduleName || p.module),
+      );
+    }
+  }
+
   openNewRoleModal() {
-    this.newRole = { name: '', description: '' };
-    this.showNewRoleModal = true;
+    this.startCreateRole();
   }
 
   submitNewRole() {
-    if (!this.newRole.name.trim()) return;
-
-    this.api.post('/rbac/roles', {
-      name: this.newRole.name.trim(),
-      description: this.newRole.description.trim(),
-      permissions: [],
-    }).subscribe({
-      next: (created: any) => {
-        this.showNewRoleModal = false;
-        this.roles.push(created);
-        this.selectedRole = created;
-        this.saveSuccess = true;
-        this.saveMessage = `New role "${created.name}" created successfully!`;
-        setTimeout(() => (this.saveSuccess = false), 3500);
-      },
-      error: (err: any) => {
-        alert(err?.error?.message || 'Failed to create role. Ensure role name is unique.');
-      },
-    });
+    this.submitCreateRole();
   }
 
   openNewUserModal() {
@@ -2861,6 +5592,8 @@ export class SettingsComponent implements OnInit {
       case 'GST': return 'Goods & Services Tax (GST)';
       case 'PURCHASE_ORDER': return 'Purchase Orders (PO)';
       case 'GRN': return 'Goods Receipt Notes (GRN)';
+      case 'SALES_ORDER': return 'Sales Orders (SO)';
+      case 'DELIVERY_CHALLAN': return 'Delivery Challans (DC)';
       case 'VARIANTS': return 'Item Variants & Attributes';
       case 'RACK_BIN': return 'Godown & Rack/Bin Storage';
       case 'MANUFACTURING': return 'BOM & Assembly Manufacturing';
@@ -2873,6 +5606,8 @@ export class SettingsComponent implements OnInit {
       case 'GST': return 'Enables statutory GSTIN calculations, HSN resolution, and balanced tax accounting ledgers.';
       case 'PURCHASE_ORDER': return 'Enables formal procurement workflow, tracking ordered vs pending quantities.';
       case 'GRN': return 'Gatekeeper warehouse stock-in step before finance invoice posting.';
+      case 'SALES_ORDER': return 'Enables booking of customer sales orders with fulfillment and backlog tracking.';
+      case 'DELIVERY_CHALLAN': return 'Enables delivery challans (DC) and gate-pass dispatch notes prior to sales billing.';
       case 'VARIANTS': return 'Manage matrix items with sizes, colors, and SKU-level variance.';
       case 'RACK_BIN': return 'Granular inventory location tracking within godowns and warehouses.';
       case 'MANUFACTURING': return 'Bill of Materials composition, component consumption, and finished goods assembly.';
@@ -2885,11 +5620,255 @@ export class SettingsComponent implements OnInit {
       case 'GST': return 'pi pi-percentage';
       case 'PURCHASE_ORDER': return 'pi pi-shopping-cart';
       case 'GRN': return 'pi pi-box';
+      case 'SALES_ORDER': return 'pi pi-file';
+      case 'DELIVERY_CHALLAN': return 'pi pi-truck';
       case 'VARIANTS': return 'pi pi-tags';
       case 'RACK_BIN': return 'pi pi-warehouse';
       case 'MANUFACTURING': return 'pi pi-cog';
       default: return 'pi pi-sliders-h';
     }
+  }
+
+  // COMPANY PROFILE METHODS
+  loadCompanyProfile() {
+    const comp = this.tenant.currentCompany();
+    if (comp) {
+      this.initCompanyForm(comp);
+    } else {
+      this.api.get<any[]>('/tenancy/companies').subscribe({
+        next: (companies) => {
+          if (companies && companies.length > 0) {
+            this.initCompanyForm(companies[0]);
+          }
+        },
+      });
+    }
+  }
+
+  initCompanyForm(comp: any) {
+    if (!comp) return;
+    this.companyForm = {
+      id: comp.id,
+      legalName: comp.legalName || comp.tradeName || comp.name || 'Apex Technologies Private Limited',
+      tradeName: comp.tradeName || comp.legalName || 'Apex Tech',
+      code: comp.code || 'APEX-01',
+      businessType: comp.businessType || 'Private Limited Company',
+      financialYearStart: comp.financialYearStart ? String(comp.financialYearStart).split('T')[0] : '2025-04-01',
+      financialYearEnd: comp.financialYearEnd ? String(comp.financialYearEnd).split('T')[0] : '2026-03-31',
+      booksBeginFrom: comp.booksBeginFrom ? String(comp.booksBeginFrom).split('T')[0] : '2025-04-01',
+      currencyCode: comp.currencyCode || 'INR',
+      gstRegistrationType: comp.gstRegistrationType || 'Regular',
+      gstin: comp.gstin || '27AABCU9603R1ZM',
+      pan: comp.pan || 'AABCU9603R',
+      stateName: comp.stateName || 'Maharashtra (27)',
+      filingFrequency: comp.filingFrequency || 'Monthly',
+      arnNumber: comp.arnNumber || 'AA270425000123P',
+      billingAddress: comp.billingAddress || {
+        addressLine1: this.currentBranch?.addressLine1 || 'Corporate Headquarters, Nariman Point',
+        addressLine2: this.currentBranch?.addressLine2 || '',
+        city: this.currentBranch?.city || 'Mumbai',
+        state: this.currentBranch?.stateName || 'Maharashtra',
+        pincode: this.currentBranch?.pincode || '400021',
+        country: 'India',
+      },
+      shippingAddress: comp.shippingAddress || {
+        addressLine1: this.currentBranch?.addressLine1 || 'Central Logistics Hub, Turbhe MIDC',
+        addressLine2: this.currentBranch?.addressLine2 || '',
+        city: this.currentBranch?.city || 'Navi Mumbai',
+        state: this.currentBranch?.stateName || 'Maharashtra',
+        pincode: this.currentBranch?.pincode || '400705',
+        country: 'India',
+      },
+      contactDetails: comp.contactDetails || {
+        contactPerson: 'Rajesh Sharma',
+        email: 'accounts@apextechnologies.com',
+        phone: '+91 98200 12345',
+        alternatePhone: '022-28493921',
+        website: 'https://apextechnologies.com',
+      },
+      logoUrl: comp.logoUrl || '/zeno-books-logo.png',
+      extraDetails: comp.extraDetails || {
+        tagline: 'Precision Engineering & Enterprise ERP',
+        invoiceHeaderNote: 'ISO 9001:2015 Certified Manufacturing Facility',
+        invoiceFooterNote: 'We declare that this invoice shows the actual price of goods described. Subject to local jurisdiction.',
+      },
+    };
+  }
+
+  copyBillingToShipping() {
+    this.companyForm.shippingAddress = {
+      ...this.companyForm.billingAddress,
+    };
+    this.saveSuccess = true;
+    this.saveMessage = 'Billing address copied to shipping address!';
+    setTimeout(() => (this.saveSuccess = false), 2000);
+  }
+
+  setLogoPreset(preset: string) {
+    switch (preset) {
+      case 'zeno':
+        this.companyForm.logoUrl = '/zeno-books-logo.png';
+        break;
+      case 'tech':
+        this.companyForm.logoUrl = 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&auto=format&fit=crop&q=80';
+        break;
+      case 'corp':
+        this.companyForm.logoUrl = 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop&q=80';
+        break;
+    }
+  }
+
+  saveCompanyProfile() {
+    const compId = this.companyForm.id || this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+    if (!compId) return;
+
+    this.savingCompany = true;
+    this.api.put(`/tenancy/companies/${compId}`, this.companyForm).subscribe({
+      next: (res: any) => {
+        this.savingCompany = false;
+        this.saveSuccess = true;
+        this.saveMessage = 'Company profile and branding saved successfully!';
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.tenant.loadHierarchy().subscribe({
+          next: () => {
+            if (res) this.initCompanyForm(res);
+          },
+        });
+      },
+      error: (err) => {
+        this.savingCompany = false;
+        console.error('Failed to update company profile', err);
+      },
+    });
+  }
+
+  // WAREHOUSE MASTER METHODS
+  loadWarehouses() {
+    this.api.get<any[]>('/tenancy/godowns').subscribe({
+      next: (res) => {
+        this.warehouses = res || [];
+      },
+    });
+  }
+
+  get filteredWarehouses(): any[] {
+    let list = this.warehouses;
+    if (this.warehouseBranchFilter && this.warehouseBranchFilter !== 'ALL') {
+      list = list.filter((w) => w.branchId === this.warehouseBranchFilter);
+    }
+    if (this.warehouseSearchQuery.trim()) {
+      const q = this.warehouseSearchQuery.toLowerCase().trim();
+      list = list.filter((w) =>
+        (w.name && w.name.toLowerCase().includes(q)) ||
+        (w.code && w.code.toLowerCase().includes(q)) ||
+        (w.city && w.city.toLowerCase().includes(q)) ||
+        (w.contactPerson && w.contactPerson.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  getActiveWarehousesCount(): number {
+    return this.warehouses.filter((w) => w.isActive !== false).length;
+  }
+
+  getUniqueBranchesCount(): number {
+    const branchIds = new Set(this.warehouses.map((w) => w.branchId).filter(Boolean));
+    return branchIds.size || (this.tenant.branches().length || 1);
+  }
+
+  openCreateWarehouseModal() {
+    const branches = this.tenant.branches();
+    this.newWarehouse = {
+      name: '',
+      code: `WH-0${this.warehouses.length + 1}`,
+      branchId: branches && branches.length > 0 ? branches[0].id : '',
+      address: '',
+      city: '',
+      state: 'Maharashtra',
+      pincode: '',
+      contactPerson: '',
+      contactPhone: '',
+      isActive: true,
+    };
+    this.createWarehouseModalVisible = true;
+  }
+
+  submitCreateWarehouse() {
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+    if (!this.newWarehouse.name.trim() || !this.newWarehouse.code.trim()) return;
+
+    this.savingWarehouse = true;
+    this.api.post('/tenancy/godowns', {
+      ...this.newWarehouse,
+      companyId: compId,
+    }).subscribe({
+      next: () => {
+        this.savingWarehouse = false;
+        this.createWarehouseModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Warehouse "${this.newWarehouse.name}" created successfully!`;
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadWarehouses();
+        this.tenant.reloadGodowns();
+      },
+      error: (err) => {
+        this.savingWarehouse = false;
+        console.error('Failed to create warehouse', err);
+      },
+    });
+  }
+
+  openEditWarehouseModal(wh: any) {
+    this.warehouseToEdit = { ...wh };
+    this.editWarehouseModalVisible = true;
+  }
+
+  submitEditWarehouse() {
+    if (!this.warehouseToEdit || !this.warehouseToEdit.id) return;
+
+    this.savingWarehouse = true;
+    this.api.put(`/tenancy/godowns/${this.warehouseToEdit.id}`, this.warehouseToEdit).subscribe({
+      next: () => {
+        this.savingWarehouse = false;
+        this.editWarehouseModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Warehouse "${this.warehouseToEdit.name}" updated successfully!`;
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadWarehouses();
+        this.tenant.reloadGodowns();
+      },
+      error: (err) => {
+        this.savingWarehouse = false;
+        console.error('Failed to update warehouse', err);
+      },
+    });
+  }
+
+  openDeleteWarehouseModal(wh: any) {
+    this.warehouseToDelete = wh;
+    this.deleteWarehouseModalVisible = true;
+  }
+
+  confirmDeleteWarehouse() {
+    if (!this.warehouseToDelete || !this.warehouseToDelete.id) return;
+
+    this.savingWarehouse = true;
+    this.api.delete(`/tenancy/godowns/${this.warehouseToDelete.id}`).subscribe({
+      next: () => {
+        this.savingWarehouse = false;
+        this.deleteWarehouseModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Warehouse "${this.warehouseToDelete.name}" deleted successfully.`;
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadWarehouses();
+        this.tenant.reloadGodowns();
+      },
+      error: (err) => {
+        this.savingWarehouse = false;
+        console.error('Failed to delete warehouse', err);
+      },
+    });
   }
 
   openTaxModal() {

@@ -19,10 +19,20 @@ let Company = class Company {
     tenant;
     legalName;
     tradeName;
+    code;
+    businessType;
     gstin;
     pan;
     currencyCode;
     financialYearStart;
+    financialYearEnd;
+    booksBeginFrom;
+    gstRegistrationType;
+    billingAddress;
+    shippingAddress;
+    contactDetails;
+    logoUrl;
+    extraDetails;
     createdAt;
     updatedAt;
     branches;
@@ -51,6 +61,14 @@ __decorate([
     __metadata("design:type", String)
 ], Company.prototype, "tradeName", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "code", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'business_type', length: 100, nullable: true, default: 'Private Limited Company' }),
+    __metadata("design:type", String)
+], Company.prototype, "businessType", void 0);
+__decorate([
     (0, typeorm_1.Column)({ length: 15, nullable: true }),
     __metadata("design:type", String)
 ], Company.prototype, "gstin", void 0);
@@ -66,6 +84,38 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'financial_year_start', type: 'date', default: '2025-04-01' }),
     __metadata("design:type", String)
 ], Company.prototype, "financialYearStart", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'financial_year_end', type: 'date', default: '2026-03-31', nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "financialYearEnd", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'books_begin_from', type: 'date', default: '2025-04-01', nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "booksBeginFrom", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'gst_registration_type', length: 50, nullable: true, default: 'Regular' }),
+    __metadata("design:type", String)
+], Company.prototype, "gstRegistrationType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'billing_address', type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Company.prototype, "billingAddress", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'shipping_address', type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Company.prototype, "shippingAddress", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'contact_details', type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Company.prototype, "contactDetails", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'logo_url', type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "logoUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'extra_details', type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Company.prototype, "extraDetails", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

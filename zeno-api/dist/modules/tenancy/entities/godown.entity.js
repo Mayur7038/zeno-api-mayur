@@ -22,6 +22,12 @@ let Godown = class Godown {
     name;
     code;
     isActive;
+    address;
+    city;
+    state;
+    pincode;
+    contactPerson;
+    contactPhone;
     createdAt;
     updatedAt;
     racksBins;
@@ -63,6 +69,30 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'is_active', default: true }),
     __metadata("design:type", Boolean)
 ], Godown.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 255, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "address", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "city", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "state", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 20, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "pincode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'contact_person', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "contactPerson", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'contact_phone', length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Godown.prototype, "contactPhone", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

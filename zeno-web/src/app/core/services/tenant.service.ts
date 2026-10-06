@@ -58,4 +58,14 @@ export class TenantService {
   setGodown(godown: any) {
     this.currentGodown.set(godown);
   }
+
+  reloadGodowns() {
+    const branch = this.currentBranch();
+    const query = branch ? `?branchId=${branch.id}` : '';
+    this.api.get<any[]>(`/tenancy/godowns${query}`).subscribe({
+      next: (godowns) => {
+        this.godowns.set(godowns);
+      },
+    });
+  }
 }

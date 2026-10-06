@@ -15,11 +15,7 @@ import { TenantService } from '../core/services/tenant.service';
       <aside class="sidebar" [class.settings-mode]="isSettingsMode">
         <div class="sidebar-header">
           <div class="brand-logo" (click)="goToHome()" style="cursor: pointer;" title="Back to Home / Dashboard">
-            <i class="pi pi-book brand-icon"></i>
-            <div>
-              <div class="brand-name">ZENO BOOKS</div>
-              <div class="brand-subtitle">Enterprise ERP</div>
-            </div>
+            <img src="/zeno-books-logo.png" alt="ZENO BOOKS" class="brand-logo-img" />
           </div>
         </div>
 
@@ -31,7 +27,7 @@ import { TenantService } from '../core/services/tenant.service';
             <span>Dashboard</span>
           </a>
 
-          <!-- ACCOUNT MASTER (DROPDOWN MENU) -->
+          <!-- CHART OF ACCOUNT (DROPDOWN MENU) -->
           <div class="nav-dropdown">
             <button
               type="button"
@@ -41,7 +37,7 @@ import { TenantService } from '../core/services/tenant.service';
             >
               <div class="dropdown-title-wrap">
                 <i class="pi pi-book dropdown-icon"></i>
-                <span class="dropdown-title">Account Master</span>
+                <span class="dropdown-title">Chart of Account</span>
               </div>
               <i
                 class="pi pi-chevron-right dropdown-caret"
@@ -63,7 +59,7 @@ import { TenantService } from '../core/services/tenant.service';
             }
           </div>
 
-          <!-- INVENTORY MASTER (DROPDOWN MENU) -->
+          <!-- PRODUCTS (DROPDOWN MENU) -->
           <div class="nav-dropdown">
             <button
               type="button"
@@ -73,7 +69,7 @@ import { TenantService } from '../core/services/tenant.service';
             >
               <div class="dropdown-title-wrap">
                 <i class="pi pi-box dropdown-icon"></i>
-                <span class="dropdown-title">Inventory Master</span>
+                <span class="dropdown-title">Products</span>
               </div>
               <i
                 class="pi pi-chevron-right dropdown-caret"
@@ -85,7 +81,7 @@ import { TenantService } from '../core/services/tenant.service';
               <div class="nav-submenu">
                 <a routerLink="/masters/items" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-tags"></i>
-                  <span>Product</span>
+                  <span>Products</span>
                 </a>
                 <a routerLink="/masters/stock-groups" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-folder"></i>
@@ -243,6 +239,46 @@ import { TenantService } from '../core/services/tenant.service';
             }
           </div>
 
+          <!-- INVENTORY (DROPDOWN MENU SHIFTED BELOW ACCOUNTING) -->
+          <div class="nav-dropdown">
+            <button
+              type="button"
+              class="nav-dropdown-header"
+              (click)="toggleInventory()"
+              [class.active-parent]="isInventoryActive()"
+            >
+              <div class="dropdown-title-wrap">
+                <i class="pi pi-database dropdown-icon"></i>
+                <span class="dropdown-title">Inventory</span>
+              </div>
+              <i
+                class="pi pi-chevron-right dropdown-caret"
+                [class.rotated]="inventoryOpen"
+              ></i>
+            </button>
+
+            @if (inventoryOpen) {
+              <div class="nav-submenu">
+                <a routerLink="/inventory/stock-transfer" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-arrows-h"></i>
+                  <span>Stock Transfer</span>
+                </a>
+                <a routerLink="/inventory/stock-adjustment" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-sliders-h"></i>
+                  <span>Stock Adjustment</span>
+                </a>
+                <a routerLink="/inventory/opening-balance" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-calendar-plus"></i>
+                  <span>Update Opening Balance</span>
+                </a>
+                <a routerLink="/inventory/price-list" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-percentage"></i>
+                  <span>Update Price List</span>
+                </a>
+              </div>
+            }
+          </div>
+
           <!-- MANUFACTURING (BOM & PRODUCTION) DROPDOWN -->
           <div class="nav-dropdown">
             <button
@@ -295,6 +331,29 @@ import { TenantService } from '../core/services/tenant.service';
           <div class="settings-nav-section-title">SETTING MENU</div>
 
           <nav class="sidebar-nav settings-subnav">
+            <!-- 1. COMPANY PROFILE -->
+            <a
+              [routerLink]="['/settings']"
+              [queryParams]="{ tab: 'company' }"
+              [class.active]="currentSettingsTab === 'company'"
+              class="nav-item"
+            >
+              <i class="pi pi-building"></i>
+              <span>Company Profile</span>
+            </a>
+
+            <!-- 2. WAREHOUSE -->
+            <a
+              [routerLink]="['/settings']"
+              [queryParams]="{ tab: 'warehouses' }"
+              [class.active]="currentSettingsTab === 'warehouses'"
+              class="nav-item"
+            >
+              <i class="pi pi-warehouse"></i>
+              <span>Warehouse</span>
+            </a>
+
+            <!-- 3. FEATURES -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'toggles' }"
@@ -302,9 +361,10 @@ import { TenantService } from '../core/services/tenant.service';
               class="nav-item"
             >
               <i class="pi pi-sliders-h"></i>
-              <span>Feature Toggles</span>
+              <span>Features</span>
             </a>
 
+            <!-- 4. USER ROLES -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'roles' }"
@@ -312,9 +372,10 @@ import { TenantService } from '../core/services/tenant.service';
               class="nav-item"
             >
               <i class="pi pi-shield"></i>
-              <span>User Role & Permission</span>
+              <span>User Roles</span>
             </a>
 
+            <!-- 5. USERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'users' }"
@@ -325,6 +386,7 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Users</span>
             </a>
 
+            <!-- 6. DEFAULT LEDGERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'mappings' }"
@@ -332,9 +394,10 @@ import { TenantService } from '../core/services/tenant.service';
               class="nav-item"
             >
               <i class="pi pi-book"></i>
-              <span>Default Ledger Mapping</span>
+              <span>Default Ledgers</span>
             </a>
 
+            <!-- 7. VOUCHER NUMBERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'vouchers' }"
@@ -342,9 +405,10 @@ import { TenantService } from '../core/services/tenant.service';
               class="nav-item"
             >
               <i class="pi pi-hashtag"></i>
-              <span>Voucher Number Configuration</span>
+              <span>Voucher Numbers</span>
             </a>
 
+            <!-- 8. SALES CONFIGURATION -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'sales' }"
@@ -355,6 +419,7 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Sales Configuration</span>
             </a>
 
+            <!-- 9. PURCHASE CONFIGURATION -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'purchase' }"
@@ -365,6 +430,7 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Purchase Configuration</span>
             </a>
 
+            <!-- 10. INVENTORY CONFIGURATION -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'inventory' }"
@@ -375,6 +441,7 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Inventory Configuration</span>
             </a>
 
+            <!-- 11. GST -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'gst' }"
@@ -382,17 +449,7 @@ import { TenantService } from '../core/services/tenant.service';
               class="nav-item"
             >
               <i class="pi pi-percentage"></i>
-              <span>GST & Tax Management</span>
-            </a>
-
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'company' }"
-              [class.active]="currentSettingsTab === 'company'"
-              class="nav-item"
-            >
-              <i class="pi pi-building"></i>
-              <span>Company Profile</span>
+              <span>GST</span>
             </a>
           </nav>
         </div>
@@ -411,34 +468,14 @@ import { TenantService } from '../core/services/tenant.service';
         <!-- TOPBAR -->
         <header class="topbar">
           <div class="topbar-left">
-            <div class="company-selector">
-              <label><i class="pi pi-briefcase"></i> Company:</label>
-              <select (change)="onCompanyChange($event)">
-                @for (c of tenant.companies(); track c.id) {
-                  <option [value]="c.id" [selected]="c.id === tenant.currentCompany()?.id">
-                    {{ c.legalName }}
-                  </option>
-                }
-              </select>
-            </div>
-
-            <div class="branch-selector">
-              <label><i class="pi pi-map-marker"></i> Branch:</label>
-              <select (change)="onBranchChange($event)">
-                @for (b of tenant.branches(); track b.id) {
-                  <option [value]="b.id" [selected]="b.id === tenant.currentBranch()?.id">
-                    {{ b.branchName }} ({{ b.branchCode }})
-                  </option>
-                }
-              </select>
-            </div>
-
-            @if (tenant.currentGodown()) {
-              <div class="godown-indicator">
-                <i class="pi pi-warehouse"></i>
-                <span>{{ tenant.currentGodown()?.name }}</span>
+            <div class="topbar-company-info">
+              <div class="company-badge-icon">
+                <i class="pi pi-building"></i>
               </div>
-            }
+              <div class="company-info-text">
+                <span class="company-title">{{ tenant.currentCompany()?.legalName || tenant.currentCompany()?.tradeName || auth.currentUser()?.tenantName || 'ZENO BOOKS' }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="topbar-right">
@@ -496,38 +533,32 @@ import { TenantService } from '../core/services/tenant.service';
     }
 
     .sidebar-header {
-      padding: 20px 24px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--surface-200);
+      display: flex;
+      align-items: center;
+      min-height: 80px;
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: flex-start;
+      width: 100%;
     }
 
-    .brand-icon {
-      font-size: 1.5rem;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
-      padding: 10px;
-      border-radius: var(--radius-sm);
-      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25);
-    }
+    .brand-logo-img {
+      height: 56px;
+      max-height: 62px;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.2s ease;
 
-    .brand-name {
-      font-size: 1.125rem;
-      font-weight: 800;
-      color: var(--surface-900);
-      letter-spacing: -0.02em;
-    }
-
-    .brand-subtitle {
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--primary-600);
+      &:hover {
+        transform: scale(1.02);
+      }
     }
 
     .sidebar-nav {
@@ -765,47 +796,39 @@ import { TenantService } from '../core/services/tenant.service';
       gap: 16px;
     }
 
-    .company-selector, .branch-selector {
+    .topbar-company-info {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      padding: 6px 14px;
       background-color: var(--surface-50);
-      padding: 6px 12px;
       border: 1px solid var(--surface-200);
       border-radius: var(--radius-sm);
-      font-size: 0.8125rem;
-
-      label {
-        color: var(--surface-500);
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      select {
-        border: none;
-        background: transparent;
-        font-family: inherit;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--surface-900);
-        cursor: pointer;
-        outline: none;
-      }
     }
 
-    .godown-indicator {
+    .company-badge-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background-color: var(--primary-50);
+      color: var(--primary-600);
       display: flex;
       align-items: center;
-      gap: 6px;
-      background-color: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-      padding: 4px 10px;
-      border-radius: var(--radius-full);
-      font-size: 0.75rem;
-      font-weight: 600;
+      justify-content: center;
+      font-size: 1rem;
+      border: 1px solid var(--primary-100);
+    }
+
+    .company-info-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .company-title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--surface-900);
+      letter-spacing: -0.01em;
     }
 
     .topbar-right {
@@ -997,10 +1020,11 @@ export class ShellComponent implements OnInit {
   accountingOpen = false;
   accountMasterOpen = false;
   inventoryMasterOpen = false;
+  inventoryOpen = false;
   manufacturingOpen = false;
 
   isSettingsMode = false;
-  currentSettingsTab = 'toggles';
+  currentSettingsTab = 'company';
 
   constructor(
     public auth: AuthService,
@@ -1018,6 +1042,9 @@ export class ShellComponent implements OnInit {
     }
     if (this.isInventoryMasterActive()) {
       this.inventoryMasterOpen = true;
+    }
+    if (this.isInventoryActive()) {
+      this.inventoryOpen = true;
     }
     if (this.isManufacturingActive()) {
       this.manufacturingOpen = true;
@@ -1037,9 +1064,9 @@ export class ShellComponent implements OnInit {
       const qIndex = url.indexOf('?');
       if (qIndex !== -1) {
         const params = new URLSearchParams(url.substring(qIndex + 1));
-        this.currentSettingsTab = params.get('tab') || 'toggles';
+        this.currentSettingsTab = params.get('tab') || 'company';
       } else {
-        this.currentSettingsTab = 'toggles';
+        this.currentSettingsTab = 'company';
       }
     }
   }
@@ -1055,7 +1082,7 @@ export class ShellComponent implements OnInit {
   openSettingsMode() {
     this.isSettingsMode = true;
     this.router.navigate(['/settings'], {
-      queryParams: { tab: this.currentSettingsTab || 'toggles' },
+      queryParams: { tab: this.currentSettingsTab || 'company' },
     });
   }
 
@@ -1106,6 +1133,14 @@ export class ShellComponent implements OnInit {
 
   toggleInventoryMaster() {
     this.inventoryMasterOpen = !this.inventoryMasterOpen;
+  }
+
+  toggleInventory() {
+    this.inventoryOpen = !this.inventoryOpen;
+  }
+
+  isInventoryActive(): boolean {
+    return this.router.url.includes('/inventory/');
   }
 
   isInventoryMasterActive(): boolean {
