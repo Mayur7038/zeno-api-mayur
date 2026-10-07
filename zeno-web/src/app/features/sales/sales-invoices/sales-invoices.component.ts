@@ -6,6 +6,7 @@ import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-sales-invoices',
@@ -31,17 +32,26 @@ import { ToastService } from '../../../core/services/toast.service';
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by invoice #, customer..."
                 [(ngModel)]="searchQuery"
                 (input)="loadInvoices()"
               />
             </div>
 
-            <div class="status-tabs">
-              <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All</button>
-              <button [class.active]="selectedStatus === 'PENDING'" (click)="filterStatus('PENDING')">Unpaid</button>
-              <button [class.active]="selectedStatus === 'PARTIALLY_PAID'" (click)="filterStatus('PARTIALLY_PAID')">Partially Paid</button>
-              <button [class.active]="selectedStatus === 'PAID'" (click)="filterStatus('PAID')">Fully Paid</button>
+            <div class="filter-actions">
+              <select
+                class="filter-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Invoices</option>
+                <option value="PENDING">Unpaid</option>
+                <option value="PARTIALLY_PAID">Partially Paid</option>
+                <option value="PAID">Fully Paid</option>
+              </select>
+
+              <button class="btn-export" (click)="exportInvoices()" [disabled]="invoices.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -153,18 +163,18 @@ import { ToastService } from '../../../core/services/toast.service';
 
             <div class="form-group">
               <label>Place of Supply State</label>
-              <input type="text" [(ngModel)]="newInv.placeOfSupplyStateCode" placeholder="27 (Maharashtra)" />
+              <input type="text" [(ngModel)]="newInv.placeOfSupplyStateCode" />
             </div>
           </div>
 
           <div class="form-grid" style="margin-top: 14px;">
             <div class="form-group">
               <label>Customer Billing Address</label>
-              <input type="text" [(ngModel)]="newInv.billingAddress" placeholder="Registered premises address" />
+              <input type="text" [(ngModel)]="newInv.billingAddress" />
             </div>
             <div class="form-group">
               <label>Shipping / Consignee Address</label>
-              <input type="text" [(ngModel)]="newInv.shippingAddress" placeholder="Delivery destination address" />
+              <input type="text" [(ngModel)]="newInv.shippingAddress" />
             </div>
           </div>
 
@@ -828,5 +838,24 @@ export class SalesInvoicesComponent implements OnInit {
 
   formatStatus(status: string): string {
     return status?.replace(/_/g, ' ') || '';
+  }
+
+  exportInvoices() {
+    if (!this.invoices || this.invoices.length === 0) return;
+    const headers = ['Invoice No', 'Date', 'Customer', 'Taxable Amount', 'CGST', 'SGST', 'IGST', 'Grand Total', 'Balance Due', 'Status'];
+    const rows = this.invoices.map((inv) => [
+      inv.invoiceNo || '',
+      inv.invoiceDate || '',
+      inv.customerLedger?.name || '',
+      inv.taxableSubtotal || 0,
+      inv.cgstTotal || 0,
+      inv.sgstTotal || 0,
+      inv.igstTotal || 0,
+      inv.grandTotal || 0,
+      Number(inv.grandTotal || 0) - Number(inv.paidAmount || 0),
+      inv.status || '',
+    ]);
+    exportToCsv('Sales_Invoices', headers, rows);
+    this.toast.success('Sales invoices exported successfully!', 'Export Complete');
   }
 }

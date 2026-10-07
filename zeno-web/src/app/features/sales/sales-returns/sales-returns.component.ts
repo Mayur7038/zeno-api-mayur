@@ -6,6 +6,7 @@ import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-sales-returns',
@@ -22,6 +23,30 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> Issue Credit Note
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER CARD -->
+        <div class="zeno-card filter-card">
+          <div class="filter-group">
+            <i class="pi pi-search search-icon"></i>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+            />
+          </div>
+
+          <div class="filter-actions">
+            <select class="filter-select" [(ngModel)]="selectedCustomer">
+              <option value="">All Customers</option>
+              @for (c of customers; track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+
+            <button class="btn-export" (click)="exportReturns()" [disabled]="filteredReturns.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
             </button>
           </div>
         </div>
@@ -51,14 +76,14 @@ import { ToastService } from '../../../core/services/toast.service';
                     Loading sales returns...
                   </td>
                 </tr>
-              } @else if (returns.length === 0) {
+              } @else if (filteredReturns.length === 0) {
                 <tr>
                   <td colspan="10" class="text-center" style="padding: 40px; color: var(--surface-500);">
                     No sales returns or credit notes recorded.
                   </td>
                 </tr>
               }
-              @for (sr of returns; track sr.id) {
+              @for (sr of filteredReturns; track sr.id) {
                 <tr (click)="viewReturn(sr)" style="cursor: pointer;">
                   <td class="font-mono font-bold" style="color: #DC2626">{{ sr.voucherNo }}</td>
                   <td>{{ sr.returnDate }}</td>
@@ -138,7 +163,7 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="form-grid">
             <div class="form-group" style="grid-column: span 2;">
               <label class="required">Return Reason</label>
-              <input type="text" [(ngModel)]="newSr.reason" placeholder="e.g. Defective unit, customer cancellation, packaging transit damage" />
+              <input type="text" [(ngModel)]="newSr.reason" />
             </div>
           </div>
 
@@ -372,6 +397,8 @@ export class SalesReturnsComponent implements OnInit {
   customerInvoices: any[] = [];
   loading = false;
   submitting = false;
+  searchQuery: string = '';
+  selectedCustomer: string = '';
 
   selectedReturn: any = null;
 
@@ -430,6 +457,41 @@ export class SalesReturnsComponent implements OnInit {
 
   get totalRestockedUnits(): number {
     return this.returns.reduce((sum, r) => sum + (r.items?.reduce((s: number, i: any) => s + Number(i.returnedQty || 0), 0) || 0), 0);
+  }
+
+  get filteredReturns(): any[] {
+    let list = this.returns || [];
+    if (this.selectedCustomer) {
+      list = list.filter((sr: any) => sr.customerLedgerId === this.selectedCustomer);
+    }
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.trim().toLowerCase();
+      list = list.filter((sr: any) =>
+        (sr.voucherNo && sr.voucherNo.toLowerCase().includes(q)) ||
+        (sr.customerLedger?.name && sr.customerLedger.name.toLowerCase().includes(q)) ||
+        (sr.reason && sr.reason.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  exportReturns() {
+    const list = this.filteredReturns;
+    if (!list || list.length === 0) return;
+    const headers = ['Credit Note No', 'Date', 'Customer', 'Original Invoice', 'Warehouse', 'Reason', 'Taxable', 'Tax Reversed', 'Grand Total'];
+    const rows = list.map((sr) => [
+      sr.voucherNo || '',
+      sr.returnDate || '',
+      sr.customerLedger?.name || '',
+      sr.salesInvoice?.voucherNo || 'Direct Return',
+      sr.godown?.name || '',
+      sr.reason || '',
+      sr.taxableAmount || sr.taxableSubtotal || 0,
+      sr.taxAmount || sr.taxTotal || 0,
+      sr.totalAmount || sr.grandTotal || 0
+    ]);
+    exportToCsv('Sales_Returns_Credit_Notes', headers, rows);
+    this.toast.success('Sales returns exported successfully!', 'Export Complete');
   }
 
   loadReturns() {

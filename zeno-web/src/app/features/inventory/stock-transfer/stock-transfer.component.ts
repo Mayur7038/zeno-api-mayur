@@ -6,6 +6,7 @@ import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 interface TransferLineItem {
   itemId: string;
@@ -42,17 +43,19 @@ interface TransferLineItem {
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by voucher #, warehouse, or item..."
                 [(ngModel)]="searchQuery"
                 (input)="filterTransfers()"
               />
             </div>
-            <div class="toolbar-filters">
-              <select [(ngModel)]="statusFilter" (change)="filterTransfers()" class="form-control" style="width: 160px;">
+            <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+              <select [(ngModel)]="statusFilter" (change)="filterTransfers()" class="filter-select">
                 <option value="ALL">All Statuses</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
+              <button class="btn-export" (click)="exportTransfers()" [disabled]="filteredTransfers.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -189,12 +192,12 @@ interface TransferLineItem {
 
               <div class="form-group">
                 <label>Voucher / Reference No (Optional)</label>
-                <input type="text" [(ngModel)]="formData.voucherNo" placeholder="Auto-generated if blank" class="form-control" />
+                <input type="text" [(ngModel)]="formData.voucherNo" class="form-control" />
               </div>
 
               <div class="form-group full-width">
                 <label>Transfer Remarks / Vehicle / Narration</label>
-                <textarea [(ngModel)]="formData.notes" rows="2" placeholder="e.g. Internal stock relocation, van transfer..." class="form-control"></textarea>
+                <textarea [(ngModel)]="formData.notes" rows="2" class="form-control"></textarea>
               </div>
             </div>
           </div>
@@ -799,6 +802,23 @@ export class StockTransferComponent implements OnInit {
     this.totalTransferValue = this.transfers
       .filter((t) => t.status === 'COMPLETED')
       .reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
+  }
+
+  exportTransfers() {
+    if (!this.filteredTransfers || this.filteredTransfers.length === 0) return;
+    const headers = ['Voucher No', 'Date', 'Source Warehouse', 'Destination Warehouse', 'Items Count', 'Total Qty', 'Total Value', 'Status'];
+    const rows = this.filteredTransfers.map((t) => [
+      t.voucherNo || '',
+      t.transferDate || '',
+      t.sourceGodown?.name || '',
+      t.destinationGodown?.name || '',
+      t.items?.length || 0,
+      t.totalQty || 0,
+      t.totalAmount || 0,
+      t.status || ''
+    ]);
+    exportToCsv('Stock_Transfers', headers, rows);
+    this.toast.success('Stock transfers exported successfully!', 'Export Complete');
   }
 
   openCreatePage() {

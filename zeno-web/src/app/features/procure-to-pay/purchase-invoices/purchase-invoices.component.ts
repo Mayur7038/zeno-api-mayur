@@ -6,6 +6,7 @@ import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-purchase-invoices',
@@ -30,17 +31,26 @@ import { ToastService } from '../../../core/services/toast.service';
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search Invoice #, vendor bill, or vendor..."
               [(ngModel)]="searchQuery"
               (input)="loadInvoices()"
             />
           </div>
 
-          <div class="status-tabs">
-            <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All Invoices</button>
-            <button [class.active]="selectedStatus === 'UNPAID'" (click)="filterStatus('UNPAID')">Unpaid</button>
-            <button [class.active]="selectedStatus === 'PARTIALLY_PAID'" (click)="filterStatus('PARTIALLY_PAID')">Partially Paid</button>
-            <button [class.active]="selectedStatus === 'PAID'" (click)="filterStatus('PAID')">Paid</button>
+          <div class="filter-actions">
+            <select
+              class="filter-select"
+              [(ngModel)]="selectedStatus"
+              (change)="filterStatus(selectedStatus)"
+            >
+              <option value="">All Invoices</option>
+              <option value="UNPAID">Unpaid</option>
+              <option value="PARTIALLY_PAID">Partially Paid</option>
+              <option value="PAID">Paid</option>
+            </select>
+
+            <button class="btn-export" (click)="exportInvoices()" [disabled]="invoices.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
           </div>
         </div>
 
@@ -151,7 +161,7 @@ import { ToastService } from '../../../core/services/toast.service';
 
             <div class="form-group">
               <label>Vendor Bill # *</label>
-              <input type="text" [(ngModel)]="form.vendorBillNo" placeholder="e.g. INV-2026-99" required />
+              <input type="text" [(ngModel)]="form.vendorBillNo" required />
             </div>
 
             <div class="form-group">
@@ -754,5 +764,22 @@ export class PurchaseInvoicesComponent implements OnInit {
         this.viewMode = 'view';
       },
     });
+  }
+
+  exportInvoices() {
+    if (!this.invoices || this.invoices.length === 0) return;
+    const headers = ['Invoice No', 'Date', 'Vendor', 'Vendor Bill No', 'Taxable Total', 'Tax Total', 'Grand Total', 'Status'];
+    const rows = this.invoices.map((pi: any) => [
+      pi.voucherNo || '',
+      pi.invoiceDate || '',
+      pi.vendorLedger?.name || '',
+      pi.vendorBillNo || '',
+      pi.taxableTotal || 0,
+      pi.taxTotal || 0,
+      pi.grandTotal || 0,
+      pi.status || ''
+    ]);
+    exportToCsv('Purchase_Invoices', headers, rows);
+    this.toast.success('Purchase Invoices exported successfully!', 'Export Complete');
   }
 }

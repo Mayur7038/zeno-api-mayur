@@ -61,6 +61,10 @@ export class MastersService {
     return this.api.put(`/masters/items/${id}`, data);
   }
 
+  deleteItem(id: string): Observable<any> {
+    return this.api.delete(`/masters/items/${id}`);
+  }
+
   // Units of Measure
   getUnits(companyId: string): Observable<any[]> {
     return this.api.get<any[]>(`/masters/units?companyId=${companyId}`);
@@ -134,6 +138,24 @@ export class MastersService {
 
   deleteVariant(id: string): Observable<any> {
     return this.api.delete(`/masters/variants/${id}`);
+  }
+
+  // Variant Master Definitions (Attributes & Dropdown Values)
+  getVariantDefinitions(companyId?: string): Observable<any[]> {
+    const query = companyId ? `?companyId=${companyId}` : '';
+    return this.api.get<any[]>(`/masters/variant-definitions${query}`);
+  }
+
+  createVariantDefinition(data: any): Observable<any> {
+    return this.api.post('/masters/variant-definitions', data);
+  }
+
+  updateVariantDefinition(id: string, data: any): Observable<any> {
+    return this.api.put(`/masters/variant-definitions/${id}`, data);
+  }
+
+  deleteVariantDefinition(id: string): Observable<any> {
+    return this.api.delete(`/masters/variant-definitions/${id}`);
   }
 
   // Reports

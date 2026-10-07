@@ -6,6 +6,7 @@ import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 interface AdjustmentLineItem {
   itemId: string;
@@ -43,13 +44,12 @@ interface AdjustmentLineItem {
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by voucher #, warehouse, reason..."
                 [(ngModel)]="searchQuery"
                 (input)="filterAdjustments()"
               />
             </div>
-            <div class="toolbar-filters">
-              <select [(ngModel)]="reasonFilter" (change)="filterAdjustments()" class="form-control" style="width: 170px;">
+            <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+              <select [(ngModel)]="reasonFilter" (change)="filterAdjustments()" class="filter-select" style="min-width: 150px;">
                 <option value="ALL">All Reasons</option>
                 <option value="DAMAGE">Damage</option>
                 <option value="SHRINKAGE">Shrinkage / Loss</option>
@@ -58,11 +58,14 @@ interface AdjustmentLineItem {
                 <option value="FOUND_SURPLUS">Found Surplus</option>
                 <option value="CORRECTION">Audit Correction</option>
               </select>
-              <select [(ngModel)]="statusFilter" (change)="filterAdjustments()" class="form-control" style="width: 150px;">
+              <select [(ngModel)]="statusFilter" (change)="filterAdjustments()" class="filter-select" style="min-width: 140px;">
                 <option value="ALL">All Statuses</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
+              <button class="btn-export" (click)="exportAdjustments()" [disabled]="filteredAdjustments.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -199,12 +202,12 @@ interface AdjustmentLineItem {
 
               <div class="form-group">
                 <label>Voucher / Document No</label>
-                <input type="text" [(ngModel)]="formData.voucherNo" placeholder="Auto-generated if blank" class="form-control" />
+                <input type="text" [(ngModel)]="formData.voucherNo" class="form-control" />
               </div>
 
               <div class="form-group full-width">
                 <label>Narration / Remarks</label>
-                <textarea [(ngModel)]="formData.notes" rows="2" placeholder="Provide notes or authorization references..." class="form-control"></textarea>
+                <textarea [(ngModel)]="formData.notes" rows="2" class="form-control"></textarea>
               </div>
             </div>
           </div>
@@ -282,7 +285,6 @@ interface AdjustmentLineItem {
                       <input
                         type="text"
                         [(ngModel)]="line.reason"
-                        placeholder="Line note..."
                         class="form-control"
                       />
                     </td>
@@ -711,6 +713,23 @@ export class StockAdjustmentComponent implements OnInit {
     this.totalValuationImpact = this.adjustments
       .filter((a) => a.status === 'COMPLETED')
       .reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
+  }
+
+  exportAdjustments() {
+    if (!this.filteredAdjustments || this.filteredAdjustments.length === 0) return;
+    const headers = ['Voucher No', 'Date', 'Warehouse', 'Reason', 'Items Count', 'Total Qty', 'Total Amount', 'Status'];
+    const rows = this.filteredAdjustments.map((a) => [
+      a.voucherNo || '',
+      a.adjustmentDate || '',
+      a.godown?.name || '',
+      a.reason || '',
+      a.items?.length || 0,
+      a.totalQty || 0,
+      a.totalAmount || 0,
+      a.status || ''
+    ]);
+    exportToCsv('Stock_Adjustments', headers, rows);
+    this.toast.success('Stock adjustments exported successfully!', 'Export Complete');
   }
 
   openCreatePage() {

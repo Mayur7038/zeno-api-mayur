@@ -19,6 +19,7 @@ let Item = class Item {
     id;
     tenantId;
     companyId;
+    productType;
     name;
     sku;
     itemGroupId;
@@ -27,11 +28,16 @@ let Item = class Item {
     category;
     unitId;
     unit;
+    isGstApplicable;
     hsnSac;
     gstRate;
     cessRate;
+    inventoryTracking;
     purchaseRate;
     saleRate;
+    mrp;
+    openingQty;
+    openingRate;
     reorderLevel;
     hasVariants;
     imageUrl;
@@ -56,6 +62,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'company_id', type: 'uuid' }),
     __metadata("design:type", String)
 ], Item.prototype, "companyId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'product_type', length: 20, default: 'GOODS' }),
+    __metadata("design:type", String)
+], Item.prototype, "productType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 150 }),
     __metadata("design:type", String)
@@ -95,6 +105,10 @@ __decorate([
     __metadata("design:type", unit_entity_1.Unit)
 ], Item.prototype, "unit", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'is_gst_applicable', default: true }),
+    __metadata("design:type", Boolean)
+], Item.prototype, "isGstApplicable", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'hsn_sac', length: 20, nullable: true }),
     __metadata("design:type", String)
 ], Item.prototype, "hsnSac", void 0);
@@ -107,6 +121,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Item.prototype, "cessRate", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'inventory_tracking', length: 30, default: 'ITEM_WISE' }),
+    __metadata("design:type", String)
+], Item.prototype, "inventoryTracking", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, default: 0 }),
     __metadata("design:type", Number)
 ], Item.prototype, "purchaseRate", void 0);
@@ -114,6 +132,18 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, default: 0 }),
     __metadata("design:type", Number)
 ], Item.prototype, "saleRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 4, default: 0 }),
+    __metadata("design:type", Number)
+], Item.prototype, "mrp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'opening_qty', type: 'decimal', precision: 15, scale: 3, default: 0 }),
+    __metadata("design:type", Number)
+], Item.prototype, "openingQty", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'opening_rate', type: 'decimal', precision: 15, scale: 4, default: 0 }),
+    __metadata("design:type", Number)
+], Item.prototype, "openingRate", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'reorder_level', type: 'decimal', precision: 15, scale: 3, default: 0 }),
     __metadata("design:type", Number)

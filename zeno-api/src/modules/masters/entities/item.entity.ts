@@ -28,6 +28,9 @@ export class Item {
   companyId: string;
 
   // Tab 1: Basic
+  @Column({ name: 'product_type', length: 20, default: 'GOODS' })
+  productType: string;
+
   @Column({ length: 150 })
   name: string;
 
@@ -58,6 +61,9 @@ export class Item {
   @JoinColumn({ name: 'unit_id' })
   unit: Unit;
 
+  @Column({ name: 'is_gst_applicable', default: true })
+  isGstApplicable: boolean;
+
   @Column({ name: 'hsn_sac', length: 20, nullable: true })
   hsnSac: string;
 
@@ -67,12 +73,24 @@ export class Item {
   @Column({ name: 'cess_rate', type: 'decimal', precision: 5, scale: 2, default: 0 })
   cessRate: number;
 
-  // Tab 2: Sales / Purchase
+  @Column({ name: 'inventory_tracking', length: 30, default: 'ITEM_WISE' })
+  inventoryTracking: string;
+
+  // Tab 2: Sales / Purchase & Inventory
   @Column({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, default: 0 })
   purchaseRate: number;
 
   @Column({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, default: 0 })
   saleRate: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  mrp: number;
+
+  @Column({ name: 'opening_qty', type: 'decimal', precision: 15, scale: 3, default: 0 })
+  openingQty: number;
+
+  @Column({ name: 'opening_rate', type: 'decimal', precision: 15, scale: 4, default: 0 })
+  openingRate: number;
 
   @Column({ name: 'reorder_level', type: 'decimal', precision: 15, scale: 3, default: 0 })
   reorderLevel: number;

@@ -114,49 +114,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
         <!-- VIEW 1: ROLES LIST PAGE (DEFAULT) -->
         @if (roleViewMode === 'list') {
           <div class="roles-list-view">
-            <!-- STATS / KPI SUMMARY CARDS -->
-            <div class="roles-stats-grid">
-              <div class="kpi-card" (click)="roleTypeFilter = 'all'" [class.kpi-selected]="roleTypeFilter === 'all'" style="cursor: pointer;">
-                <div class="kpi-icon-wrap primary">
-                  <i class="pi pi-shield"></i>
-                </div>
-                <div class="kpi-info">
-                  <div class="kpi-value">{{ roles.length }}</div>
-                  <div class="kpi-label">Defined Roles</div>
-                </div>
-              </div>
-
-              <div class="kpi-card" (click)="roleTypeFilter = 'system'" [class.kpi-selected]="roleTypeFilter === 'system'" style="cursor: pointer;">
-                <div class="kpi-icon-wrap system">
-                  <i class="pi pi-lock"></i>
-                </div>
-                <div class="kpi-info">
-                  <div class="kpi-value">{{ getSystemRolesCount() }}</div>
-                  <div class="kpi-label">System Predefined</div>
-                </div>
-              </div>
-
-              <div class="kpi-card" (click)="roleTypeFilter = 'custom'" [class.kpi-selected]="roleTypeFilter === 'custom'" style="cursor: pointer;">
-                <div class="kpi-icon-wrap custom">
-                  <i class="pi pi-sparkles"></i>
-                </div>
-                <div class="kpi-info">
-                  <div class="kpi-value">{{ getCustomRolesCount() }}</div>
-                  <div class="kpi-label">Custom Tenant Roles</div>
-                </div>
-              </div>
-
-              <div class="kpi-card">
-                <div class="kpi-icon-wrap users">
-                  <i class="pi pi-users"></i>
-                </div>
-                <div class="kpi-info">
-                  <div class="kpi-value">{{ users.length }}</div>
-                  <div class="kpi-label">Tenant Users</div>
-                </div>
-              </div>
-            </div>
-
             <!-- SEARCH, FILTERS & ACTION BAR -->
             <div class="roles-toolbar zeno-card">
               <div class="search-input-wrap">
@@ -164,7 +121,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="text" 
                   [(ngModel)]="roleSearchQuery" 
-                  placeholder="Search roles by title, keyword, or duties..." 
                 />
                 @if (roleSearchQuery) {
                   <button class="clear-search-btn" (click)="roleSearchQuery = ''">
@@ -335,7 +291,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="newRole.name" 
-                    placeholder="e.g. Sales Executive, Inventory Auditor, Junior Accountant" 
                     autofocus
                   />
                 </div>
@@ -357,7 +312,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <textarea 
                     rows="2" 
                     [(ngModel)]="newRole.description" 
-                    placeholder="Specify functional duties, reporting hierarchy, and module access scope..."
                   ></textarea>
                 </div>
               </div>
@@ -374,7 +328,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="moduleSearchQuery" 
-                    placeholder="Filter modules (e.g. Sales, Invoice, Ledger)..." 
                   />
                   @if (moduleSearchQuery) {
                     <button class="clear-search-btn" (click)="moduleSearchQuery = ''">
@@ -506,7 +459,7 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   @if (!selectedRole.isSystem) {
                     <div class="form-group" style="flex: 1; max-width: 320px;">
                       <label>Role Name *</label>
-                      <input type="text" [(ngModel)]="selectedRole.name" placeholder="Role Name *" />
+                      <input type="text" [(ngModel)]="selectedRole.name" />
                     </div>
                   }
                   <div class="form-group" style="flex: 2;">
@@ -514,7 +467,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="selectedRole.description" 
-                      placeholder="Add role note or functional description..." 
                     />
                   </div>
                 </div>
@@ -538,7 +490,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="text" 
                   [(ngModel)]="moduleSearchQuery" 
-                  placeholder="Filter modules (e.g. Sales, Invoice, Ledger, Inventory)..." 
                 />
                 @if (moduleSearchQuery) {
                   <button class="clear-search-btn" (click)="moduleSearchQuery = ''">
@@ -1004,7 +955,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                         type="text" 
                         class="table-input" 
                         [(ngModel)]="getVoucherItem(v.key).prefix" 
-                        placeholder="e.g. INV-"
                       />
                     </td>
                     <td>
@@ -1028,7 +978,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                         type="text" 
                         class="table-input" 
                         [(ngModel)]="getVoucherItem(v.key).suffix" 
-                        placeholder="/25-26"
                       />
                     </td>
                     <td>
@@ -1071,7 +1020,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="number" 
                   [(ngModel)]="settings.salesSettings.defaultCreditPeriod" 
-                  placeholder="30" 
                   min="0"
                 />
               </div>
@@ -1081,7 +1029,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="number" 
                   [(ngModel)]="settings.salesSettings.ewayBillThreshold" 
-                  placeholder="50000" 
                   min="0"
                 />
               </div>
@@ -1146,7 +1093,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
               <textarea 
                 rows="3" 
                 [(ngModel)]="settings.salesSettings.termsAndConditions"
-                placeholder="Enter standard commercial terms..."
               ></textarea>
             </div>
           </div>
@@ -1165,7 +1111,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="number" 
                   [(ngModel)]="settings.purchaseSettings.poApprovalThreshold" 
-                  placeholder="100000" 
                   min="0"
                 />
               </div>
@@ -1175,7 +1120,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="number" 
                   [(ngModel)]="settings.purchaseSettings.strictPriceVariancePercent" 
-                  placeholder="5" 
                   min="0" 
                   max="100"
                 />
@@ -1186,7 +1130,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <input 
                   type="number" 
                   [(ngModel)]="settings.purchaseSettings.defaultVendorCreditDays" 
-                  placeholder="30" 
                   min="0"
                 />
               </div>
@@ -1362,7 +1305,7 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div 
                   class="level-card" 
                   [class.selected]="settings.gstActiveLevel === 'COMPANY'"
-                  (click)="settings.gstActiveLevel = 'COMPANY'"
+                  (click)="setGstLevel('COMPANY')"
                 >
                   <div class="radio-indicator">
                     <i class="pi" [ngClass]="settings.gstActiveLevel === 'COMPANY' ? 'pi-check-circle' : 'pi-circle'"></i>
@@ -1377,7 +1320,7 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div 
                   class="level-card" 
                   [class.selected]="settings.gstActiveLevel === 'ITEM_GROUP'"
-                  (click)="settings.gstActiveLevel = 'ITEM_GROUP'"
+                  (click)="setGstLevel('ITEM_GROUP')"
                 >
                   <div class="radio-indicator">
                     <i class="pi" [ngClass]="settings.gstActiveLevel === 'ITEM_GROUP' ? 'pi-check-circle' : 'pi-circle'"></i>
@@ -1392,7 +1335,7 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div 
                   class="level-card" 
                   [class.selected]="settings.gstActiveLevel === 'ITEM_CATEGORY'"
-                  (click)="settings.gstActiveLevel = 'ITEM_CATEGORY'"
+                  (click)="setGstLevel('ITEM_CATEGORY')"
                 >
                   <div class="radio-indicator">
                     <i class="pi" [ngClass]="settings.gstActiveLevel === 'ITEM_CATEGORY' ? 'pi-check-circle' : 'pi-circle'"></i>
@@ -1407,7 +1350,7 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div 
                   class="level-card" 
                   [class.selected]="settings.gstActiveLevel === 'ITEM'"
-                  (click)="settings.gstActiveLevel = 'ITEM'"
+                  (click)="setGstLevel('ITEM')"
                 >
                   <div class="radio-indicator">
                     <i class="pi" [ngClass]="settings.gstActiveLevel === 'ITEM' ? 'pi-check-circle' : 'pi-circle'"></i>
@@ -1523,7 +1466,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.legalName" 
-                    placeholder="e.g. Apex Technologies Private Limited" 
                   />
                 </div>
 
@@ -1532,7 +1474,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.tradeName" 
-                    placeholder="e.g. Apex Tech" 
                   />
                 </div>
 
@@ -1541,7 +1482,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.code" 
-                    placeholder="e.g. APEX-01" 
                     class="font-mono uppercase" 
                   />
                 </div>
@@ -1588,7 +1528,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.currencyCode" 
-                    placeholder="INR" 
                     class="font-mono" 
                   />
                 </div>
@@ -1609,7 +1548,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.billingAddress.addressLine1" 
-                      placeholder="Floor, Building, Plot / Street Number" 
                     />
                   </div>
 
@@ -1618,7 +1556,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.billingAddress.addressLine2" 
-                      placeholder="Landmark, Area, Industrial Zone" 
                     />
                   </div>
 
@@ -1627,7 +1564,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.billingAddress.city" 
-                      placeholder="e.g. Mumbai" 
                     />
                   </div>
 
@@ -1646,7 +1582,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.billingAddress.pincode" 
-                      placeholder="e.g. 400021" 
                       class="font-mono" 
                     />
                   </div>
@@ -1656,7 +1591,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.billingAddress.country" 
-                      placeholder="India" 
                     />
                   </div>
                 </div>
@@ -1677,7 +1611,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.shippingAddress.addressLine1" 
-                      placeholder="Gate / Warehouse, Plot / Sector" 
                     />
                   </div>
 
@@ -1686,7 +1619,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.shippingAddress.addressLine2" 
-                      placeholder="Industrial Area, Logistic Park" 
                     />
                   </div>
 
@@ -1695,7 +1627,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.shippingAddress.city" 
-                      placeholder="e.g. Navi Mumbai" 
                     />
                   </div>
 
@@ -1714,7 +1645,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.shippingAddress.pincode" 
-                      placeholder="e.g. 410208" 
                       class="font-mono" 
                     />
                   </div>
@@ -1724,7 +1654,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.shippingAddress.country" 
-                      placeholder="India" 
                     />
                   </div>
                 </div>
@@ -1755,7 +1684,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.gstin" 
-                    placeholder="27AABCU9603R1ZM" 
                     maxlength="15" 
                     class="font-mono uppercase font-bold" 
                   />
@@ -1766,7 +1694,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.pan" 
-                    placeholder="AABCU9603R" 
                     maxlength="10" 
                     class="font-mono uppercase font-bold" 
                   />
@@ -1795,7 +1722,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.tanNumber" 
-                    placeholder="e.g. MUMA12345E" 
                     class="font-mono uppercase" 
                   />
                 </div>
@@ -1814,7 +1740,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.contactDetails.contactPerson" 
-                    placeholder="e.g. Rajesh Sharma" 
                   />
                 </div>
 
@@ -1823,7 +1748,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="email" 
                     [(ngModel)]="companyForm.contactDetails.email" 
-                    placeholder="e.g. finance@apextechnologies.com" 
                   />
                 </div>
 
@@ -1832,7 +1756,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.contactDetails.phone" 
-                    placeholder="e.g. +91 98200 12345" 
                   />
                 </div>
 
@@ -1841,7 +1764,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="text" 
                     [(ngModel)]="companyForm.contactDetails.alternatePhone" 
-                    placeholder="e.g. 022-28493921" 
                   />
                 </div>
 
@@ -1850,7 +1772,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <input 
                     type="url" 
                     [(ngModel)]="companyForm.contactDetails.website" 
-                    placeholder="e.g. https://www.apextechnologies.com" 
                   />
                 </div>
               </div>
@@ -1924,7 +1845,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <input 
                       type="text" 
                       [(ngModel)]="companyForm.extraDetails.tagline" 
-                      placeholder="e.g. Engineered for Precision & Reliability" 
                     />
                   </div>
 
@@ -1933,7 +1853,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <textarea 
                       rows="2" 
                       [(ngModel)]="companyForm.extraDetails.invoiceHeaderNote" 
-                      placeholder="e.g. ISO 9001:2015 Certified Manufacturing Facility"
                     ></textarea>
                   </div>
 
@@ -1942,7 +1861,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                     <textarea 
                       rows="2" 
                       [(ngModel)]="companyForm.extraDetails.invoiceFooterNote" 
-                      placeholder="e.g. Certified that all particulars are true and correct. Subject to local jurisdiction."
                     ></textarea>
                   </div>
                 </div>
@@ -1955,39 +1873,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
       <!-- TAB: BRANCH MASTER (UNDER SETTINGS) -->
       @if (activeTab === 'branches') {
         <div class="warehouses-page-view">
-          <!-- STATS / KPI SUMMARY CARDS -->
-          <div class="warehouse-stats-grid">
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap primary">
-                <i class="pi pi-sitemap"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ branches.length }}</div>
-                <div class="kpi-label">Registered Branches</div>
-              </div>
-            </div>
-
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap custom">
-                <i class="pi pi-building"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ getHeadOfficeBranch()?.branchName || 'Main Branch' }}</div>
-                <div class="kpi-label">Head Office (HQ)</div>
-              </div>
-            </div>
-
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap users">
-                <i class="pi pi-warehouse"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ warehouses.length }}</div>
-                <div class="kpi-label">Associated Godowns</div>
-              </div>
-            </div>
-          </div>
-
           <!-- TOOLBAR: SEARCH & ADD -->
           <div class="warehouse-toolbar zeno-card">
             <div class="search-input-wrap">
@@ -1995,7 +1880,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
               <input 
                 type="text" 
                 [(ngModel)]="branchSearchQuery" 
-                placeholder="Search branches by name, code, state, or address..." 
               />
               @if (branchSearchQuery) {
                 <button class="clear-search-btn" (click)="branchSearchQuery = ''">
@@ -2003,10 +1887,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 </button>
               }
             </div>
-
-            <button class="btn-primary" (click)="openCreateBranchModal()">
-              <i class="pi pi-plus"></i> Add New Branch
-            </button>
           </div>
 
           <!-- BRANCHES TABLE -->
@@ -2101,12 +1981,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div class="modal-body">
                   <div class="form-group">
                     <label>Branch Name <span class="required">*</span></label>
-                    <input type="text" [(ngModel)]="newBranch.branchName" placeholder="e.g. Pune Regional Branch, Delhi Logistics Hub" />
+                    <input type="text" [(ngModel)]="newBranch.branchName" />
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label>Branch Code <span class="required">*</span></label>
-                      <input type="text" [(ngModel)]="newBranch.branchCode" placeholder="e.g. BR-PUN" class="font-mono uppercase" />
+                      <input type="text" [(ngModel)]="newBranch.branchCode" class="font-mono uppercase" />
                     </div>
                     <div class="form-group">
                       <label>State <span class="required">*</span></label>
@@ -2120,16 +2000,16 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <div class="form-row">
                     <div class="form-group">
                       <label>State Code</label>
-                      <input type="text" [(ngModel)]="newBranch.stateCode" class="font-mono" placeholder="27" />
+                      <input type="text" [(ngModel)]="newBranch.stateCode" class="font-mono" />
                     </div>
                     <div class="form-group">
                       <label>Pincode / Postal Code</label>
-                      <input type="text" [(ngModel)]="newBranch.pincode" placeholder="e.g. 411001" class="font-mono" />
+                      <input type="text" [(ngModel)]="newBranch.pincode" class="font-mono" />
                     </div>
                   </div>
                   <div class="form-group">
                     <label>Street / Building Address</label>
-                    <input type="text" [(ngModel)]="newBranch.addressLine1" placeholder="Plot / Suite / Landmark / Area" />
+                    <input type="text" [(ngModel)]="newBranch.addressLine1" />
                   </div>
                   <div class="form-group flex-center-start" style="padding-top: 12px;">
                     <label class="switch-inline">
@@ -2159,12 +2039,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div class="modal-body">
                   <div class="form-group">
                     <label>Branch Name <span class="required">*</span></label>
-                    <input type="text" [(ngModel)]="branchToEdit.branchName" placeholder="Branch Name" />
+                    <input type="text" [(ngModel)]="branchToEdit.branchName" />
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label>Branch Code <span class="required">*</span></label>
-                      <input type="text" [(ngModel)]="branchToEdit.branchCode" placeholder="Code" class="font-mono uppercase" />
+                      <input type="text" [(ngModel)]="branchToEdit.branchCode" class="font-mono uppercase" />
                     </div>
                     <div class="form-group">
                       <label>State <span class="required">*</span></label>
@@ -2178,16 +2058,16 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   <div class="form-row">
                     <div class="form-group">
                       <label>State Code</label>
-                      <input type="text" [(ngModel)]="branchToEdit.stateCode" class="font-mono" placeholder="27" />
+                      <input type="text" [(ngModel)]="branchToEdit.stateCode" class="font-mono" />
                     </div>
                     <div class="form-group">
                       <label>Pincode / Postal Code</label>
-                      <input type="text" [(ngModel)]="branchToEdit.pincode" placeholder="Pincode" class="font-mono" />
+                      <input type="text" [(ngModel)]="branchToEdit.pincode" class="font-mono" />
                     </div>
                   </div>
                   <div class="form-group">
                     <label>Street / Building Address</label>
-                    <input type="text" [(ngModel)]="branchToEdit.addressLine1" placeholder="Address" />
+                    <input type="text" [(ngModel)]="branchToEdit.addressLine1" />
                   </div>
                   <div class="form-group flex-center-start" style="padding-top: 12px;">
                     <label class="switch-inline">
@@ -2238,39 +2118,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
       <!-- TAB: WAREHOUSE MASTER (AFTER COMPANY PROFILE) -->
       @if (activeTab === 'warehouses') {
         <div class="warehouses-page-view">
-          <!-- STATS / KPI SUMMARY CARDS -->
-          <div class="warehouse-stats-grid">
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap primary">
-                <i class="pi pi-warehouse"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ warehouses.length }}</div>
-                <div class="kpi-label">Total Warehouses / Godowns</div>
-              </div>
-            </div>
-
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap custom">
-                <i class="pi pi-check-circle"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ getActiveWarehousesCount() }}</div>
-                <div class="kpi-label">Active Storage Facilities</div>
-              </div>
-            </div>
-
-            <div class="kpi-card">
-              <div class="kpi-icon-wrap users">
-                <i class="pi pi-sitemap"></i>
-              </div>
-              <div class="kpi-info">
-                <div class="kpi-value">{{ getUniqueBranchesCount() }}</div>
-                <div class="kpi-label">Associated Branches</div>
-              </div>
-            </div>
-          </div>
-
           <!-- TOOLBAR: SEARCH & BRANCH FILTER -->
           <div class="warehouse-toolbar zeno-card">
             <div class="search-input-wrap">
@@ -2278,7 +2125,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
               <input 
                 type="text" 
                 [(ngModel)]="warehouseSearchQuery" 
-                placeholder="Search warehouse by name, code, city, or contact..." 
               />
               @if (warehouseSearchQuery) {
                 <button class="clear-search-btn" (click)="warehouseSearchQuery = ''">
@@ -2385,12 +2231,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
               <div class="modal-body">
                 <div class="form-group">
                   <label>Warehouse Name <span class="required">*</span></label>
-                  <input type="text" [(ngModel)]="newWarehouse.name" placeholder="e.g. Central Finished Goods Warehouse" />
+                  <input type="text" [(ngModel)]="newWarehouse.name" />
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Warehouse Code <span class="required">*</span></label>
-                    <input type="text" [(ngModel)]="newWarehouse.code" placeholder="e.g. WH-01" class="font-mono uppercase" />
+                    <input type="text" [(ngModel)]="newWarehouse.code" class="font-mono uppercase" />
                   </div>
                   <div class="form-group">
                     <label>Associated Branch <span class="required">*</span></label>
@@ -2403,12 +2249,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 </div>
                 <div class="form-group">
                   <label>Address Line</label>
-                  <input type="text" [(ngModel)]="newWarehouse.address" placeholder="Plot / Shed / Logistic Hub Address" />
+                  <input type="text" [(ngModel)]="newWarehouse.address" />
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>City</label>
-                    <input type="text" [(ngModel)]="newWarehouse.city" placeholder="e.g. Mumbai" />
+                    <input type="text" [(ngModel)]="newWarehouse.city" />
                   </div>
                   <div class="form-group">
                     <label>State</label>
@@ -2423,17 +2269,17 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div class="form-row">
                   <div class="form-group">
                     <label>Pincode</label>
-                    <input type="text" [(ngModel)]="newWarehouse.pincode" placeholder="e.g. 400072" class="font-mono" />
+                    <input type="text" [(ngModel)]="newWarehouse.pincode" class="font-mono" />
                   </div>
                   <div class="form-group">
                     <label>Contact Person</label>
-                    <input type="text" [(ngModel)]="newWarehouse.contactPerson" placeholder="Godown Manager Name" />
+                    <input type="text" [(ngModel)]="newWarehouse.contactPerson" />
                   </div>
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Contact Phone</label>
-                    <input type="text" [(ngModel)]="newWarehouse.contactPhone" placeholder="+91 98000 00000" />
+                    <input type="text" [(ngModel)]="newWarehouse.contactPhone" />
                   </div>
                   <div class="form-group flex-center-start" style="padding-top: 24px;">
                     <label class="switch-inline">
@@ -2464,12 +2310,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
               <div class="modal-body">
                 <div class="form-group">
                   <label>Warehouse Name <span class="required">*</span></label>
-                  <input type="text" [(ngModel)]="warehouseToEdit.name" placeholder="Warehouse Name" />
+                  <input type="text" [(ngModel)]="warehouseToEdit.name" />
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Warehouse Code <span class="required">*</span></label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.code" placeholder="Code" class="font-mono uppercase" />
+                    <input type="text" [(ngModel)]="warehouseToEdit.code" class="font-mono uppercase" />
                   </div>
                   <div class="form-group">
                     <label>Associated Branch</label>
@@ -2482,12 +2328,12 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 </div>
                 <div class="form-group">
                   <label>Address</label>
-                  <input type="text" [(ngModel)]="warehouseToEdit.address" placeholder="Address" />
+                  <input type="text" [(ngModel)]="warehouseToEdit.address" />
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>City</label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.city" placeholder="City" />
+                    <input type="text" [(ngModel)]="warehouseToEdit.city" />
                   </div>
                   <div class="form-group">
                     <label>State</label>
@@ -2502,17 +2348,17 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <div class="form-row">
                   <div class="form-group">
                     <label>Pincode</label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.pincode" placeholder="Pincode" class="font-mono" />
+                    <input type="text" [(ngModel)]="warehouseToEdit.pincode" class="font-mono" />
                   </div>
                   <div class="form-group">
                     <label>Contact Person</label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.contactPerson" placeholder="Contact Person" />
+                    <input type="text" [(ngModel)]="warehouseToEdit.contactPerson" />
                   </div>
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Contact Phone</label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.contactPhone" placeholder="Phone" />
+                    <input type="text" [(ngModel)]="warehouseToEdit.contactPhone" />
                   </div>
                   <div class="form-group flex-center-start" style="padding-top: 24px;">
                     <label class="switch-inline">
@@ -2575,7 +2421,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                   type="text" 
                   [(ngModel)]="editingRole.name" 
                   [disabled]="editingRole.isSystem" 
-                  placeholder="Role Name *" 
                 />
               </div>
               <div class="form-group">
@@ -2583,7 +2428,6 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 <textarea 
                   rows="3" 
                   [(ngModel)]="editingRole.description" 
-                  placeholder="Specify functional duties, reporting hierarchy, and notes..."
                 ></textarea>
               </div>
             </div>
@@ -2645,15 +2489,15 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
             <div class="modal-body">
               <div class="form-group">
                 <label>Full Name *</label>
-                <input type="text" [(ngModel)]="newUser.fullName" placeholder="e.g. John Doe" />
+                <input type="text" [(ngModel)]="newUser.fullName" />
               </div>
               <div class="form-group">
                 <label>Email Address *</label>
-                <input type="email" [(ngModel)]="newUser.email" placeholder="john.doe@company.com" />
+                <input type="email" [(ngModel)]="newUser.email" />
               </div>
               <div class="form-group">
                 <label>Phone Number</label>
-                <input type="text" [(ngModel)]="newUser.phone" placeholder="+91 98765 43210" />
+                <input type="text" [(ngModel)]="newUser.phone" />
               </div>
               <div class="form-group">
                 <label>Assign Role *</label>
@@ -2684,21 +2528,21 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
             <div class="modal-body">
               <div class="form-group">
                 <label>Tax Slab Name *</label>
-                <input type="text" [(ngModel)]="newTax.taxName" placeholder="e.g. GST 18%, GST Exempt" />
+                <input type="text" [(ngModel)]="newTax.taxName" />
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label>Total Rate (%) *</label>
-                  <input type="number" step="0.01" [(ngModel)]="newTax.rate" placeholder="18.00" />
+                  <input type="number" step="0.01" [(ngModel)]="newTax.rate" />
                 </div>
                 <div class="form-group">
                   <label>Cess Rate (%)</label>
-                  <input type="number" step="0.01" [(ngModel)]="newTax.cessRate" placeholder="0.00" />
+                  <input type="number" step="0.01" [(ngModel)]="newTax.cessRate" />
                 </div>
               </div>
               <div class="form-group">
                 <label>Description</label>
-                <input type="text" [(ngModel)]="newTax.description" placeholder="Standard rate for goods and taxable services..." />
+                <input type="text" [(ngModel)]="newTax.description" />
               </div>
             </div>
             <div class="modal-footer">
@@ -5933,8 +5777,9 @@ export class SettingsComponent implements OnInit {
 
     this.saving = true;
     this.api.put(`/settings?companyId=${compId}`, this.settings).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
+        this.tenant.companySettings.set({ ...this.settings, ...(res || {}) });
         this.saveSuccess = true;
         this.saveMessage = 'Configuration saved successfully! All transactional engines and parameters refreshed.';
         this.toast.success(this.saveMessage, 'Settings Saved');
@@ -5945,6 +5790,31 @@ export class SettingsComponent implements OnInit {
         this.toast.error('Failed to save configuration settings.', 'Save Failed');
       },
     });
+  }
+
+  setGstLevel(level: string) {
+    this.settings.gstActiveLevel = level;
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+    if (!compId) return;
+    this.api.put(`/settings?companyId=${compId}`, this.settings).subscribe({
+      next: (res: any) => {
+        this.tenant.companySettings.set({ ...this.settings, ...(res || {}) });
+        this.toast.success(`GST resolution level switched to ${this.formatGstLevelName(level)}`, 'Hierarchy Updated');
+      },
+      error: () => {
+        this.toast.error('Failed to update GST resolution hierarchy', 'Error');
+      },
+    });
+  }
+
+  formatGstLevelName(level: string): string {
+    switch (level) {
+      case 'COMPANY': return 'Company Level';
+      case 'ITEM_GROUP': return 'Item Group Level';
+      case 'ITEM_CATEGORY': return 'Item Category Level';
+      case 'ITEM': return 'Item Master Level';
+      default: return level;
+    }
   }
 
   toggleFeature(toggle: any, event: any) {

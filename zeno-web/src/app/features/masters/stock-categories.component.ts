@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ZENO_UI_COMPONENTS } from '../../shared/ui';
 
 interface StockCategoryItem {
   id: string;
   name: string;
   itemGroupId: string;
-  itemGroup?: { id: string; name: string };
+  itemGroup?: { id: string; name: string; gstRate?: number };
   gstRate: number;
   items?: any[];
   createdAt: string;
@@ -17,43 +18,40 @@ interface StockCategoryItem {
 @Component({
   selector: 'app-stock-categories',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="masters-page">
-      <div class="page-header">
-        <div>
-          <h1>Stock Category</h1>
+    <div class="zeno-page-container">
+      <zeno-page-header title="Stock Category">
+        <div actions>
+          <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
+            New Stock Category
+          </zeno-button>
         </div>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="openCreateModal()">
-            <i class="pi pi-plus"></i> New Stock Category
-          </button>
-        </div>
-      </div>
+      </zeno-page-header>
 
-      <!-- FILTER & TOOLBAR -->
-      <div class="zeno-card">
-        <div class="table-toolbar">
-          <div class="toolbar-search">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              placeholder="Search category name..."
-              [(ngModel)]="searchQuery"
-              (input)="filterCategories()"
-            />
-          </div>
-          <div class="toolbar-filters">
-            <select [(ngModel)]="groupFilter" (change)="filterCategories()" class="form-select">
-              <option value="ALL">All Stock Groups</option>
-              @for (sg of stockGroups; track sg.id) {
-                <option [value]="sg.id">{{ sg.name }}</option>
-              }
-            </select>
+      <!-- TABLE & LIST CONTAINER -->
+      <zeno-table
+        [loading]="loading"
+        [empty]="filteredCategories.length === 0"
+        loadingMessage="Loading stock categories..."
+        emptyMessage="No stock categories found. Click 'New Stock Category' to create one."
+      >
+        <div toolbar-left>
+          <zeno-search
+            [(ngModel)]="searchQuery"
+            (searchChange)="filterCategories()"
+          ></zeno-search>
+        </div>
+        <div toolbar-right>
+          <div style="min-width: 220px;">
+            <zeno-select
+              [(ngModel)]="groupFilter"
+              [options]="groupFilterOptions"
+              (selectChange)="filterCategories()"
+            ></zeno-select>
           </div>
         </div>
 
-        <!-- TABLE -->
         <table class="zeno-table">
           <thead>
             <tr>
@@ -64,19 +62,6 @@ interface StockCategoryItem {
             </tr>
           </thead>
           <tbody>
-            @if (loading) {
-              <tr>
-                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  <i class="pi pi-spin pi-spinner"></i> Loading stock categories...
-                </td>
-              </tr>
-            } @else if (filteredCategories.length === 0) {
-              <tr>
-                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No stock categories found. Click "New Stock Category" to create one.
-                </td>
-              </tr>
-            }
             @for (c of filteredCategories; track c.id) {
               <tr>
                 <td>
@@ -86,90 +71,74 @@ interface StockCategoryItem {
                   </div>
                 </td>
                 <td>
-                  <span class="badge-pill badge-partial">
-                    <i class="pi pi-folder"></i> {{ c.itemGroup?.name || 'Unassigned' }}
-                  </span>
+                  <zeno-badge type="primary" icon="pi pi-folder">
+                    {{ c.itemGroup?.name || 'Unassigned' }}
+                  </zeno-badge>
                 </td>
                 <td class="text-right font-mono font-bold" [style.color]="c.gstRate > 0 ? '#1e40af' : '#64748b'">
-                  {{ c.gstRate }}%
+                  {{ getCategoryGstDisplay(c) }}
                 </td>
                 <td class="text-right actions-cell">
-                  <button class="btn-icon" (click)="openEditModal(c)" title="Edit Category">
-                    <i class="pi pi-pencil"></i>
-                  </button>
-                  <button class="btn-icon text-danger" (click)="deleteCategory(c)" title="Delete Category">
-                    <i class="pi pi-trash"></i>
-                  </button>
+                  <zeno-button variant="icon" icon="pi pi-pencil" title="Edit Category" (btnClick)="openEditModal(c)"></zeno-button>
+                  <zeno-button variant="icon" icon="pi pi-trash" title="Delete Category" (btnClick)="deleteCategory(c)" class="text-danger"></zeno-button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
-      </div>
+      </zeno-table>
 
       <!-- CREATE / EDIT MODAL -->
-      @if (showModal) {
-        <div class="modal-backdrop" (click)="closeModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h3>{{ editingCategory ? 'Edit Stock Category' : 'New Stock Category' }}</h3>
-              <button class="close-btn" (click)="closeModal()">&times;</button>
-            </div>
-
-            <div class="modal-body">
-              @if (errorMessage) {
-                <div class="alert alert-error">
-                  <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
-                </div>
-              }
-
-              <div class="form-grid">
-                <div class="form-group full-width">
-                  <label class="required">Parent Stock Group</label>
-                  <select [(ngModel)]="formData.itemGroupId" class="form-control">
-                    <option value="" disabled>-- Select Stock Group --</option>
-                    @for (sg of stockGroups; track sg.id) {
-                      <option [value]="sg.id">{{ sg.name }} (GST {{ sg.gstRate }}%)</option>
-                    }
-                  </select>
-                </div>
-
-                <div class="form-group full-width">
-                  <label class="required">Category Name</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.name"
-                    placeholder="e.g. Microcontrollers, Corrugated Boxes, Alloy Sheets"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group full-width">
-                  <label>Category-Level GST Rate (%)</label>
-                  <select [(ngModel)]="formData.gstRate" class="form-control">
-                    <option [ngValue]="0">0% (Exempt / Nil)</option>
-                    <option [ngValue]="5">5%</option>
-                    <option [ngValue]="12">12%</option>
-                    <option [ngValue]="18">18%</option>
-                    <option [ngValue]="28">28%</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-              <button class="btn-primary" (click)="saveCategory()" [disabled]="saving">
-                @if (saving) {
-                  <i class="pi pi-spin pi-spinner"></i> Saving...
-                } @else {
-                  <i class="pi pi-check"></i> {{ editingCategory ? 'Update Category' : 'Create Category' }}
-                }
-              </button>
-            </div>
+      <zeno-modal
+        [isOpen]="showModal"
+        [title]="editingCategory ? 'Edit Stock Category' : 'New Stock Category'"
+        size="md"
+        (close)="closeModal()"
+      >
+        @if (errorMessage) {
+          <div class="alert alert-error">
+            <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
           </div>
+        }
+
+        <div class="zeno-form-grid-2">
+          <zeno-form-group label="Parent Stock Group" [required]="true" [span]="2">
+            <zeno-select
+              [(ngModel)]="formData.itemGroupId"
+              [options]="stockGroupOptions"
+              [allowEmpty]="true"
+              emptyLabel="-- Select Stock Group --"
+            ></zeno-select>
+          </zeno-form-group>
+
+          <zeno-form-group label="Category Name" [required]="true" [span]="2">
+            <zeno-input [(ngModel)]="formData.name"></zeno-input>
+          </zeno-form-group>
+
+          @if (isGstAtCategoryLevel) {
+            <zeno-form-group label="Category-Level GST Rate (%)" [required]="true" [span]="2">
+              <zeno-select
+                [(ngModel)]="formData.gstRate"
+                [options]="gstRateOptions"
+              ></zeno-select>
+            </zeno-form-group>
+          } @else {
+            <zeno-form-group label="GST Active Level" [span]="2">
+              <div class="gst-managed-badge">
+                <i class="pi pi-info-circle text-primary"></i>
+                <span>{{ getGstLevelLabel() }}</span>
+              </div>
+            </zeno-form-group>
+          }
         </div>
-      }
+
+        <div footer>
+          <zeno-button variant="secondary" (btnClick)="closeModal()">Cancel</zeno-button>
+          <zeno-button variant="primary" icon="pi pi-check" [loading]="saving" (btnClick)="saveCategory()">
+            {{ editingCategory ? 'Update Category' : 'Create Category' }}
+          </zeno-button>
+        </div>
+      </zeno-modal>
     </div>
   `,
   styles: [`
@@ -214,6 +183,7 @@ interface StockCategoryItem {
     .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; }
     .form-control:focus { border-color: var(--primary-600); }
     .alert-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; }
+    .gst-managed-badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); min-height: 38px; }
   `],
 })
 export class StockCategoriesComponent implements OnInit {
@@ -235,6 +205,28 @@ export class StockCategoriesComponent implements OnInit {
     gstRate: 18,
   };
 
+  get groupFilterOptions() {
+    return [
+      { label: 'All Stock Groups', value: 'ALL' },
+      ...this.stockGroups.map((sg) => ({ label: sg.name, value: sg.id })),
+    ];
+  }
+
+  get stockGroupOptions() {
+    return this.stockGroups.map((sg) => ({
+      label: `${sg.name} (GST ${sg.gstRate || 0}%)`,
+      value: sg.id,
+    }));
+  }
+
+  readonly gstRateOptions = [
+    { label: '0% (Exempt / Nil)', value: 0 },
+    { label: '5%', value: 5 },
+    { label: '12%', value: 12 },
+    { label: '18%', value: 18 },
+    { label: '28%', value: 28 },
+  ];
+
   constructor(
     private mastersService: MastersService,
     private tenantService: TenantService,
@@ -242,6 +234,46 @@ export class StockCategoriesComponent implements OnInit {
 
   ngOnInit() {
     this.loadData();
+  }
+
+  get gstActiveLevel(): string {
+    return this.tenantService.getGstActiveLevel();
+  }
+
+  get isGstAtCategoryLevel(): boolean {
+    return this.gstActiveLevel === 'ITEM_CATEGORY';
+  }
+
+  getGstLevelLabel(): string {
+    switch (this.gstActiveLevel) {
+      case 'COMPANY':
+        return `Company Level (${this.tenantService.getCompanyFlatGstRate()}% Global Flat Rate)`;
+      case 'ITEM_GROUP':
+        return `Inherited from Parent Stock Group (${this.getParentGroupGst()}%)`;
+      case 'ITEM':
+        return 'Item Master Level';
+      default:
+        return 'Item Category Level';
+    }
+  }
+
+  getParentGroupGst(): number {
+    const group = this.stockGroups.find((g) => g.id === this.formData.itemGroupId);
+    return group?.gstRate || 0;
+  }
+
+  getCategoryGstDisplay(c: StockCategoryItem): string {
+    if (this.gstActiveLevel === 'ITEM_CATEGORY') {
+      return `${c.gstRate || 0}%`;
+    }
+    if (this.gstActiveLevel === 'ITEM_GROUP') {
+      const grpRate = c.itemGroup?.gstRate ?? this.stockGroups.find((g) => g.id === c.itemGroupId)?.gstRate ?? 0;
+      return `${grpRate}% (Group)`;
+    }
+    if (this.gstActiveLevel === 'COMPANY') {
+      return `${this.tenantService.getCompanyFlatGstRate()}% (Company)`;
+    }
+    return 'At Item Master';
   }
 
   get totalItemsClassified() {

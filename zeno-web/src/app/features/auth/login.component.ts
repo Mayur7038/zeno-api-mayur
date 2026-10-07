@@ -35,7 +35,6 @@ import { AuthService } from '../../core/services/auth.service';
                 [(ngModel)]="email"
                 name="email"
                 required
-                placeholder="name@company.com"
                 autocomplete="username"
               />
             </div>
@@ -47,7 +46,6 @@ import { AuthService } from '../../core/services/auth.service';
                 [(ngModel)]="password"
                 name="password"
                 required
-                placeholder="••••••••"
                 autocomplete="current-password"
               />
             </div>

@@ -6,6 +6,7 @@ import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-vendor-payments',
@@ -20,6 +21,30 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-credit-card"></i> Make Payment
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER CARD -->
+        <div class="zeno-card filter-card">
+          <div class="filter-group">
+            <i class="pi pi-search search-icon"></i>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+            />
+          </div>
+
+          <div class="filter-actions">
+            <select class="filter-select" [(ngModel)]="selectedVendor">
+              <option value="">All Vendors</option>
+              @for (v of vendors; track v.id) {
+                <option [value]="v.id">{{ v.name }}</option>
+              }
+            </select>
+
+            <button class="btn-export" (click)="exportPayments()" [disabled]="filteredPayments.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
             </button>
           </div>
         </div>
@@ -39,14 +64,14 @@ import { ToastService } from '../../../core/services/toast.service';
               </tr>
             </thead>
             <tbody>
-              @if (payments.length === 0) {
+              @if (filteredPayments.length === 0) {
                 <tr>
                   <td colspan="7" class="text-center" style="padding: 40px; color: var(--surface-500);">
                     No vendor payments recorded yet. Click "Make Payment" to disburse and settle bills.
                   </td>
                 </tr>
               }
-              @for (p of payments; track p.id) {
+              @for (p of filteredPayments; track p.id) {
                 <tr>
                   <td class="font-mono font-bold" style="color: var(--primary-700)">{{ p.voucherNo }}</td>
                   <td>{{ p.paymentDate }}</td>
@@ -120,11 +145,11 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="form-grid-2" style="margin-top: 14px;">
             <div class="form-group">
               <label>Reference / Cheque / UTR #</label>
-              <input type="text" [(ngModel)]="form.referenceChequeNo" placeholder="e.g. NEFT-99482910" />
+              <input type="text" [(ngModel)]="form.referenceChequeNo" />
             </div>
             <div class="form-group">
               <label>Payment Narration</label>
-              <input type="text" [(ngModel)]="form.notes" placeholder="e.g. Full settlement against Invoice" />
+              <input type="text" [(ngModel)]="form.notes" />
             </div>
           </div>
 
@@ -259,6 +284,41 @@ export class VendorPaymentsComponent implements OnInit {
 
   submitting = false;
   createError = '';
+  searchQuery = '';
+  selectedVendor = '';
+
+  get filteredPayments(): any[] {
+    let list = this.payments || [];
+    if (this.selectedVendor) {
+      list = list.filter((p: any) => p.vendorLedgerId === this.selectedVendor);
+    }
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.trim().toLowerCase();
+      list = list.filter((p: any) =>
+        (p.voucherNo && p.voucherNo.toLowerCase().includes(q)) ||
+        (p.vendorLedger?.name && p.vendorLedger.name.toLowerCase().includes(q)) ||
+        (p.referenceChequeNo && p.referenceChequeNo.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  exportPayments() {
+    const list = this.filteredPayments;
+    if (!list || list.length === 0) return;
+    const headers = ['Voucher No', 'Payment Date', 'Vendor', 'Payment Mode', 'Reference No', 'Discount Taken', 'Amount Paid'];
+    const rows = list.map((p) => [
+      p.voucherNo || '',
+      p.paymentDate || '',
+      p.vendorLedger?.name || '',
+      p.paymentModeLedger?.name || '',
+      p.referenceChequeNo || '',
+      p.totalDiscountReceived || 0,
+      p.totalAmountPaid || 0
+    ]);
+    exportToCsv('Vendor_Payments', headers, rows);
+    this.toast.success('Vendor payments exported successfully!', 'Export Complete');
+  }
 
   get totalDisbursed(): number {
     return this.payments.reduce((sum, p) => sum + Number(p.totalAmountPaid || 0), 0);

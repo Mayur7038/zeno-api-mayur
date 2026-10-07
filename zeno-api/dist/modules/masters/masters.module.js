@@ -16,6 +16,7 @@ const item_group_entity_1 = require("./entities/item-group.entity");
 const item_category_entity_1 = require("./entities/item-category.entity");
 const item_entity_1 = require("./entities/item.entity");
 const item_variant_entity_1 = require("./entities/item-variant.entity");
+const variant_definition_entity_1 = require("./entities/variant-definition.entity");
 const masters_service_1 = require("./services/masters.service");
 const masters_controller_1 = require("./controllers/masters.controller");
 let MastersModule = class MastersModule {
@@ -32,6 +33,7 @@ exports.MastersModule = MastersModule = __decorate([
                 item_category_entity_1.ItemCategory,
                 item_entity_1.Item,
                 item_variant_entity_1.ItemVariant,
+                variant_definition_entity_1.VariantDefinition,
             ]),
         ],
         controllers: [masters_controller_1.MastersController],

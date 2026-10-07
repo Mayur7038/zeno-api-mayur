@@ -1,0 +1,136 @@
+import { Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+
+@Component({
+  selector: 'zeno-checkbox',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => ZenoCheckboxComponent),
+      multi: true
+    }
+  ],
+  template: `
+    <label class="zeno-checkbox-label" [class.is-disabled]="disabled">
+      <input
+        type="checkbox"
+        [checked]="checked"
+        [disabled]="disabled"
+        (change)="onToggle($event)"
+      />
+      <span class="zeno-checkbox-custom">
+        <i class="pi pi-check zeno-check-icon"></i>
+      </span>
+      <span class="zeno-checkbox-text">
+        @if (label) {
+          {{ label }}
+        } @else {
+          <ng-content></ng-content>
+        }
+      </span>
+    </label>
+  `,
+  styles: [`
+    :host {
+      display: inline-block;
+    }
+    .zeno-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--surface-700, #334155);
+
+      &.is-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        margin: 0;
+
+        &:checked + .zeno-checkbox-custom {
+          background-color: var(--primary-600, #2563eb);
+          border-color: var(--primary-600, #2563eb);
+
+          .zeno-check-icon {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        &:focus-visible + .zeno-checkbox-custom {
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+      }
+    }
+    .zeno-checkbox-custom {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--surface-300, #cbd5e1);
+      border-radius: 4px;
+      background-color: var(--surface-0, #ffffff);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease-in-out;
+      flex-shrink: 0;
+    }
+    .zeno-check-icon {
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: all 0.15s ease-in-out;
+    }
+    .zeno-checkbox-text {
+      line-height: 1.25;
+    }
+  `]
+})
+export class ZenoCheckboxComponent implements ControlValueAccessor {
+  @Input() label?: string;
+  @Input() disabled = false;
+
+  @Output() change = new EventEmitter<boolean>();
+
+  checked = false;
+
+  onChange: (val: boolean) => void = () => {};
+  onTouched: () => void = () => {};
+
+  writeValue(val: boolean): void {
+    this.checked = !!val;
+  }
+
+  registerOnChange(fn: (val: boolean) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState?(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+  }
+
+  onToggle(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.checked = target.checked;
+    this.onChange(this.checked);
+    this.onTouched();
+    this.change.emit(this.checked);
+  }
+}

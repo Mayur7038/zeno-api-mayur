@@ -33,14 +33,26 @@ export class ItemVariant {
   @Column({ length: 60, nullable: true })
   sku: string;
 
+  @Column({ length: 60, nullable: true })
+  barcode: string;
+
   @Column({ type: 'jsonb', nullable: true })
   attributes: Record<string, string>;
 
-  @Column({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, nullable: true })
+  @Column({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, nullable: true, default: 0 })
   purchaseRate: number;
 
-  @Column({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, nullable: true })
+  @Column({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, nullable: true, default: 0 })
   saleRate: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  mrp: number;
+
+  @Column({ name: 'opening_qty', type: 'decimal', precision: 15, scale: 3, default: 0 })
+  openingQty: number;
+
+  @Column({ name: 'opening_rate', type: 'decimal', precision: 15, scale: 4, default: 0 })
+  openingRate: number;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

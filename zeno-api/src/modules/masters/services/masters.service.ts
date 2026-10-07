@@ -8,6 +8,9 @@ import { ItemGroup } from '../entities/item-group.entity';
 import { ItemCategory } from '../entities/item-category.entity';
 import { Item } from '../entities/item.entity';
 import { ItemVariant } from '../entities/item-variant.entity';
+import { VariantDefinition } from '../entities/variant-definition.entity';
+
+import { LedgerGroupNature } from '../../../common/enums';
 
 @Injectable()
 export class MastersService {
@@ -26,6 +29,8 @@ export class MastersService {
     private itemRepo: Repository<Item>,
     @InjectRepository(ItemVariant)
     private variantRepo: Repository<ItemVariant>,
+    @InjectRepository(VariantDefinition)
+    private variantDefRepo: Repository<VariantDefinition>,
   ) {}
 
   // 1. Ledger Groups
@@ -33,14 +38,69 @@ export class MastersService {
     const qb = this.groupRepo
       .createQueryBuilder('group')
       .leftJoinAndSelect('group.parent', 'parent')
-      .leftJoinAndSelect('group.children', 'children')
-      .where('group.tenant_id = :tenantId', { tenantId });
+      .leftJoinAndSelect('group.children', 'children');
 
-    if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
-      qb.andWhere('(group.company_id = :companyId OR group.is_predefined = true)', { companyId });
+    if (tenantId) {
+      qb.where('(group.tenant_id = :tenantId OR group.tenant_id IS NULL OR group.is_predefined = true)', { tenantId });
     }
 
-    return qb.orderBy('group.name', 'ASC').getMany();
+    if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
+      qb.andWhere('(group.company_id = :companyId OR group.company_id IS NULL OR group.is_predefined = true)', { companyId });
+    }
+
+    let groups = await qb.orderBy('group.name', 'ASC').getMany();
+
+    // If no groups exist, auto-seed standard Tally ledger groups for this tenant
+    if (groups.length === 0 && tenantId) {
+      const defaultGroupDefs = [
+        { name: 'Capital Account', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
+        { name: 'Current Liabilities', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
+        {
+          name: 'Sundry Creditors (Vendors)',
+          nature: LedgerGroupNature.LIABILITY,
+          isCreditorVendor: true,
+          isPredefined: true,
+        },
+        { name: 'Duties & Taxes', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
+        { name: 'Current Assets', nature: LedgerGroupNature.ASSET, isPredefined: true },
+        {
+          name: 'Sundry Debtors (Customers)',
+          nature: LedgerGroupNature.ASSET,
+          isDebtorCustomer: true,
+          isPredefined: true,
+        },
+        { name: 'Bank Accounts', nature: LedgerGroupNature.ASSET, isPredefined: true },
+        { name: 'Cash-in-hand', nature: LedgerGroupNature.ASSET, isPredefined: true },
+        { name: 'Stock-in-hand', nature: LedgerGroupNature.ASSET, isPredefined: true },
+        { name: 'Purchase Accounts', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
+        { name: 'Direct Expenses', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
+        { name: 'Indirect Expenses', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
+        { name: 'Sales Accounts', nature: LedgerGroupNature.INCOME, isPredefined: true },
+        { name: 'Direct Incomes', nature: LedgerGroupNature.INCOME, isPredefined: true },
+        { name: 'Indirect Incomes', nature: LedgerGroupNature.INCOME, isPredefined: true },
+      ];
+
+      for (const def of defaultGroupDefs) {
+        try {
+          const g = this.groupRepo.create({
+            tenantId,
+            companyId: companyId && companyId !== 'undefined' && companyId !== 'null' ? companyId : undefined,
+            name: def.name,
+            nature: def.nature,
+            isCreditorVendor: def.isCreditorVendor || false,
+            isDebtorCustomer: def.isDebtorCustomer || false,
+            isPredefined: true,
+          });
+          await this.groupRepo.save(g);
+        } catch {
+          // Ignore individual constraint errors during auto-seed
+        }
+      }
+
+      groups = await qb.orderBy('group.name', 'ASC').getMany();
+    }
+
+    return groups;
   }
 
   async createLedgerGroup(tenantId: string, companyId: string, data: Partial<LedgerGroup>) {
@@ -249,7 +309,43 @@ export class MastersService {
     return { success: true, message: 'Variant deleted' };
   }
 
-  // 5. Items & Variants
+  // 6. Variant Master Definitions
+  async getVariantDefinitions(tenantId: string, companyId?: string) {
+    const qb = this.variantDefRepo
+      .createQueryBuilder('vd')
+      .where('vd.tenant_id = :tenantId', { tenantId });
+
+    if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
+      qb.andWhere('(vd.company_id = :companyId OR vd.company_id IS NULL)', { companyId });
+    }
+
+    return qb.orderBy('vd.name', 'ASC').getMany();
+  }
+
+  async getVariantDefinitionById(tenantId: string, id: string) {
+    return this.variantDefRepo.findOne({ where: { id, tenantId } });
+  }
+
+  async createVariantDefinition(tenantId: string, companyId: string, data: Partial<VariantDefinition>) {
+    const vd = this.variantDefRepo.create({ ...data, tenantId, companyId });
+    return this.variantDefRepo.save(vd);
+  }
+
+  async updateVariantDefinition(tenantId: string, id: string, data: Partial<VariantDefinition>) {
+    const vd = await this.variantDefRepo.findOne({ where: { id, tenantId } });
+    if (!vd) throw new BadRequestException('Variant definition not found');
+    Object.assign(vd, data);
+    return this.variantDefRepo.save(vd);
+  }
+
+  async deleteVariantDefinition(tenantId: string, id: string) {
+    const vd = await this.variantDefRepo.findOne({ where: { id, tenantId } });
+    if (!vd) throw new BadRequestException('Variant definition not found');
+    await this.variantDefRepo.delete({ id, tenantId });
+    return { success: true, message: 'Variant definition deleted' };
+  }
+
+  // 7. Items & Variants
   async getItems(tenantId: string, companyId: string, search?: string) {
     const qb = this.itemRepo
       .createQueryBuilder('item')
@@ -296,10 +392,35 @@ export class MastersService {
     return this.getItemById(tenantId, savedItem.id);
   }
 
-  async updateItem(tenantId: string, id: string, data: Partial<Item>) {
+  async updateItem(tenantId: string, id: string, data: Partial<Item> & { variants?: any[] }) {
+    const { variants, ...itemData } = data;
     const item = await this.itemRepo.findOne({ where: { id, tenantId } });
     if (!item) throw new BadRequestException('Item not found');
-    Object.assign(item, data);
-    return this.itemRepo.save(item);
+    Object.assign(item, itemData);
+    await this.itemRepo.save(item);
+
+    if (variants && Array.isArray(variants)) {
+      await this.variantRepo.delete({ itemId: id, tenantId });
+      if (variants.length > 0) {
+        const vars = variants.map((v) =>
+          this.variantRepo.create({
+            ...v,
+            tenantId,
+            itemId: id,
+          }),
+        );
+        await this.variantRepo.save(vars);
+      }
+    }
+
+    return this.getItemById(tenantId, id);
+  }
+
+  async deleteItem(tenantId: string, id: string) {
+    const item = await this.itemRepo.findOne({ where: { id, tenantId } });
+    if (!item) throw new BadRequestException('Item not found');
+    await this.variantRepo.delete({ itemId: id, tenantId });
+    await this.itemRepo.delete({ id, tenantId });
+    return { success: true, message: 'Item deleted' };
   }
 }

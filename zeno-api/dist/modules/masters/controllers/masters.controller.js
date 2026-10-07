@@ -96,6 +96,18 @@ let MastersController = class MastersController {
     async deleteVariant(tenantId, id) {
         return this.mastersService.deleteVariant(tenantId, id);
     }
+    async getVariantDefinitions(tenantId, companyId) {
+        return this.mastersService.getVariantDefinitions(tenantId, companyId);
+    }
+    async createVariantDefinition(tenantId, body) {
+        return this.mastersService.createVariantDefinition(tenantId, body.companyId, body);
+    }
+    async updateVariantDefinition(tenantId, id, body) {
+        return this.mastersService.updateVariantDefinition(tenantId, id, body);
+    }
+    async deleteVariantDefinition(tenantId, id) {
+        return this.mastersService.deleteVariantDefinition(tenantId, id);
+    }
     async getItems(tenantId, companyId, search) {
         return this.mastersService.getItems(tenantId, companyId, search);
     }
@@ -107,6 +119,9 @@ let MastersController = class MastersController {
     }
     async updateItem(tenantId, id, body) {
         return this.mastersService.updateItem(tenantId, id, body);
+    }
+    async deleteItem(tenantId, id) {
+        return this.mastersService.deleteItem(tenantId, id);
     }
 };
 exports.MastersController = MastersController;
@@ -337,6 +352,43 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], MastersController.prototype, "deleteVariant", null);
 __decorate([
+    (0, common_1.Get)('variant-definitions'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all variant definitions (attributes)' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Query)('companyId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], MastersController.prototype, "getVariantDefinitions", null);
+__decorate([
+    (0, common_1.Post)('variant-definitions'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create variant definition with type and options' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], MastersController.prototype, "createVariantDefinition", null);
+__decorate([
+    (0, common_1.Put)('variant-definitions/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update variant definition' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], MastersController.prototype, "updateVariantDefinition", null);
+__decorate([
+    (0, common_1.Delete)('variant-definitions/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete variant definition' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], MastersController.prototype, "deleteVariantDefinition", null);
+__decorate([
     (0, common_1.Get)('items'),
     (0, swagger_1.ApiOperation)({ summary: 'Get items with unit, category, and variants' }),
     __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
@@ -374,6 +426,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], MastersController.prototype, "updateItem", null);
+__decorate([
+    (0, common_1.Delete)('items/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete item' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], MastersController.prototype, "deleteItem", null);
 exports.MastersController = MastersController = __decorate([
     (0, swagger_1.ApiTags)('Masters (Ledgers, Items, Units)'),
     (0, swagger_1.ApiBearerAuth)(),

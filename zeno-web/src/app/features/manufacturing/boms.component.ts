@@ -5,6 +5,7 @@ import { ManufacturingService } from '../../core/services/manufacturing.service'
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { ToastService } from '../../core/services/toast.service';
+import { exportToCsv } from '../../core/utils/export.util';
 
 interface BomLine {
   itemId: string;
@@ -41,10 +42,19 @@ interface BomLine {
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search BOM recipe name, code, or finished product..."
                 [(ngModel)]="searchQuery"
                 (input)="filterBoms()"
               />
+            </div>
+            <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+              <select [(ngModel)]="statusFilter" (change)="filterBoms()" class="filter-select" style="min-width: 140px;">
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+              <button class="btn-export" (click)="exportBoms()" [disabled]="filteredBoms.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -168,7 +178,6 @@ interface BomLine {
               <input
                 type="text"
                 [(ngModel)]="formData.name"
-                placeholder="e.g. Standard 500W Inverter Assembly"
                 class="form-control"
               />
             </div>
@@ -178,7 +187,6 @@ interface BomLine {
               <input
                 type="text"
                 [(ngModel)]="formData.bomNo"
-                placeholder="Auto-generated if empty"
                 class="form-control font-mono"
               />
             </div>
@@ -203,7 +211,6 @@ interface BomLine {
                 [(ngModel)]="formData.estimatedLaborCost"
                 min="0"
                 (input)="recalculateTotals()"
-                placeholder="0.00"
                 class="form-control font-mono"
               />
             </div>
@@ -215,7 +222,6 @@ interface BomLine {
                 [(ngModel)]="formData.estimatedOverheadCost"
                 min="0"
                 (input)="recalculateTotals()"
-                placeholder="0.00"
                 class="form-control font-mono"
               />
             </div>
@@ -478,6 +484,7 @@ export class BomsComponent implements OnInit {
   loading = false;
   saving = false;
   searchQuery = '';
+  statusFilter = 'ALL';
 
   editingBom: any | null = null;
   selectedBom: any | null = null;
@@ -559,6 +566,11 @@ export class BomsComponent implements OnInit {
 
   filterBoms() {
     let result = [...this.boms];
+    if (this.statusFilter === 'ACTIVE') {
+      result = result.filter((b) => b.isActive);
+    } else if (this.statusFilter === 'INACTIVE') {
+      result = result.filter((b) => !b.isActive);
+    }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       result = result.filter(
@@ -569,6 +581,22 @@ export class BomsComponent implements OnInit {
       );
     }
     this.filteredBoms = result;
+  }
+
+  exportBoms() {
+    if (!this.filteredBoms || this.filteredBoms.length === 0) return;
+    const headers = ['BOM Code', 'Recipe Name', 'Finished Product', 'Produced Qty', 'Components Count', 'Total Est Cost', 'Status'];
+    const rows = this.filteredBoms.map((b) => [
+      b.bomNo || '',
+      b.name || '',
+      b.finishedItem?.name || '',
+      b.outputQty || 1,
+      b.items?.length || 0,
+      b.totalEstimatedCost || 0,
+      b.isActive ? 'Active' : 'Inactive'
+    ]);
+    exportToCsv('BOM_Recipes', headers, rows);
+    this.toast.success('BOM recipes exported successfully!', 'Export Complete');
   }
 
   addComponentLine() {

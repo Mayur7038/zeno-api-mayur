@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ZENO_UI_COMPONENTS } from '../../shared/ui';
 
 interface StockGroupItem {
   id: string;
@@ -17,35 +18,31 @@ interface StockGroupItem {
 @Component({
   selector: 'app-stock-groups',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="masters-page">
-      <div class="page-header">
-        <div>
-          <h1>Stock Group</h1>
+    <div class="zeno-page-container">
+      <zeno-page-header title="Stock Group">
+        <div actions>
+          <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
+            New Stock Group
+          </zeno-button>
         </div>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="openCreateModal()">
-            <i class="pi pi-plus"></i> New Stock Group
-          </button>
-        </div>
-      </div>
+      </zeno-page-header>
 
-      <!-- FILTER & TOOLBAR -->
-      <div class="zeno-card">
-        <div class="table-toolbar">
-          <div class="toolbar-search">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              placeholder="Search stock group or HSN code..."
-              [(ngModel)]="searchQuery"
-              (input)="filterGroups()"
-            />
-          </div>
+      <!-- TABLE & LIST CONTAINER -->
+      <zeno-table
+        [loading]="loading"
+        [empty]="filteredGroups.length === 0"
+        loadingMessage="Loading stock groups..."
+        emptyMessage="No stock groups found. Click 'New Stock Group' to create one."
+      >
+        <div toolbar-left>
+          <zeno-search
+            [(ngModel)]="searchQuery"
+            (searchChange)="filterGroups()"
+          ></zeno-search>
         </div>
 
-        <!-- TABLE -->
         <table class="zeno-table">
           <thead>
             <tr>
@@ -57,19 +54,6 @@ interface StockGroupItem {
             </tr>
           </thead>
           <tbody>
-            @if (loading) {
-              <tr>
-                <td colspan="5" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  <i class="pi pi-spin pi-spinner"></i> Loading stock groups...
-                </td>
-              </tr>
-            } @else if (filteredGroups.length === 0) {
-              <tr>
-                <td colspan="5" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No stock groups found. Click "New Stock Group" to create one.
-                </td>
-              </tr>
-            }
             @for (g of filteredGroups; track g.id) {
               <tr>
                 <td>
@@ -80,90 +64,69 @@ interface StockGroupItem {
                 </td>
                 <td class="font-mono">{{ g.hsnSac || '—' }}</td>
                 <td class="text-right font-mono font-bold" [style.color]="g.gstRate > 0 ? '#1e40af' : '#64748b'">
-                  {{ g.gstRate }}%
+                  {{ getGroupGstDisplay(g) }}
                 </td>
                 <td class="text-center">
-                  <span class="badge-pill badge-partial">
+                  <zeno-badge type="primary">
                     {{ g.categories?.length || 0 }} categories
-                  </span>
+                  </zeno-badge>
                 </td>
                 <td class="text-right actions-cell">
-                  <button class="btn-icon" (click)="openEditModal(g)" title="Edit Stock Group">
-                    <i class="pi pi-pencil"></i>
-                  </button>
-                  <button class="btn-icon text-danger" (click)="deleteGroup(g)" title="Delete Stock Group">
-                    <i class="pi pi-trash"></i>
-                  </button>
+                  <zeno-button variant="icon" icon="pi pi-pencil" title="Edit Stock Group" (btnClick)="openEditModal(g)"></zeno-button>
+                  <zeno-button variant="icon" icon="pi pi-trash" title="Delete Stock Group" (btnClick)="deleteGroup(g)" class="text-danger"></zeno-button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
-      </div>
+      </zeno-table>
 
       <!-- CREATE / EDIT MODAL -->
-      @if (showModal) {
-        <div class="modal-backdrop" (click)="closeModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h3>{{ editingGroup ? 'Edit Stock Group' : 'New Stock Group' }}</h3>
-              <button class="close-btn" (click)="closeModal()">&times;</button>
-            </div>
-
-            <div class="modal-body">
-              @if (errorMessage) {
-                <div class="alert alert-error">
-                  <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
-                </div>
-              }
-
-              <div class="form-grid">
-                <div class="form-group full-width">
-                  <label class="required">Group Name</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.name"
-                    placeholder="e.g. Raw Materials, Finished Goods, Packaging"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>HSN / SAC Code</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.hsnSac"
-                    placeholder="e.g. 8471, 9983"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Group GST Rate (%)</label>
-                  <select [(ngModel)]="formData.gstRate" class="form-control">
-                    <option [ngValue]="0">0% (Exempt / Nil)</option>
-                    <option [ngValue]="5">5%</option>
-                    <option [ngValue]="12">12%</option>
-                    <option [ngValue]="18">18%</option>
-                    <option [ngValue]="28">28%</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-              <button class="btn-primary" (click)="saveGroup()" [disabled]="saving">
-                @if (saving) {
-                  <i class="pi pi-spin pi-spinner"></i> Saving...
-                } @else {
-                  <i class="pi pi-check"></i> {{ editingGroup ? 'Update Group' : 'Create Group' }}
-                }
-              </button>
-            </div>
+      <zeno-modal
+        [isOpen]="showModal"
+        [title]="editingGroup ? 'Edit Stock Group' : 'New Stock Group'"
+        size="md"
+        (close)="closeModal()"
+      >
+        @if (errorMessage) {
+          <div class="alert alert-error">
+            <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
           </div>
+        }
+
+        <div class="zeno-form-grid-2">
+          <zeno-form-group label="Group Name" [required]="true" [span]="2">
+            <zeno-input [(ngModel)]="formData.name"></zeno-input>
+          </zeno-form-group>
+
+          <zeno-form-group label="HSN / SAC Code">
+            <zeno-input [(ngModel)]="formData.hsnSac"></zeno-input>
+          </zeno-form-group>
+
+          @if (isGstAtGroupLevel) {
+            <zeno-form-group label="Group GST Rate (%)" [required]="true">
+              <zeno-select
+                [(ngModel)]="formData.gstRate"
+                [options]="gstRateOptions"
+              ></zeno-select>
+            </zeno-form-group>
+          } @else {
+            <zeno-form-group label="GST Active Level">
+              <div class="gst-managed-badge">
+                <i class="pi pi-info-circle text-primary"></i>
+                <span>{{ getGstLevelLabel() }}</span>
+              </div>
+            </zeno-form-group>
+          }
         </div>
-      }
+
+        <div footer>
+          <zeno-button variant="secondary" (btnClick)="closeModal()">Cancel</zeno-button>
+          <zeno-button variant="primary" icon="pi pi-check" [loading]="saving" (btnClick)="saveGroup()">
+            {{ editingGroup ? 'Update Group' : 'Create Group' }}
+          </zeno-button>
+        </div>
+      </zeno-modal>
     </div>
   `,
   styles: [`
@@ -207,6 +170,7 @@ interface StockGroupItem {
     .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; }
     .form-control:focus { border-color: var(--primary-600); }
     .alert-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; }
+    .gst-managed-badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); min-height: 38px; }
   `],
 })
 export class StockGroupsComponent implements OnInit {
@@ -226,6 +190,14 @@ export class StockGroupsComponent implements OnInit {
     gstRate: 18,
   };
 
+  readonly gstRateOptions = [
+    { label: '0% (Exempt / Nil)', value: 0 },
+    { label: '5%', value: 5 },
+    { label: '12%', value: 12 },
+    { label: '18%', value: 18 },
+    { label: '28%', value: 28 },
+  ];
+
   constructor(
     private mastersService: MastersService,
     private tenantService: TenantService,
@@ -233,6 +205,40 @@ export class StockGroupsComponent implements OnInit {
 
   ngOnInit() {
     this.loadGroups();
+  }
+
+  get gstActiveLevel(): string {
+    return this.tenantService.getGstActiveLevel();
+  }
+
+  get isGstAtGroupLevel(): boolean {
+    return this.gstActiveLevel === 'ITEM_GROUP';
+  }
+
+  getGstLevelLabel(): string {
+    switch (this.gstActiveLevel) {
+      case 'COMPANY':
+        return `Company Level (${this.tenantService.getCompanyFlatGstRate()}% Global Flat Rate)`;
+      case 'ITEM_CATEGORY':
+        return 'Item Category Level';
+      case 'ITEM':
+        return 'Item Master Level';
+      default:
+        return 'Stock Group Level';
+    }
+  }
+
+  getGroupGstDisplay(g: StockGroupItem): string {
+    if (this.gstActiveLevel === 'ITEM_GROUP') {
+      return `${g.gstRate || 0}%`;
+    }
+    if (this.gstActiveLevel === 'COMPANY') {
+      return `${this.tenantService.getCompanyFlatGstRate()}% (Company)`;
+    }
+    if (this.gstActiveLevel === 'ITEM_CATEGORY') {
+      return 'At Category';
+    }
+    return 'At Item Master';
   }
 
   get taxedGroupsCount() {

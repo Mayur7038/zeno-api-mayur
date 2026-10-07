@@ -5,6 +5,7 @@ import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-goods-receipt-notes',
@@ -29,17 +30,26 @@ import { ToastService } from '../../../core/services/toast.service';
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search GRN voucher or vendor..."
               [(ngModel)]="searchQuery"
               (input)="loadGrns()"
             />
           </div>
 
-          <div class="status-tabs">
-            <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All GRNs</button>
-            <button [class.active]="selectedStatus === 'PENDING'" (click)="filterStatus('PENDING')">Pending Invoicing</button>
-            <button [class.active]="selectedStatus === 'PARTIALLY_CLEARED'" (click)="filterStatus('PARTIALLY_CLEARED')">Partially Invoiced</button>
-            <button [class.active]="selectedStatus === 'CLEARED'" (click)="filterStatus('CLEARED')">Cleared</button>
+          <div class="filter-actions">
+            <select
+              class="filter-select"
+              [(ngModel)]="selectedStatus"
+              (change)="filterStatus(selectedStatus)"
+            >
+              <option value="">All GRNs</option>
+              <option value="PENDING">Pending Invoicing</option>
+              <option value="PARTIALLY_CLEARED">Partially Invoiced</option>
+              <option value="CLEARED">Cleared</option>
+            </select>
+
+            <button class="btn-export" (click)="exportGrns()" [disabled]="grns.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
           </div>
         </div>
 
@@ -212,7 +222,7 @@ import { ToastService } from '../../../core/services/toast.service';
 
           <div class="form-group" style="margin-top: 16px;">
             <label>Delivery / Challan Notes</label>
-            <textarea [(ngModel)]="form.notes" rows="3" placeholder="e.g. Transporter details, vehicle no, challan no..."></textarea>
+            <textarea [(ngModel)]="form.notes" rows="3"></textarea>
           </div>
 
           <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
@@ -600,5 +610,19 @@ export class GoodsReceiptNotesComponent implements OnInit {
         this.viewMode = 'view';
       },
     });
+  }
+
+  exportGrns() {
+    if (!this.grns || this.grns.length === 0) return;
+    const headers = ['GRN No', 'Date', 'Vendor', 'Godown / Warehouse', 'Status'];
+    const rows = this.grns.map((g: any) => [
+      g.voucherNo || '',
+      g.grnDate || '',
+      g.vendorLedger?.name || '',
+      g.godown?.name || '',
+      g.status || ''
+    ]);
+    exportToCsv('Goods_Receipt_Notes', headers, rows);
+    this.toast.success('Goods Receipt Notes exported successfully!', 'Export Complete');
   }
 }

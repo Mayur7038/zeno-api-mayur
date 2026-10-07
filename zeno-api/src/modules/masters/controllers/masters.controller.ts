@@ -248,6 +248,44 @@ export class MastersController {
     return this.mastersService.deleteVariant(tenantId, id);
   }
 
+  // Variant Master Definitions (Attributes like Color, Size with Dropdown values)
+  @Get('variant-definitions')
+  @ApiOperation({ summary: 'Get all variant definitions (attributes)' })
+  async getVariantDefinitions(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId?: string,
+  ) {
+    return this.mastersService.getVariantDefinitions(tenantId, companyId);
+  }
+
+  @Post('variant-definitions')
+  @ApiOperation({ summary: 'Create variant definition with type and options' })
+  async createVariantDefinition(
+    @CurrentTenant() tenantId: string,
+    @Body() body: any,
+  ) {
+    return this.mastersService.createVariantDefinition(tenantId, body.companyId, body);
+  }
+
+  @Put('variant-definitions/:id')
+  @ApiOperation({ summary: 'Update variant definition' })
+  async updateVariantDefinition(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.mastersService.updateVariantDefinition(tenantId, id, body);
+  }
+
+  @Delete('variant-definitions/:id')
+  @ApiOperation({ summary: 'Delete variant definition' })
+  async deleteVariantDefinition(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.mastersService.deleteVariantDefinition(tenantId, id);
+  }
+
   // Items
   @Get('items')
   @ApiOperation({ summary: 'Get items with unit, category, and variants' })
@@ -285,5 +323,14 @@ export class MastersController {
     @Body() body: any,
   ) {
     return this.mastersService.updateItem(tenantId, id, body);
+  }
+
+  @Delete('items/:id')
+  @ApiOperation({ summary: 'Delete item' })
+  async deleteItem(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.mastersService.deleteItem(tenantId, id);
   }
 }

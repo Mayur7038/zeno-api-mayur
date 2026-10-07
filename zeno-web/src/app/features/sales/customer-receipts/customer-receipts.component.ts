@@ -6,6 +6,7 @@ import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-customer-receipts',
@@ -22,6 +23,31 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> Record Customer Receipt
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER CARD -->
+        <div class="zeno-card filter-card">
+          <div class="filter-group">
+            <i class="pi pi-search search-icon"></i>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+            />
+          </div>
+
+          <div class="filter-actions">
+            <select class="filter-select" [(ngModel)]="selectedMode">
+              <option value="">All Payment Modes</option>
+              <option value="BANK">Bank Transfer</option>
+              <option value="CASH">Cash</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="UPI">UPI</option>
+            </select>
+
+            <button class="btn-export" (click)="exportReceipts()" [disabled]="filteredReceipts.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
             </button>
           </div>
         </div>
@@ -50,14 +76,14 @@ import { ToastService } from '../../../core/services/toast.service';
                     Loading customer receipts...
                   </td>
                 </tr>
-              } @else if (receipts.length === 0) {
+              } @else if (filteredReceipts.length === 0) {
                 <tr>
                   <td colspan="9" class="text-center" style="padding: 40px; color: var(--surface-500);">
                     No customer receipts found.
                   </td>
                 </tr>
               }
-              @for (rec of receipts; track rec.id) {
+              @for (rec of filteredReceipts; track rec.id) {
                 <tr (click)="viewReceipt(rec)" style="cursor: pointer;">
                   <td class="font-mono font-bold" style="color: #16A34A">{{ rec.voucherNo }}</td>
                   <td>{{ rec.receiptDate }}</td>
@@ -140,17 +166,17 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Total Amount Collected (₹)</label>
-              <input type="number" step="0.01" [(ngModel)]="newRec.amount" (input)="onAmountChanged()" placeholder="0.00" />
+              <input type="number" step="0.01" [(ngModel)]="newRec.amount" (input)="onAmountChanged()" />
             </div>
 
             <div class="form-group">
               <label>Ref / UTR / Cheque Number</label>
-              <input type="text" [(ngModel)]="newRec.referenceNo" placeholder="e.g. UTR-AXIS-882910" />
+              <input type="text" [(ngModel)]="newRec.referenceNo" />
             </div>
 
             <div class="form-group" style="grid-column: span 2;">
               <label>Remarks / Notes</label>
-              <input type="text" [(ngModel)]="newRec.notes" placeholder="e.g. Advance against project milestone" />
+              <input type="text" [(ngModel)]="newRec.notes" />
             </div>
           </div>
 
@@ -201,7 +227,6 @@ import { ToastService } from '../../../core/services/toast.service';
                           step="0.01"
                           [(ngModel)]="inv.allocatedNow"
                           (input)="recalculateAllocations()"
-                          placeholder="0.00"
                         />
                       </td>
                     </tr>
@@ -354,6 +379,8 @@ export class CustomerReceiptsComponent implements OnInit {
   unpaidInvoices: any[] = [];
   loading = false;
   submitting = false;
+  searchQuery: string = '';
+  selectedMode: string = '';
 
   selectedReceipt: any = null;
 
@@ -412,6 +439,41 @@ export class CustomerReceiptsComponent implements OnInit {
 
   get unallocatedAmount(): number {
     return Math.max(0, Number(this.newRec.amount || 0) - this.totalAllocated);
+  }
+
+  get filteredReceipts(): any[] {
+    let list = this.receipts || [];
+    if (this.selectedMode) {
+      list = list.filter((r: any) => (r.paymentMode || '').toUpperCase() === this.selectedMode.toUpperCase());
+    }
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.trim().toLowerCase();
+      list = list.filter((r: any) =>
+        (r.voucherNo && r.voucherNo.toLowerCase().includes(q)) ||
+        (r.customerLedger?.name && r.customerLedger.name.toLowerCase().includes(q)) ||
+        (r.paymentLedger?.name && r.paymentLedger.name.toLowerCase().includes(q)) ||
+        (r.referenceNo && r.referenceNo.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  exportReceipts() {
+    const list = this.filteredReceipts;
+    if (!list || list.length === 0) return;
+    const headers = ['Receipt No', 'Date', 'Customer', 'Deposit Account', 'Mode', 'Ref No', 'Amount', 'Remarks'];
+    const rows = list.map((r: any) => [
+      r.voucherNo || '',
+      r.receiptDate || '',
+      r.customerLedger?.name || '',
+      r.paymentLedger?.name || '',
+      r.paymentMode || '',
+      r.referenceNo || '',
+      r.amount || 0,
+      r.remarks || ''
+    ]);
+    exportToCsv('Customer_Receipts', headers, rows);
+    this.toast.success('Customer receipts exported successfully!', 'Export Complete');
   }
 
   loadReceipts() {

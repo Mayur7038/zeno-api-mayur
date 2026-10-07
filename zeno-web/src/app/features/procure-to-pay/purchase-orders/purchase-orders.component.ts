@@ -5,6 +5,7 @@ import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-purchase-orders',
@@ -29,42 +30,26 @@ import { ToastService } from '../../../core/services/toast.service';
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search voucher or vendor..."
               [(ngModel)]="searchQuery"
               (input)="loadOrders()"
             />
           </div>
 
-          <div class="status-tabs">
-            <button
-              [class.active]="selectedStatus === ''"
-              (click)="filterStatus('')"
+          <div class="filter-actions">
+            <select
+              class="filter-select"
+              [(ngModel)]="selectedStatus"
+              (change)="filterStatus(selectedStatus)"
             >
-              All Orders
-            </button>
-            <button
-              [class.active]="selectedStatus === 'PENDING'"
-              (click)="filterStatus('PENDING')"
-            >
-              Pending
-            </button>
-            <button
-              [class.active]="selectedStatus === 'PARTIALLY_CLEARED'"
-              (click)="filterStatus('PARTIALLY_CLEARED')"
-            >
-              Partially Cleared
-            </button>
-            <button
-              [class.active]="selectedStatus === 'CLEARED'"
-              (click)="filterStatus('CLEARED')"
-            >
-              Cleared
-            </button>
-            <button
-              [class.active]="selectedStatus === 'CANCELLED'"
-              (click)="filterStatus('CANCELLED')"
-            >
-              Cancelled
+              <option value="">All Orders</option>
+              <option value="PENDING">Pending</option>
+              <option value="PARTIALLY_CLEARED">Partially Cleared</option>
+              <option value="CLEARED">Cleared</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+
+            <button class="btn-export" (click)="exportOrders()" [disabled]="orders.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
             </button>
           </div>
         </div>
@@ -270,7 +255,6 @@ import { ToastService } from '../../../core/services/toast.service';
               <textarea
                 [(ngModel)]="form.notes"
                 name="notes"
-                placeholder="Delivery terms, payment instructions, etc."
                 rows="4"
               ></textarea>
             </div>
@@ -1110,5 +1094,22 @@ export class PurchaseOrdersComponent implements OnInit {
         this.viewMode = 'view';
       },
     });
+  }
+
+  exportOrders() {
+    if (!this.orders || this.orders.length === 0) return;
+    const headers = ['Voucher No', 'Order Date', 'Vendor', 'Items Count', 'Subtotal', 'Tax Total', 'Grand Total', 'Status'];
+    const rows = this.orders.map((o) => [
+      o.voucherNo || '',
+      o.orderDate || '',
+      o.vendorLedger?.name || '',
+      o.items?.length || 0,
+      o.taxableAmount || o.subtotal || 0,
+      o.taxTotal || 0,
+      o.grandTotal || 0,
+      o.status || '',
+    ]);
+    exportToCsv('Purchase_Orders', headers, rows);
+    this.toast.success('Purchase orders exported successfully!', 'Export Complete');
   }
 }

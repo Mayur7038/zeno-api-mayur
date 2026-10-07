@@ -6,6 +6,7 @@ import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 interface OpeningItemRow {
   itemId: string;
@@ -98,23 +99,25 @@ interface OpeningItemRow {
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search product by name, SKU, or stock group..."
               [(ngModel)]="searchQuery"
               (input)="filterItems()"
             />
           </div>
-          <div class="toolbar-filters">
-            <select [(ngModel)]="groupFilter" (change)="filterItems()" class="form-control" style="width: 200px;">
+          <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+            <select [(ngModel)]="groupFilter" (change)="filterItems()" class="filter-select" style="min-width: 170px;">
               <option value="ALL">All Stock Groups</option>
               @for (grp of stockGroups; track grp) {
                 <option [value]="grp">{{ grp }}</option>
               }
             </select>
-            <select [(ngModel)]="configuredOnly" (change)="filterItems()" class="form-control" style="width: 170px;">
+            <select [(ngModel)]="configuredOnly" (change)="filterItems()" class="filter-select" style="min-width: 160px;">
               <option value="ALL">All Products</option>
               <option value="WITH_STOCK">With Opening Stock</option>
               <option value="ZERO_STOCK">Zero Opening Stock</option>
             </select>
+            <button class="btn-export" (click)="exportOpeningBalances()" [disabled]="filteredItems.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
           </div>
         </div>
 
@@ -476,5 +479,21 @@ export class OpeningBalanceComponent implements OnInit {
         this.toast.error(this.errorMessage, 'Save Failed');
       },
     });
+  }
+
+  exportOpeningBalances() {
+    if (!this.filteredItems || this.filteredItems.length === 0) return;
+    const headers = ['Product Name', 'SKU', 'Stock Group', 'Unit', 'Opening Qty', 'Unit Rate', 'Total Value'];
+    const rows = this.filteredItems.map((item) => [
+      item.itemName || '',
+      item.sku || '',
+      item.itemGroupName || '',
+      item.unitCode || '',
+      item.openingQty || 0,
+      item.unitRate || 0,
+      item.totalValue || 0
+    ]);
+    exportToCsv('Opening_Stock_Balances', headers, rows);
+    this.toast.success('Opening stock balances exported successfully!', 'Export Complete');
   }
 }

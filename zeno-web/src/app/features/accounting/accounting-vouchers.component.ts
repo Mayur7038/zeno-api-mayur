@@ -9,6 +9,7 @@ import {
 import { TenantService } from '../../core/services/tenant.service';
 import { MastersService } from '../../core/services/masters.service';
 import { ToastService } from '../../core/services/toast.service';
+import { exportToCsv } from '../../core/utils/export.util';
 
 interface JournalLine {
   type: 'DR' | 'CR';
@@ -47,7 +48,6 @@ interface StandardLine {
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search voucher #, account, or remarks..."
               [(ngModel)]="searchQuery"
               (input)="loadVouchers()"
             />
@@ -64,10 +64,20 @@ interface StandardLine {
             </div>
           </div>
 
-          <div class="status-tabs">
-            <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All</button>
-            <button [class.active]="selectedStatus === 'POSTED'" (click)="filterStatus('POSTED')">Posted</button>
-            <button [class.active]="selectedStatus === 'CANCELLED'" (click)="filterStatus('CANCELLED')">Cancelled</button>
+          <div class="filter-actions">
+            <select
+              class="filter-select"
+              [(ngModel)]="selectedStatus"
+              (change)="filterStatus(selectedStatus)"
+            >
+              <option value="">All Statuses</option>
+              <option value="POSTED">Posted</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+
+            <button class="btn-export" (click)="exportVouchers()" [disabled]="filteredVouchers.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
           </div>
         </div>
 
@@ -235,7 +245,6 @@ interface StandardLine {
               <input
                 type="text"
                 [(ngModel)]="createForm.referenceNo"
-                [placeholder]="config.refPlaceholder"
               />
             </div>
 
@@ -257,7 +266,6 @@ interface StandardLine {
                     min="1"
                     step="0.01"
                     [(ngModel)]="contraAmount"
-                    placeholder="0.00"
                     class="font-mono font-bold"
                     style="font-size: 1.1rem;"
                   />
@@ -312,7 +320,6 @@ interface StandardLine {
                           [(ngModel)]="jLine.debitAmount"
                           [disabled]="jLine.type === 'CR'"
                           class="text-right font-mono"
-                          placeholder="0.00"
                           (input)="onJournalAmountChange(jLine, 'DR')"
                         />
                       </td>
@@ -324,7 +331,6 @@ interface StandardLine {
                           [(ngModel)]="jLine.creditAmount"
                           [disabled]="jLine.type === 'DR'"
                           class="text-right font-mono"
-                          placeholder="0.00"
                           (input)="onJournalAmountChange(jLine, 'CR')"
                         />
                       </td>
@@ -332,7 +338,6 @@ interface StandardLine {
                         <input
                           type="text"
                           [(ngModel)]="jLine.narration"
-                          placeholder="Line remark..."
                         />
                       </td>
                       <td class="text-center">
@@ -416,14 +421,12 @@ interface StandardLine {
                           step="0.01"
                           [(ngModel)]="line.amount"
                           class="text-right font-mono font-bold"
-                          placeholder="0.00"
                         />
                       </td>
                       <td>
                         <input
                           type="text"
                           [(ngModel)]="line.narration"
-                          placeholder="Bill ref, invoice date, purpose..."
                         />
                       </td>
                       <td class="text-center">
@@ -458,7 +461,6 @@ interface StandardLine {
               <textarea
                 rows="3"
                 [(ngModel)]="createForm.narration"
-                placeholder="Enter voucher description, payee details, instrument particulars..."
               ></textarea>
             </div>
           </div>
@@ -1514,6 +1516,23 @@ export class AccountingVouchersComponent implements OnInit {
     } else {
       this.filteredVouchers = this.vouchers.filter((v) => v.status === this.selectedStatus);
     }
+  }
+
+  exportVouchers() {
+    if (!this.filteredVouchers || this.filteredVouchers.length === 0) return;
+    const headers = ['Voucher No', 'Date', this.config?.primaryAccountColumn || 'Account', 'Payment Mode', 'Reference No', 'Narration', 'Amount', 'Status'];
+    const rows = this.filteredVouchers.map((v) => [
+      v.voucherNo || '',
+      v.voucherDate || '',
+      this.getVoucherPrimaryAccountName(v) || '',
+      v.paymentMode || 'CASH',
+      v.referenceNo || '',
+      v.narration || '',
+      v.totalAmount || 0,
+      v.status || ''
+    ]);
+    exportToCsv(`${this.voucherType || 'Accounting'}_Vouchers`, headers, rows);
+    this.toast.success('Vouchers exported successfully!', 'Export Complete');
   }
 
   // --- KPIs Calculations ---

@@ -1,0 +1,81 @@
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'zeno-badge',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <span
+      class="zeno-badge"
+      [class]="'badge-' + type + (pill ? ' is-pill' : '')"
+    >
+      @if (icon) {
+        <i [class]="icon + ' zeno-badge-icon'"></i>
+      }
+      <ng-content></ng-content>
+    </span>
+  `,
+  styles: [`
+    :host {
+      display: inline-flex;
+      vertical-align: middle;
+    }
+    .zeno-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      line-height: 1.3;
+      border-radius: var(--radius-sm, 6px);
+      text-transform: uppercase;
+
+      &.is-pill {
+        border-radius: var(--radius-full, 9999px);
+      }
+    }
+    .zeno-badge-icon {
+      font-size: 0.75rem;
+    }
+
+    .badge-success {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .badge-warning {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .badge-danger {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .badge-info {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+    .badge-primary {
+      background-color: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    .badge-neutral {
+      background-color: var(--surface-100, #f1f5f9);
+      color: var(--surface-700, #334155);
+      border: 1px solid var(--surface-200, #e2e8f0);
+    }
+  `]
+})
+export class ZenoBadgeComponent {
+  @Input() type: 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'primary' = 'neutral';
+  @Input() icon?: string;
+  @Input() pill = true;
+}

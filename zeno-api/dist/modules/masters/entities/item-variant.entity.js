@@ -19,9 +19,13 @@ let ItemVariant = class ItemVariant {
     item;
     name;
     sku;
+    barcode;
     attributes;
     purchaseRate;
     saleRate;
+    mrp;
+    openingQty;
+    openingRate;
     isActive;
     createdAt;
     updatedAt;
@@ -55,17 +59,33 @@ __decorate([
     __metadata("design:type", String)
 ], ItemVariant.prototype, "sku", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ length: 60, nullable: true }),
+    __metadata("design:type", String)
+], ItemVariant.prototype, "barcode", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)
 ], ItemVariant.prototype, "attributes", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, nullable: true }),
+    (0, typeorm_1.Column)({ name: 'purchase_rate', type: 'decimal', precision: 15, scale: 4, nullable: true, default: 0 }),
     __metadata("design:type", Number)
 ], ItemVariant.prototype, "purchaseRate", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, nullable: true }),
+    (0, typeorm_1.Column)({ name: 'sale_rate', type: 'decimal', precision: 15, scale: 4, nullable: true, default: 0 }),
     __metadata("design:type", Number)
 ], ItemVariant.prototype, "saleRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 4, default: 0 }),
+    __metadata("design:type", Number)
+], ItemVariant.prototype, "mrp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'opening_qty', type: 'decimal', precision: 15, scale: 3, default: 0 }),
+    __metadata("design:type", Number)
+], ItemVariant.prototype, "openingQty", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'opening_rate', type: 'decimal', precision: 15, scale: 4, default: 0 }),
+    __metadata("design:type", Number)
+], ItemVariant.prototype, "openingRate", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_active', default: true }),
     __metadata("design:type", Boolean)

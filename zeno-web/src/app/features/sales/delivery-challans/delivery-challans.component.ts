@@ -6,6 +6,7 @@ import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-delivery-challans',
@@ -31,17 +32,26 @@ import { ToastService } from '../../../core/services/toast.service';
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by challan #, vehicle, customer..."
                 [(ngModel)]="searchQuery"
                 (input)="loadChallans()"
               />
             </div>
 
-            <div class="status-tabs">
-              <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All</button>
-              <button [class.active]="selectedStatus === 'PENDING'" (click)="filterStatus('PENDING')">Pending Invoicing</button>
-              <button [class.active]="selectedStatus === 'PARTIALLY_INVOICED'" (click)="filterStatus('PARTIALLY_INVOICED')">Part-Invoiced</button>
-              <button [class.active]="selectedStatus === 'CLEARED'" (click)="filterStatus('CLEARED')">Cleared</button>
+            <div class="filter-actions">
+              <select
+                class="filter-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Challans</option>
+                <option value="PENDING">Pending Invoicing</option>
+                <option value="PARTIALLY_INVOICED">Part-Invoiced</option>
+                <option value="CLEARED">Cleared</option>
+              </select>
+
+              <button class="btn-export" (click)="exportChallans()" [disabled]="challans.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -147,18 +157,18 @@ import { ToastService } from '../../../core/services/toast.service';
 
             <div class="form-group">
               <label>Vehicle No</label>
-              <input type="text" [(ngModel)]="newDc.vehicleNo" placeholder="e.g. MH-02-CP-8899" />
+              <input type="text" [(ngModel)]="newDc.vehicleNo" />
             </div>
           </div>
 
           <div class="form-grid" style="margin-top: 14px;">
             <div class="form-group">
               <label>Driver Contact / Details</label>
-              <input type="text" [(ngModel)]="newDc.driverContact" placeholder="Driver name & phone" />
+              <input type="text" [(ngModel)]="newDc.driverContact" />
             </div>
             <div class="form-group">
               <label>Dispatch Destination</label>
-              <input type="text" [(ngModel)]="newDc.dispatchAddress" placeholder="Customer site address" />
+              <input type="text" [(ngModel)]="newDc.dispatchAddress" />
             </div>
           </div>
 
@@ -230,7 +240,6 @@ import { ToastService } from '../../../core/services/toast.service';
                       <input
                         type="text"
                         [(ngModel)]="row.remarks"
-                        placeholder="e.g. Box 1 of 2"
                       />
                     </td>
                     <td class="font-bold">
@@ -667,5 +676,21 @@ export class DeliveryChallansComponent implements OnInit {
 
   formatStatus(status: string): string {
     return status?.replace(/_/g, ' ') || '';
+  }
+
+  exportChallans() {
+    if (!this.challans || this.challans.length === 0) return;
+    const headers = ['Challan No', 'Date', 'Customer', 'Godown', 'Vehicle No', 'Items Count', 'Status'];
+    const rows = this.challans.map((c) => [
+      c.voucherNo || c.challanNo || '',
+      c.challanDate || '',
+      c.customerLedger?.name || '',
+      c.godown?.name || '',
+      c.vehicleNo || '',
+      c.items?.length || 0,
+      c.status || ''
+    ]);
+    exportToCsv('Delivery_Challans', headers, rows);
+    this.toast.success('Delivery challans exported successfully!', 'Export Complete');
   }
 }

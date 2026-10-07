@@ -6,6 +6,7 @@ import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
+import { exportToCsv } from '../../core/utils/export.util';
 
 interface ProductionLine {
   itemId: string;
@@ -39,17 +40,19 @@ interface ProductionLine {
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by voucher #, finished product, or BOM recipe..."
                 [(ngModel)]="searchQuery"
                 (input)="filterEntries()"
               />
             </div>
-            <div class="toolbar-filters">
-              <select [(ngModel)]="statusFilter" (change)="filterEntries()" class="form-control" style="width: 160px;">
+            <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+              <select [(ngModel)]="statusFilter" (change)="filterEntries()" class="filter-select" style="min-width: 150px;">
                 <option value="ALL">All Statuses</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
+              <button class="btn-export" (click)="exportEntries()" [disabled]="filteredEntries.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -253,7 +256,6 @@ interface ProductionLine {
               <input
                 type="text"
                 [(ngModel)]="formData.voucherNo"
-                placeholder="Auto-generated (e.g. ASM-2026-0001)"
                 class="form-control font-mono"
               />
             </div>
@@ -362,7 +364,6 @@ interface ProductionLine {
               [(ngModel)]="formData.notes"
               rows="2"
               class="form-control"
-              placeholder="Batch numbers, quality check remarks, machine operators, etc."
             ></textarea>
           </div>
 
@@ -720,6 +721,24 @@ export class ProductionEntriesComponent implements OnInit {
     }
 
     this.filteredEntries = result;
+  }
+
+  exportEntries() {
+    if (!this.filteredEntries || this.filteredEntries.length === 0) return;
+    const headers = ['Voucher No', 'Date', 'Finished Product', 'BOM Recipe', 'Qty Assembled', 'Source Warehouse', 'Target Warehouse', 'Total Cost', 'Status'];
+    const rows = this.filteredEntries.map((e) => [
+      e.voucherNo || '',
+      e.entryDate || '',
+      e.finishedItem?.name || '',
+      e.bom?.name || '',
+      e.assembledQty || 0,
+      e.sourceGodown?.name || '',
+      e.targetGodown?.name || '',
+      e.totalCost || 0,
+      e.status || ''
+    ]);
+    exportToCsv('Production_Entries', headers, rows);
+    this.toast.success('Production entries exported successfully!', 'Export Complete');
   }
 
   openCreatePage() {

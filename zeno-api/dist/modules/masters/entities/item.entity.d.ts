@@ -6,6 +6,7 @@ export declare class Item {
     id: string;
     tenantId: string;
     companyId: string;
+    productType: string;
     name: string;
     sku: string;
     itemGroupId: string;
@@ -14,11 +15,16 @@ export declare class Item {
     category: ItemCategory;
     unitId: string;
     unit: Unit;
+    isGstApplicable: boolean;
     hsnSac: string;
     gstRate: number;
     cessRate: number;
+    inventoryTracking: string;
     purchaseRate: number;
     saleRate: number;
+    mrp: number;
+    openingQty: number;
+    openingRate: number;
     reorderLevel: number;
     hasVariants: boolean;
     imageUrl: string;

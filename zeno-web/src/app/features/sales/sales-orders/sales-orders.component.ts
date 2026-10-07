@@ -6,6 +6,7 @@ import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-sales-orders',
@@ -31,18 +32,27 @@ import { ToastService } from '../../../core/services/toast.service';
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
-                placeholder="Search by order #, customer..."
                 [(ngModel)]="searchQuery"
                 (input)="loadOrders()"
               />
             </div>
 
-            <div class="status-tabs">
-              <button [class.active]="selectedStatus === ''" (click)="filterStatus('')">All</button>
-              <button [class.active]="selectedStatus === 'PENDING'" (click)="filterStatus('PENDING')">Pending</button>
-              <button [class.active]="selectedStatus === 'PARTIALLY_DISPATCHED'" (click)="filterStatus('PARTIALLY_DISPATCHED')">Part-Dispatched</button>
-              <button [class.active]="selectedStatus === 'CLEARED'" (click)="filterStatus('CLEARED')">Cleared</button>
-              <button [class.active]="selectedStatus === 'CANCELLED'" (click)="filterStatus('CANCELLED')">Cancelled</button>
+            <div class="filter-actions">
+              <select
+                class="filter-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Orders</option>
+                <option value="PENDING">Pending</option>
+                <option value="PARTIALLY_DISPATCHED">Part-Dispatched</option>
+                <option value="CLEARED">Cleared</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+
+              <button class="btn-export" (click)="exportOrders()" [disabled]="orders.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
             </div>
           </div>
 
@@ -162,11 +172,11 @@ import { ToastService } from '../../../core/services/toast.service';
           <div class="form-grid" style="margin-top: 14px;">
             <div class="form-group">
               <label>Billing Address</label>
-              <input type="text" [(ngModel)]="newOrder.billingAddress" placeholder="Customer registered premises" />
+              <input type="text" [(ngModel)]="newOrder.billingAddress" />
             </div>
             <div class="form-group">
               <label>Shipping / Consignee Address</label>
-              <input type="text" [(ngModel)]="newOrder.shippingAddress" placeholder="Delivery destination site" />
+              <input type="text" [(ngModel)]="newOrder.shippingAddress" />
             </div>
           </div>
 
@@ -729,5 +739,22 @@ export class SalesOrdersComponent implements OnInit {
 
   formatStatus(status: string): string {
     return status?.replace(/_/g, ' ') || '';
+  }
+
+  exportOrders() {
+    if (!this.orders || this.orders.length === 0) return;
+    const headers = ['Voucher No', 'Order Date', 'Customer', 'Delivery Due Date', 'Taxable Amount', 'Tax Total', 'Grand Total', 'Status'];
+    const rows = this.orders.map((o) => [
+      o.voucherNo || '',
+      o.orderDate || '',
+      o.customerLedger?.name || '',
+      o.deliveryDueDate || '',
+      o.taxableSubtotal || o.taxableAmount || 0,
+      o.taxTotal || 0,
+      o.grandTotal || 0,
+      o.status || '',
+    ]);
+    exportToCsv('Sales_Orders', headers, rows);
+    this.toast.success('Sales orders exported successfully!', 'Export Complete');
   }
 }

@@ -6,6 +6,7 @@ import { ItemGroup } from '../entities/item-group.entity';
 import { ItemCategory } from '../entities/item-category.entity';
 import { Item } from '../entities/item.entity';
 import { ItemVariant } from '../entities/item-variant.entity';
+import { VariantDefinition } from '../entities/variant-definition.entity';
 export declare class MastersService {
     private groupRepo;
     private ledgerRepo;
@@ -14,7 +15,8 @@ export declare class MastersService {
     private itemCatRepo;
     private itemRepo;
     private variantRepo;
-    constructor(groupRepo: Repository<LedgerGroup>, ledgerRepo: Repository<Ledger>, unitRepo: Repository<Unit>, itemGroupRepo: Repository<ItemGroup>, itemCatRepo: Repository<ItemCategory>, itemRepo: Repository<Item>, variantRepo: Repository<ItemVariant>);
+    private variantDefRepo;
+    constructor(groupRepo: Repository<LedgerGroup>, ledgerRepo: Repository<Ledger>, unitRepo: Repository<Unit>, itemGroupRepo: Repository<ItemGroup>, itemCatRepo: Repository<ItemCategory>, itemRepo: Repository<Item>, variantRepo: Repository<ItemVariant>, variantDefRepo: Repository<VariantDefinition>);
     getLedgerGroups(tenantId: string, companyId?: string): Promise<LedgerGroup[]>;
     createLedgerGroup(tenantId: string, companyId: string, data: Partial<LedgerGroup>): Promise<LedgerGroup>;
     updateLedgerGroup(tenantId: string, id: string, data: {
@@ -64,10 +66,24 @@ export declare class MastersService {
         success: boolean;
         message: string;
     }>;
+    getVariantDefinitions(tenantId: string, companyId?: string): Promise<VariantDefinition[]>;
+    getVariantDefinitionById(tenantId: string, id: string): Promise<VariantDefinition>;
+    createVariantDefinition(tenantId: string, companyId: string, data: Partial<VariantDefinition>): Promise<VariantDefinition>;
+    updateVariantDefinition(tenantId: string, id: string, data: Partial<VariantDefinition>): Promise<VariantDefinition>;
+    deleteVariantDefinition(tenantId: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getItems(tenantId: string, companyId: string, search?: string): Promise<Item[]>;
     getItemById(tenantId: string, id: string): Promise<Item>;
     createItem(tenantId: string, companyId: string, data: Partial<Item> & {
         variants?: any[];
     }): Promise<Item>;
-    updateItem(tenantId: string, id: string, data: Partial<Item>): Promise<Item>;
+    updateItem(tenantId: string, id: string, data: Partial<Item> & {
+        variants?: any[];
+    }): Promise<Item>;
+    deleteItem(tenantId: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
 }

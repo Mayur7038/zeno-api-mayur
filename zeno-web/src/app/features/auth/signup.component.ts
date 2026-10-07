@@ -36,7 +36,6 @@ import { AuthService } from '../../core/services/auth.service';
                   [(ngModel)]="companyName"
                   name="companyName"
                   required
-                  placeholder="e.g. Acme Precision Tools Pvt Ltd"
                 />
               </div>
 
@@ -47,7 +46,6 @@ import { AuthService } from '../../core/services/auth.service';
                   [(ngModel)]="fullName"
                   name="fullName"
                   required
-                  placeholder="e.g. Rohan Sharma"
                 />
               </div>
 
@@ -58,7 +56,6 @@ import { AuthService } from '../../core/services/auth.service';
                   [(ngModel)]="email"
                   name="email"
                   required
-                  placeholder="name@company.com"
                 />
               </div>
 
@@ -68,7 +65,6 @@ import { AuthService } from '../../core/services/auth.service';
                   type="text"
                   [(ngModel)]="gstin"
                   name="gstin"
-                  placeholder="27AAAAA0000A1Z5"
                 />
               </div>
 
@@ -80,7 +76,6 @@ import { AuthService } from '../../core/services/auth.service';
                   name="password"
                   required
                   minlength="8"
-                  placeholder="At least 8 characters"
                 />
               </div>
 
@@ -120,7 +115,6 @@ import { AuthService } from '../../core/services/auth.service';
                   required
                   maxlength="6"
                   class="otp-input"
-                  placeholder="123456"
                   autocomplete="one-time-code"
                 />
               </div>

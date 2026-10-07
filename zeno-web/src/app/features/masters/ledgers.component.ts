@@ -5,6 +5,25 @@ import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { ToastService } from '../../core/services/toast.service';
 import { INDIAN_STATES } from '../../core/constants/states.constant';
+import { exportToCsv } from '../../core/utils/export.util';
+
+export const STANDARD_LEDGER_GROUPS: any[] = [
+  { id: 'grp-sundry-creditors', name: 'Sundry Creditors (Vendors)', nature: 'LIABILITY', isCreditorVendor: true },
+  { id: 'grp-sundry-debtors', name: 'Sundry Debtors (Customers)', nature: 'ASSET', isDebtorCustomer: true },
+  { id: 'grp-bank-accounts', name: 'Bank Accounts', nature: 'ASSET' },
+  { id: 'grp-cash-in-hand', name: 'Cash-in-hand', nature: 'ASSET' },
+  { id: 'grp-duties-taxes', name: 'Duties & Taxes', nature: 'LIABILITY' },
+  { id: 'grp-purchase-accounts', name: 'Purchase Accounts', nature: 'EXPENSE' },
+  { id: 'grp-sales-accounts', name: 'Sales Accounts', nature: 'INCOME' },
+  { id: 'grp-direct-expenses', name: 'Direct Expenses', nature: 'EXPENSE' },
+  { id: 'grp-indirect-expenses', name: 'Indirect Expenses', nature: 'EXPENSE' },
+  { id: 'grp-direct-incomes', name: 'Direct Incomes', nature: 'INCOME' },
+  { id: 'grp-indirect-incomes', name: 'Indirect Incomes', nature: 'INCOME' },
+  { id: 'grp-current-assets', name: 'Current Assets', nature: 'ASSET' },
+  { id: 'grp-current-liabilities', name: 'Current Liabilities', nature: 'LIABILITY' },
+  { id: 'grp-capital-account', name: 'Capital Account', nature: 'LIABILITY' },
+  { id: 'grp-stock-in-hand', name: 'Stock-in-hand', nature: 'ASSET' },
+];
 
 @Component({
   selector: 'app-ledgers',
@@ -12,535 +31,471 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="p2p-page">
-      <!-- PAGE HEADER -->
-      <div class="page-header">
-        <h1>Ledger</h1>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="openCreateModal()">
-            <i class="pi pi-plus"></i> Create New Ledger
-          </button>
-        </div>
-      </div>
-
-      <!-- FILTER & SEARCH BAR -->
-      <div class="zeno-card filter-card">
-        <div class="filter-group">
-          <i class="pi pi-search search-icon"></i>
-          <input
-            type="text"
-            placeholder="Search ledgers by name, GSTIN, phone, city..."
-            [(ngModel)]="searchQuery"
-          />
+      <!-- 1. LIST VIEW -->
+      @if (viewMode === 'list') {
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <h1>Ledger</h1>
+          <div class="header-actions">
+            <button class="btn-primary" (click)="openCreateModal()">
+              <i class="pi pi-plus"></i> Create New Ledger
+            </button>
+          </div>
         </div>
 
-        <div class="status-tabs">
-          <button [class.active]="activeFilter === 'ALL'" (click)="activeFilter = 'ALL'">
-            All Accounts ({{ ledgers.length }})
-          </button>
-          <button [class.active]="activeFilter === 'DEBTORS'" (click)="activeFilter = 'DEBTORS'">
-            <i class="pi pi-user"></i> Customers ({{ countDebtors() }})
-          </button>
-          <button [class.active]="activeFilter === 'CREDITORS'" (click)="activeFilter = 'CREDITORS'">
-            <i class="pi pi-truck"></i> Vendors ({{ countCreditors() }})
-          </button>
-          <button [class.active]="activeFilter === 'BANK'" (click)="activeFilter = 'BANK'">
-            <i class="pi pi-building"></i> Bank & Cash ({{ countBankCash() }})
-          </button>
-          <button [class.active]="activeFilter === 'DUTIES'" (click)="activeFilter = 'DUTIES'">
-            <i class="pi pi-percentage"></i> Taxes ({{ countDuties() }})
-          </button>
-        </div>
-      </div>
+        <!-- FILTER & SEARCH BAR -->
+        <div class="zeno-card filter-card">
+          <div class="filter-group">
+            <i class="pi pi-search search-icon"></i>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+            />
+          </div>
 
-      <!-- LEDGERS DATA TABLE -->
-      <div class="zeno-card">
-        <table class="zeno-table">
-          <thead>
-            <tr>
-              <th>Ledger Name</th>
-              <th>Ledger Group</th>
-              <th>GSTIN / PAN</th>
-              <th>State / City</th>
-              <th>Contact / Phone</th>
-              <th>Party Role</th>
-              <th class="text-right">Opening Bal</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (l of filteredLedgers(); track l.id) {
-              <tr class="table-row-hover" (click)="viewLedgerDetails(l)">
-                <td>
-                  <div class="font-bold ledger-name-cell">{{ l.name }}</div>
-                  @if (l.code) {
-                    <div class="font-xs text-muted">Code: {{ l.code }}</div>
-                  }
-                </td>
-                <td>
-                  <span class="group-tag">{{ l.ledgerGroup?.name }}</span>
-                </td>
-                <td>
-                  @if (isGroupParty(l.ledgerGroup)) {
-                    @if (l.gstin) {
-                      <div class="font-mono font-bold">{{ l.gstin }}</div>
-                    }
-                    @if (l.pan) {
-                      <div class="font-xs text-muted">PAN: {{ l.pan }}</div>
-                    }
-                    @if (!l.gstin && !l.pan) {
-                      <span class="text-muted">—</span>
-                    }
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td>
-                  @if (isGroupParty(l.ledgerGroup)) {
-                    @if (l.city || l.stateCode) {
-                      <span>{{ l.city || 'State ' + l.stateCode }}</span>
-                      @if (l.state) {
-                        <span class="font-xs text-muted">, {{ l.state }}</span>
-                      }
-                    } @else {
-                      <span class="text-muted">—</span>
-                    }
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td>
-                  @if (isGroupParty(l.ledgerGroup)) {
-                    @if (l.phone || l.mobile) {
-                      <div class="font-xs font-mono"><i class="pi pi-phone"></i> {{ l.phone || l.mobile }}</div>
-                    }
-                    @if (l.contactPerson) {
-                      <div class="font-xs text-muted">{{ l.contactPerson }}</div>
-                    }
-                    @if (!l.phone && !l.mobile && !l.contactPerson) {
-                      <span class="text-muted">—</span>
-                    }
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td>
-                  @if (l.ledgerGroup?.isCreditorVendor) {
-                    <span class="badge-pill badge-partial"><i class="pi pi-truck"></i> Vendor</span>
-                  } @else if (l.ledgerGroup?.isDebtorCustomer) {
-                    <span class="badge-pill badge-cleared"><i class="pi pi-user"></i> Customer</span>
-                  } @else if (isBankGroup(l.ledgerGroup)) {
-                    <span class="badge-pill badge-bank"><i class="pi pi-building"></i> Bank</span>
-                  } @else {
-                    <span class="badge-pill badge-general">General</span>
-                  }
-                </td>
-                <td class="text-right font-mono font-bold">
-                  ₹{{ l.openingBalance | number:'1.2-2' }} {{ l.balanceType }}
-                </td>
-                <td class="text-center" (click)="$event.stopPropagation()">
-                  <div class="action-btn-group">
-                    <button class="btn-icon" (click)="viewLedgerDetails(l)" title="View Details">
-                      <i class="pi pi-eye"></i>
-                    </button>
-                    <button class="btn-icon" (click)="editLedger(l)" title="Edit Ledger">
-                      <i class="pi pi-pencil"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            }
-            @if (filteredLedgers().length === 0) {
+          <div class="filter-actions">
+            <select class="filter-select" [(ngModel)]="activeFilter">
+              <option value="ALL">All Accounts ({{ ledgers.length }})</option>
+              <option value="DEBTORS">Customers ({{ countDebtors() }})</option>
+              <option value="CREDITORS">Vendors ({{ countCreditors() }})</option>
+              <option value="BANK">Bank & Cash ({{ countBankCash() }})</option>
+              <option value="DUTIES">Taxes ({{ countDuties() }})</option>
+            </select>
+
+            <button class="btn-export" (click)="exportLedgers()" [disabled]="filteredLedgers().length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
+          </div>
+        </div>
+
+        <!-- LEDGERS DATA TABLE -->
+        <div class="zeno-card">
+          <table class="zeno-table">
+            <thead>
               <tr>
-                <td colspan="8" class="text-center empty-state-td">
-                  <i class="pi pi-folder-open empty-icon"></i>
-                  <p>No ledger accounts found matching your filter criteria</p>
-                </td>
+                <th>Ledger Name</th>
+                <th>Ledger Group</th>
+                <th class="text-right">Opening Bal</th>
+                <th class="text-center">Actions</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
+            </thead>
+            <tbody>
+              @for (l of filteredLedgers(); track l.id) {
+                <tr class="table-row-hover" (click)="viewLedgerDetails(l)">
+                  <td>
+                    <div class="font-bold ledger-name-cell">{{ l.name }}</div>
+                    @if (l.code) {
+                      <div class="font-xs text-muted">Code: {{ l.code }}</div>
+                    }
+                  </td>
+                  <td>
+                    <span class="group-tag">{{ l.ledgerGroup?.name }}</span>
+                  </td>
+                  <td class="text-right font-mono font-bold">
+                    ₹{{ l.openingBalance | number:'1.2-2' }} {{ l.balanceType }}
+                  </td>
+                  <td class="text-center" (click)="$event.stopPropagation()">
+                    <div class="action-btn-group">
+                      <button class="btn-icon" (click)="viewLedgerDetails(l)" title="View Details">
+                        <i class="pi pi-eye"></i>
+                      </button>
+                      <button class="btn-icon" (click)="editLedger(l)" title="Edit Ledger">
+                        <i class="pi pi-pencil"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (filteredLedgers().length === 0) {
+                <tr>
+                  <td colspan="4" class="text-center empty-state-td">
+                    <i class="pi pi-folder-open empty-icon"></i>
+                    <p>No ledger accounts found matching your filter criteria</p>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
 
-    <!-- CREATE / EDIT LEDGER MODAL WITH TABS -->
-    @if (showCreateModal) {
-      <div class="modal-backdrop" (click)="showCreateModal = false">
-        <div class="modal-dialog ledger-modal-dialog" (click)="$event.stopPropagation()">
-          <!-- MODAL HEADER -->
-          <div class="modal-header">
-            <div>
-              <div class="modal-title-wrap">
-                <h3>{{ editingLedgerId ? 'Edit Ledger Account' : 'Create New Ledger Account' }}</h3>
+      <!-- 2. FULL VIEW LEDGER CREATION / EDITING -->
+      @if (viewMode === 'create' || viewMode === 'edit') {
+        <div class="full-page-form">
+          <!-- TOP HEADER -->
+          <div class="full-page-header">
+            <div class="header-left">
+              <button class="btn-back" (click)="backToList()" title="Back to Ledgers List">
+                <i class="pi pi-arrow-left"></i>
+              </button>
+              <div>
+                <h2>{{ editingLedgerId ? 'Edit Ledger Account: ' + (form.name || '') : 'Create New Ledger Account' }}</h2>
               </div>
             </div>
-            <button class="close-btn" (click)="showCreateModal = false"><i class="pi pi-times"></i></button>
+
+            <div class="header-actions">
+              <button type="button" class="btn-secondary" (click)="backToList()">
+                <i class="pi pi-times"></i> Cancel
+              </button>
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="saveLedger()"
+                [disabled]="submitting || !form.name || !form.ledgerGroupId"
+              >
+                @if (submitting) {
+                  <i class="pi pi-spin pi-spinner"></i> Saving...
+                } @else {
+                  <i class="pi pi-check"></i> {{ editingLedgerId ? 'Update Ledger' : 'Save Ledger' }}
+                }
+              </button>
+            </div>
           </div>
 
-          <!-- MODAL TABS -->
-          <div class="modal-tabs">
-            <button type="button" [class.active]="modalTab === 'basic'" (click)="modalTab = 'basic'">
-              <i class="pi pi-id-card"></i> {{ isParty ? 'Basic & Tax Info' : 'Basic Info' }}
-            </button>
-            @if (isParty) {
-              <button type="button" [class.active]="modalTab === 'address'" (click)="modalTab = 'address'">
-                <i class="pi pi-map-marker"></i> Address & Shipping
+          <!-- FULL SCREEN FORM CARD -->
+          <div class="full-card">
+            <!-- TAB BAR -->
+            <div class="full-tabs">
+              <button type="button" [class.active]="modalTab === 'basic'" (click)="modalTab = 'basic'">
+                <i class="pi pi-id-card"></i> {{ isParty ? 'Basic & Tax Info' : 'Basic Info' }}
               </button>
-              <button type="button" [class.active]="modalTab === 'contact'" (click)="modalTab = 'contact'">
-                <i class="pi pi-phone"></i> Contact Details
-              </button>
-              <button type="button" [class.active]="modalTab === 'bank'" (click)="modalTab = 'bank'">
-                <i class="pi pi-building"></i> Bank & Payment
-              </button>
-            }
-          </div>
+              @if (isParty) {
+                <button type="button" [class.active]="modalTab === 'address'" (click)="modalTab = 'address'">
+                  <i class="pi pi-map-marker"></i> Address & Shipping
+                </button>
+                <button type="button" [class.active]="modalTab === 'contact'" (click)="modalTab = 'contact'">
+                  <i class="pi pi-phone"></i> Contact Details
+                </button>
+                <button type="button" [class.active]="modalTab === 'bank'" (click)="modalTab = 'bank'">
+                  <i class="pi pi-building"></i> Bank & Payment
+                </button>
+              }
+            </div>
 
-          <div class="modal-body">
-            @if (createError) {
-              <div class="alert-error-box">
-                <i class="pi pi-exclamation-circle"></i>
-                <span>{{ createError }}</span>
-              </div>
-            }
-
-            <!-- TAB 1: BASIC & STATUTORY -->
-            @if (modalTab === 'basic') {
-              <div class="tab-content-panel">
-                <div class="form-row">
-                  <div class="form-group flex-2">
-                    <label>Ledger Name *</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.name"
-                      placeholder="e.g. Reliance Steel Traders Pvt Ltd"
-                      required
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Account / Ref Code</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.code"
-                      placeholder="e.g. CUST-001 / VEN-001"
-                    />
-                  </div>
+            <div class="full-body">
+              @if (createError) {
+                <div class="alert-error-box">
+                  <i class="pi pi-exclamation-circle"></i>
+                  <span>{{ createError }}</span>
                 </div>
+              }
 
-                <div class="form-row">
-                  <div class="form-group" [ngClass]="isParty ? 'flex-2' : 'flex-1'">
-                    <label>Ledger Group *</label>
-                    <select [(ngModel)]="form.ledgerGroupId" (change)="onGroupChange()" required>
-                      <option value="">-- Select Ledger Group --</option>
-                      @for (g of groups; track g.id) {
-                        <option [value]="g.id">
-                          {{ g.name }}
-                        </option>
-                      }
-                    </select>
-                    @if (groups.length === 0) {
-                      <span class="helper-text text-amber">
-                        <i class="pi pi-spin pi-spinner"></i> Loading groups...
-                      </span>
-                    }
-                  </div>
-                  @if (isParty) {
-                    <div class="form-group flex-1">
-                      <label>State & Code</label>
-                      <select [(ngModel)]="form.stateCode" (change)="onPartyStateCodeChange()">
-                        <option value="">-- Select State --</option>
-                        @for (s of indianStates; track s.code) {
-                          <option [value]="s.code">
-                            {{ s.code }} - {{ s.name }}
-                          </option>
+              <div class="form-container">
+                <!-- TAB 1: BASIC & STATUTORY -->
+                @if (modalTab === 'basic') {
+                  <div class="tab-content-panel">
+                    <div class="form-grid-3">
+                      <!-- Row 1 (3 fields) -->
+                      <div class="form-group">
+                        <label>Ledger Name *</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.name"
+                          required
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Account / Ref Code</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.code"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Ledger Group *</label>
+                        <select [(ngModel)]="form.ledgerGroupId" (change)="onGroupChange()" required>
+                          <option value="">-- Select Ledger Group --</option>
+                          @for (g of groups; track g.id) {
+                            <option [value]="g.id">
+                              {{ g.name }}
+                            </option>
+                          }
+                        </select>
+                        @if (loadingGroups) {
+                          <span class="helper-text text-amber">
+                            <i class="pi pi-spin pi-spinner"></i> Loading groups...
+                          </span>
                         }
-                      </select>
-                    </div>
-                  }
-                </div>
+                      </div>
 
-                @if (isParty) {
-                  <div class="form-row">
-                    <div class="form-group flex-1">
-                      <label>GSTIN (15 Digits)</label>
-                      <input
-                        type="text"
-                        [(ngModel)]="form.gstin"
-                        (input)="onGstinInput()"
-                        placeholder="27AABCU9603R1ZM"
-                        maxlength="15"
-                        class="font-mono"
-                      />
-                    </div>
-                    <div class="form-group flex-1">
-                      <label>PAN (10 Digits)</label>
-                      <input
-                        type="text"
-                        [(ngModel)]="form.pan"
-                        placeholder="AABCU9603R"
-                        maxlength="10"
-                        class="font-mono"
-                      />
-                    </div>
-                  </div>
-                }
+                      @if (isParty) {
+                        <!-- Row 2 for Party (3 fields) -->
+                        <div class="form-group">
+                          <label>State & Code</label>
+                          <select [(ngModel)]="form.stateCode" (change)="onPartyStateCodeChange()">
+                            <option value="">-- Select State --</option>
+                            @for (s of indianStates; track s.code) {
+                              <option [value]="s.code">
+                                {{ s.code }} - {{ s.name }}
+                              </option>
+                            }
+                          </select>
+                        </div>
+                        <div class="form-group">
+                          <label>GSTIN (15 Digits)</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="form.gstin"
+                            (input)="onGstinInput()"
+                            maxlength="15"
+                            class="font-mono"
+                          />
+                        </div>
+                        <div class="form-group">
+                          <label>PAN (10 Digits)</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="form.pan"
+                            maxlength="10"
+                            class="font-mono"
+                          />
+                        </div>
 
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Opening Balance (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      [(ngModel)]="form.openingBalance"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Balance Type</label>
-                    <select [(ngModel)]="form.balanceType">
-                      <option value="DR">DR (Debit - Receivable / Asset)</option>
-                      <option value="CR">CR (Credit - Payable / Liability)</option>
-                    </select>
-                  </div>
-                </div>
+                        <!-- Row 3 for Party (3 fields) -->
+                        <div class="form-group">
+                          <label>Opening Balance (₹)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            [(ngModel)]="form.openingBalance"
+                          />
+                        </div>
+                        <div class="form-group">
+                          <label>Balance Type</label>
+                          <select [(ngModel)]="form.balanceType">
+                            <option value="DR">DR (Debit - Receivable / Asset)</option>
+                            <option value="CR">CR (Credit - Payable / Liability)</option>
+                          </select>
+                        </div>
+                        <div class="form-group">
+                          <label>Credit Limit (₹)</label>
+                          <input
+                            type="number"
+                            step="1000"
+                            [(ngModel)]="form.creditLimit"
+                          />
+                        </div>
 
-                @if (isParty) {
-                  <div class="form-row credit-terms-panel">
-                    <div class="form-group flex-1">
-                      <label>Credit Limit (₹)</label>
-                      <input
-                        type="number"
-                        step="1000"
-                        [(ngModel)]="form.creditLimit"
-                        placeholder="e.g. 500000"
-                      />
-                    </div>
-                    <div class="form-group flex-1">
-                      <label>Credit Period (Days)</label>
-                      <input
-                        type="number"
-                        [(ngModel)]="form.creditDays"
-                        placeholder="e.g. 30"
-                      />
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-
-            <!-- TAB 2: ADDRESS & SHIPPING -->
-            @if (modalTab === 'address') {
-              <div class="tab-content-panel">
-                <div class="panel-intro-banner">
-                  <i class="pi pi-map-marker"></i>
-                  <div>
-                    <strong>Billing & Shipping Dispatch Addresses</strong>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label>Billing / Registered Office Address</label>
-                  <textarea
-                    [(ngModel)]="form.address"
-                    rows="3"
-                    placeholder="Floor, Building, Plot / Door No., Industrial Area, Road..."
-                  ></textarea>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>City</label>
-                    <input type="text" [(ngModel)]="form.city" placeholder="e.g. Mumbai / Bengaluru" />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>State</label>
-                    <select [(ngModel)]="form.state" (change)="onPartyStateChange()">
-                      <option value="">-- Select State --</option>
-                      @for (s of indianStates; track s.code) {
-                        <option [value]="s.name">
-                          {{ s.name }} ({{ s.code }})
-                        </option>
+                        <!-- Row 4 for Party (3 fields) -->
+                        <div class="form-group">
+                          <label>Credit Period (Days)</label>
+                          <input
+                            type="number"
+                            [(ngModel)]="form.creditDays"
+                          />
+                        </div>
+                        <div class="form-group"></div>
+                        <div class="form-group"></div>
+                      } @else {
+                        <!-- Row 2 for Non-Party (3 fields) -->
+                        <div class="form-group">
+                          <label>Opening Balance (₹)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            [(ngModel)]="form.openingBalance"
+                          />
+                        </div>
+                        <div class="form-group">
+                          <label>Balance Type</label>
+                          <select [(ngModel)]="form.balanceType">
+                            <option value="DR">DR (Debit - Receivable / Asset)</option>
+                            <option value="CR">CR (Credit - Payable / Liability)</option>
+                          </select>
+                        </div>
+                        <div class="form-group"></div>
                       }
-                    </select>
+                    </div>
                   </div>
-                  <div class="form-group flex-1">
-                    <label>Pincode / ZIP</label>
-                    <input type="text" [(ngModel)]="form.pincode" placeholder="e.g. 400001" maxlength="10" />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Country</label>
-                    <input type="text" [(ngModel)]="form.country" placeholder="India" />
-                  </div>
-                </div>
+                }
 
-                <div class="shipping-section-header">
-                  <label>Shipping / Consignee Address</label>
-                  <button type="button" class="btn-copy-link" (click)="copyBillingToShipping()">
-                    <i class="pi pi-copy"></i> Copy from Billing Address
-                  </button>
-                </div>
-                <div class="form-group">
-                  <textarea
-                    [(ngModel)]="form.shippingAddress"
-                    rows="2"
-                    placeholder="Physical dispatch warehouse or factory delivery destination address..."
-                  ></textarea>
-                </div>
+                <!-- TAB 2: ADDRESS & SHIPPING -->
+                @if (modalTab === 'address') {
+                  <div class="tab-content-panel">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                      <label>Billing / Registered Office Address</label>
+                      <textarea
+                        [(ngModel)]="form.address"
+                        rows="3"
+                      ></textarea>
+                    </div>
+
+                    <div class="form-grid-3">
+                      <div class="form-group">
+                        <label>City</label>
+                        <input type="text" [(ngModel)]="form.city" />
+                      </div>
+                      <div class="form-group">
+                        <label>State</label>
+                        <select [(ngModel)]="form.state" (change)="onPartyStateChange()">
+                          <option value="">-- Select State --</option>
+                          @for (s of indianStates; track s.code) {
+                            <option [value]="s.name">
+                              {{ s.name }} ({{ s.code }})
+                            </option>
+                          }
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Pincode / ZIP</label>
+                        <input type="text" [(ngModel)]="form.pincode" maxlength="10" />
+                      </div>
+                    </div>
+
+                    <div class="form-grid-3" style="margin-top: 16px;">
+                      <div class="form-group">
+                        <label>Country</label>
+                        <input type="text" [(ngModel)]="form.country" />
+                      </div>
+                      <div class="form-group"></div>
+                      <div class="form-group"></div>
+                    </div>
+
+                    <div class="shipping-section-header" style="margin-top: 20px;">
+                      <label>Shipping / Consignee Address</label>
+                      <button type="button" class="btn-copy-link" (click)="copyBillingToShipping()">
+                        <i class="pi pi-copy"></i> Copy from Billing Address
+                      </button>
+                    </div>
+                    <div class="form-group">
+                      <textarea
+                        [(ngModel)]="form.shippingAddress"
+                        rows="3"
+                      ></textarea>
+                    </div>
+                  </div>
+                }
+
+                <!-- TAB 3: CONTACT DETAILS -->
+                @if (modalTab === 'contact') {
+                  <div class="tab-content-panel">
+                    <div class="form-grid-3">
+                      <div class="form-group">
+                        <label>Contact Person / Authority</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.contactPerson"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Email Address</label>
+                        <input
+                          type="email"
+                          [(ngModel)]="form.email"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Mobile Number</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.mobile"
+                          class="font-mono"
+                        />
+                      </div>
+
+                      <div class="form-group">
+                        <label>Office Telephone / Landline</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.phone"
+                          class="font-mono"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Official Website</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.website"
+                        />
+                      </div>
+                      <div class="form-group"></div>
+                    </div>
+                  </div>
+                }
+
+                <!-- TAB 4: BANK DETAILS -->
+                @if (modalTab === 'bank') {
+                  <div class="tab-content-panel">
+                    <div class="form-grid-3">
+                      <div class="form-group">
+                        <label>Bank Name</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.bankName"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Account Holder Name</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.bankAccountName"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Bank Account Number</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.bankAccountNumber"
+                          class="font-mono"
+                        />
+                      </div>
+
+                      <div class="form-group">
+                        <label>IFSC Code</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.bankIfsc"
+                          class="font-mono"
+                          maxlength="11"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Branch Name</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.bankBranch"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>UPI ID / VPA</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="form.upiId"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
-            }
+            </div>
 
-            <!-- TAB 3: CONTACT DETAILS -->
-            @if (modalTab === 'contact') {
-              <div class="tab-content-panel">
-                <div class="panel-intro-banner">
-                  <i class="pi pi-user"></i>
-                  <div>
-                    <strong>Contact Representatives & Communication Channels</strong>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Contact Person / Authority</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.contactPerson"
-                      placeholder="e.g. Rajesh Sharma (Head of Accounts)"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      [(ngModel)]="form.email"
-                      placeholder="e.g. accounts@partycorp.com"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Mobile Number</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.mobile"
-                      placeholder="e.g. +91 98200 12345"
-                      class="font-mono"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Office Telephone / Landline</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.phone"
-                      placeholder="e.g. 022 2854 0000"
-                      class="font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label>Official Website</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="form.website"
-                    placeholder="e.g. https://www.enterprise-traders.com"
-                  />
-                </div>
-              </div>
-            }
-
-            <!-- TAB 4: BANK DETAILS -->
-            @if (modalTab === 'bank') {
-              <div class="tab-content-panel">
-                <div class="panel-intro-banner">
-                  <i class="pi pi-building"></i>
-                  <div>
-                    <strong>Direct Bank & Electronic Payment Coordinates</strong>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Bank Name</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.bankName"
-                      placeholder="e.g. HDFC Bank / State Bank of India / ICICI Bank"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>Account Holder Name</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.bankAccountName"
-                      placeholder="e.g. Reliance Steel Traders Pvt Ltd"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Bank Account Number</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.bankAccountNumber"
-                      placeholder="e.g. 50200012345678"
-                      class="font-mono"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>IFSC Code</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.bankIfsc"
-                      placeholder="e.g. HDFC0000123"
-                      class="font-mono"
-                      maxlength="11"
-                    />
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>Branch Name</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.bankBranch"
-                      placeholder="e.g. Nariman Point Branch, Mumbai"
-                    />
-                  </div>
-                  <div class="form-group flex-1">
-                    <label>UPI ID / VPA</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.upiId"
-                      placeholder="e.g. partyname@okhdfcbank"
-                    />
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- MODAL FOOTER -->
-          <div class="modal-footer">
-            <button class="btn-secondary" (click)="showCreateModal = false">Cancel</button>
-            @if (isParty && modalTab !== 'bank') {
-              <button class="btn-secondary" (click)="nextModalTab()">
-                Next <i class="pi pi-arrow-right"></i>
+            <!-- FOOTER BAR -->
+            <div class="full-footer">
+              <button type="button" class="btn-secondary" (click)="backToList()">
+                <i class="pi pi-times"></i> Cancel
               </button>
-            }
-            <button
-              class="btn-primary"
-              (click)="saveLedger()"
-              [disabled]="submitting || !form.name || !form.ledgerGroupId"
-            >
-              <i class="pi pi-check"></i>
-              {{ submitting ? 'Saving...' : (editingLedgerId ? 'Update Ledger' : 'Save Ledger') }}
-            </button>
+              @if (isParty && modalTab !== 'bank') {
+                <button type="button" class="btn-secondary" (click)="nextModalTab()">
+                  Next <i class="pi pi-arrow-right"></i>
+                </button>
+              }
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="saveLedger()"
+                [disabled]="submitting || !form.name || !form.ledgerGroupId"
+              >
+                @if (submitting) {
+                  <i class="pi pi-spin pi-spinner"></i> Saving...
+                } @else {
+                  <i class="pi pi-check"></i> {{ editingLedgerId ? 'Update Ledger' : 'Save Ledger' }}
+                }
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    }
+      }
+    </div>
 
     <!-- VIEW LEDGER DETAIL MODAL -->
     @if (viewingLedger) {
@@ -840,6 +795,34 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
       }
     }
 
+    /* Full View Styles */
+    .full-page-form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+    .full-page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      h2 { font-size: 1.35rem; font-weight: 700; color: var(--surface-900); margin: 0; }
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .btn-back {
+      display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px;
+      border: 1px solid var(--surface-200); background: #fff; color: var(--surface-700); cursor: pointer; font-size: 1rem;
+      transition: all 0.2s;
+      &:hover { background: var(--surface-100); color: var(--surface-900); border-color: var(--surface-300); }
+    }
+
+    .full-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); overflow: hidden; }
+    .full-tabs {
+      display: flex; border-bottom: 1px solid var(--surface-200); background: var(--surface-50); padding: 0 12px;
+      button {
+        padding: 14px 22px; border: none; background: none; font-size: 0.875rem; font-weight: 600; color: var(--surface-600);
+        cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid transparent; transition: all 0.15s;
+        &.active { background: #ffffff; color: var(--primary-600); border-bottom-color: var(--primary-600); }
+        &:hover:not(.active) { color: var(--surface-900); }
+      }
+    }
+    .full-body { padding: 24px; min-height: 480px; }
+    .full-footer { padding: 16px 24px; border-top: 1px solid var(--surface-200); display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-50); }
+    .form-container { max-width: 1000px; }
+
     /* Modal Styling */
     .ledger-modal-dialog {
       max-width: 780px;
@@ -971,6 +954,14 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
 
       .flex-1 { flex: 1; }
       .flex-2 { flex: 2; }
+      .form-group { margin-bottom: 0; }
+    }
+
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 14px;
       .form-group { margin-bottom: 0; }
     }
 
@@ -1142,9 +1133,12 @@ export class LedgersComponent implements OnInit {
   readonly indianStates = INDIAN_STATES;
   ledgers: any[] = [];
   groups: any[] = [];
+  loadingGroups = false;
+  pendingPartyRole: 'CUSTOMER' | 'VENDOR' | null = null;
   searchQuery = '';
   activeFilter: 'ALL' | 'DEBTORS' | 'CREDITORS' | 'BANK' | 'DUTIES' = 'ALL';
 
+  viewMode: 'list' | 'create' | 'edit' = 'list';
   showCreateModal = false;
   viewingLedger: any = null;
   editingLedgerId: string | null = null;
@@ -1215,19 +1209,65 @@ export class LedgersComponent implements OnInit {
     });
   }
 
-  loadGroups() {
+  loadGroups(onComplete?: () => void) {
+    this.loadingGroups = true;
     const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
     this.masters.getLedgerGroups(compId || undefined).subscribe({
       next: (res) => {
-        this.groups = res || [];
-        if (this.groups.length > 0 && !this.form.ledgerGroupId) {
-          const defaultGrp = this.groups.find((g) => g.isCreditorVendor) || this.groups[0];
-          this.form.ledgerGroupId = defaultGrp?.id || '';
-          this.onGroupChange();
+        this.loadingGroups = false;
+        if (res && res.length > 0) {
+          this.groups = res;
+        } else if (this.groups.length === 0) {
+          this.groups = [...STANDARD_LEDGER_GROUPS];
         }
+        this.applyDefaultGroupSelection();
+        if (onComplete) onComplete();
       },
-      error: (err) => console.error('Failed to load ledger groups', err),
+      error: (err) => {
+        console.error('Failed to load ledger groups', err);
+        this.loadingGroups = false;
+        if (this.groups.length === 0) {
+          this.groups = [...STANDARD_LEDGER_GROUPS];
+        }
+        this.applyDefaultGroupSelection();
+        if (onComplete) onComplete();
+      },
     });
+  }
+
+  applyDefaultGroupSelection() {
+    if (!this.form.ledgerGroupId && this.groups.length > 0) {
+      if (this.pendingPartyRole === 'CUSTOMER') {
+        const customerGrp =
+          this.groups.find((g) => g.isDebtorCustomer) ||
+          this.groups.find((g) => (g.name || '').toLowerCase().includes('debtor'));
+        if (customerGrp) {
+          this.form.ledgerGroupId = customerGrp.id;
+          this.onGroupChange();
+          return;
+        }
+      } else if (this.pendingPartyRole === 'VENDOR') {
+        const vendorGrp =
+          this.groups.find((g) => g.isCreditorVendor) ||
+          this.groups.find((g) => (g.name || '').toLowerCase().includes('creditor'));
+        if (vendorGrp) {
+          this.form.ledgerGroupId = vendorGrp.id;
+          this.onGroupChange();
+          return;
+        }
+      }
+
+      const defaultGrp =
+        this.groups.find((g) => g.isCreditorVendor) ||
+        this.groups.find((g) => (g.name || '').toLowerCase().includes('creditor')) ||
+        this.groups.find((g) => g.isDebtorCustomer) ||
+        this.groups[0];
+
+      if (defaultGrp) {
+        this.form.ledgerGroupId = defaultGrp.id;
+        this.onGroupChange();
+      }
+    }
   }
 
   isGroupParty(group: any): boolean {
@@ -1345,41 +1385,50 @@ export class LedgersComponent implements OnInit {
     this.form.shippingAddress = fullBilling;
   }
 
+  backToList() {
+    this.viewMode = 'list';
+    this.editingLedgerId = null;
+  }
+
   openCreateModal() {
     this.editingLedgerId = null;
     this.form = this.getInitialForm();
     this.modalTab = 'basic';
     this.createError = '';
+    this.pendingPartyRole = null;
 
     if (this.groups.length === 0) {
-      this.loadGroups();
+      this.loadGroups(() => {
+        this.applyDefaultGroupSelection();
+      });
     } else {
-      const defaultGrp = this.groups.find((g) => g.isCreditorVendor) || this.groups[0];
-      this.form.ledgerGroupId = defaultGrp?.id || '';
-      this.onGroupChange();
+      this.applyDefaultGroupSelection();
     }
-    this.showCreateModal = true;
+    this.viewMode = 'create';
+    this.showCreateModal = false;
   }
 
   openPartyModal(type: 'CUSTOMER' | 'VENDOR') {
-    this.openCreateModal();
-    if (type === 'CUSTOMER') {
-      const customerGrp = this.groups.find((g) => g.isDebtorCustomer);
-      if (customerGrp) {
-        this.form.ledgerGroupId = customerGrp.id;
-        this.onGroupChange();
-      }
+    this.editingLedgerId = null;
+    this.form = this.getInitialForm();
+    this.modalTab = 'basic';
+    this.createError = '';
+    this.pendingPartyRole = type;
+
+    if (this.groups.length === 0) {
+      this.loadGroups(() => {
+        this.applyDefaultGroupSelection();
+      });
     } else {
-      const vendorGrp = this.groups.find((g) => g.isCreditorVendor);
-      if (vendorGrp) {
-        this.form.ledgerGroupId = vendorGrp.id;
-        this.onGroupChange();
-      }
+      this.applyDefaultGroupSelection();
     }
+    this.viewMode = 'create';
+    this.showCreateModal = false;
   }
 
   editLedger(l: any) {
     this.editingLedgerId = l.id;
+    this.pendingPartyRole = null;
     this.form = {
       name: l.name || '',
       code: l.code || '',
@@ -1411,7 +1460,11 @@ export class LedgersComponent implements OnInit {
     };
     this.modalTab = 'basic';
     this.createError = '';
-    this.showCreateModal = true;
+    if (this.groups.length === 0) {
+      this.loadGroups();
+    }
+    this.viewMode = 'edit';
+    this.showCreateModal = false;
   }
 
   nextModalTab() {
@@ -1445,6 +1498,8 @@ export class LedgersComponent implements OnInit {
           `Ledger "${this.form.name}" ${this.editingLedgerId ? 'updated' : 'created'} successfully!`,
           'Ledger Saved',
         );
+        this.viewMode = 'list';
+        this.editingLedgerId = null;
         this.showCreateModal = false;
         this.loadLedgers();
       },
@@ -1511,5 +1566,26 @@ export class LedgersComponent implements OnInit {
     }
 
     return list;
+  }
+
+  exportLedgers() {
+    const list = this.filteredLedgers();
+    if (!list || list.length === 0) return;
+    const headers = ['Ledger Name', 'Code', 'Group', 'GSTIN', 'PAN', 'City', 'State', 'Phone', 'Email', 'Opening Balance', 'Dr/Cr'];
+    const rows = list.map((l) => [
+      l.name || '',
+      l.code || '',
+      l.ledgerGroup?.name || '',
+      l.gstin || '',
+      l.pan || '',
+      l.city || '',
+      l.state || '',
+      l.phone || l.mobile || '',
+      l.email || '',
+      l.openingBalance || 0,
+      l.openingBalanceType || 'DR'
+    ]);
+    exportToCsv('Ledgers_Master', headers, rows);
+    this.toast.success('Ledgers exported successfully!', 'Export Complete');
   }
 }

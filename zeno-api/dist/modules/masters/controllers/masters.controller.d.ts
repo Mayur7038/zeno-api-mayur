@@ -44,8 +44,19 @@ export declare class MastersController {
         success: boolean;
         message: string;
     }>;
+    getVariantDefinitions(tenantId: string, companyId?: string): Promise<import("../entities/variant-definition.entity").VariantDefinition[]>;
+    createVariantDefinition(tenantId: string, body: any): Promise<import("../entities/variant-definition.entity").VariantDefinition>;
+    updateVariantDefinition(tenantId: string, id: string, body: any): Promise<import("../entities/variant-definition.entity").VariantDefinition>;
+    deleteVariantDefinition(tenantId: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getItems(tenantId: string, companyId: string, search?: string): Promise<import("../entities/item.entity").Item[]>;
     getItemById(tenantId: string, id: string): Promise<import("../entities/item.entity").Item>;
     createItem(tenantId: string, body: any): Promise<import("../entities/item.entity").Item>;
     updateItem(tenantId: string, id: string, body: any): Promise<import("../entities/item.entity").Item>;
+    deleteItem(tenantId: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
 }

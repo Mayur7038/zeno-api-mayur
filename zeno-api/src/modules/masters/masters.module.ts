@@ -7,6 +7,7 @@ import { ItemGroup } from './entities/item-group.entity';
 import { ItemCategory } from './entities/item-category.entity';
 import { Item } from './entities/item.entity';
 import { ItemVariant } from './entities/item-variant.entity';
+import { VariantDefinition } from './entities/variant-definition.entity';
 import { MastersService } from './services/masters.service';
 import { MastersController } from './controllers/masters.controller';
 
@@ -20,6 +21,7 @@ import { MastersController } from './controllers/masters.controller';
       ItemCategory,
       Item,
       ItemVariant,
+      VariantDefinition,
     ]),
   ],
   controllers: [MastersController],

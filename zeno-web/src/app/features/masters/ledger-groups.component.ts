@@ -17,6 +17,13 @@ interface LedgerGroupItem {
   children?: LedgerGroupItem[];
 }
 
+export interface LedgerGroupNode extends LedgerGroupItem {
+  level: number;
+  hasChildren: boolean;
+  childCount: number;
+  childrenList: LedgerGroupNode[];
+}
+
 @Component({
   selector: 'app-ledger-groups',
   standalone: true,
@@ -41,7 +48,6 @@ interface LedgerGroupItem {
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search by group name or code..."
               [(ngModel)]="searchQuery"
               (input)="filterGroups()"
             />
@@ -54,6 +60,15 @@ interface LedgerGroupItem {
               <option value="INCOME">Income</option>
               <option value="EXPENSE">Expenses</option>
             </select>
+
+            @if (hasAnySubGroups) {
+              <button type="button" class="btn-text-tool" (click)="expandAll()" title="Expand all sub-groups">
+                <i class="pi pi-angle-double-down"></i> Expand All
+              </button>
+              <button type="button" class="btn-text-tool" (click)="collapseAll()" title="Collapse all sub-groups">
+                <i class="pi pi-angle-double-up"></i> Collapse All
+              </button>
+            }
           </div>
         </div>
 
@@ -62,57 +77,82 @@ interface LedgerGroupItem {
           <thead>
             <tr>
               <th>Group Name</th>
-              <th>Code</th>
               <th>Nature</th>
               <th>Parent Group</th>
-              <th>Party Role</th>
-              <th>Type</th>
               <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             @if (loading) {
               <tr>
-                <td colspan="7" class="text-center" style="padding: 40px; color: var(--surface-500);">
+                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
                   <i class="pi pi-spin pi-spinner"></i> Loading ledger groups...
                 </td>
               </tr>
-            } @else if (filteredGroups.length === 0) {
+            } @else if (displayedRows.length === 0) {
               <tr>
-                <td colspan="7" class="text-center" style="padding: 40px; color: var(--surface-500);">
+                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
                   No ledger groups match your filter criteria.
                 </td>
               </tr>
             }
-            @for (g of filteredGroups; track g.id) {
-              <tr>
+            @for (g of displayedRows; track g.id) {
+              <tr [class.child-row]="g.level > 0">
                 <td>
-                  <div class="group-name-cell">
-                    <i class="pi pi-folder" [style.color]="getNatureColor(g.nature)"></i>
-                    <strong>{{ g.name }}</strong>
+                  <div class="group-name-cell" [style.padding-left.px]="g.level * 24">
+                    @if (g.hasChildren) {
+                      <button
+                        type="button"
+                        class="btn-expand-toggle"
+                        (click)="toggleExpand(g.id, $event)"
+                        [title]="isExpanded(g.id) ? 'Collapse sub-groups' : 'Expand sub-groups'"
+                      >
+                        <i [class]="isExpanded(g.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
+                      </button>
+                      <i
+                        [class]="isExpanded(g.id) ? 'pi pi-folder-open folder-icon' : 'pi pi-folder folder-icon'"
+                        [style.color]="getNatureColor(g.nature)"
+                        (click)="toggleExpand(g.id, $event)"
+                        style="cursor: pointer;"
+                        [title]="isExpanded(g.id) ? 'Click to collapse' : 'Click to expand'"
+                      ></i>
+                    } @else {
+                      @if (g.level > 0) {
+                        <span class="tree-branch-line">└─</span>
+                      } @else {
+                        <span class="expand-spacer"></span>
+                      }
+                      <i class="pi pi-folder folder-icon" [style.color]="getNatureColor(g.nature)"></i>
+                    }
+
+                    <span
+                      class="group-name-text"
+                      [class.parent-group-bold]="g.hasChildren"
+                      (click)="g.hasChildren ? toggleExpand(g.id, $event) : null"
+                      [style.cursor]="g.hasChildren ? 'pointer' : 'default'"
+                    >
+                      {{ g.name }}
+                    </span>
+
+                    @if (g.hasChildren) {
+                      <span class="sub-group-count-badge" (click)="toggleExpand(g.id, $event)" [title]="isExpanded(g.id) ? 'Click to collapse' : 'Click to expand'">
+                        {{ g.childCount }} {{ g.childCount === 1 ? 'sub-group' : 'sub-groups' }}
+                      </span>
+                    }
                   </div>
                 </td>
-                <td class="font-mono">{{ g.code || '—' }}</td>
                 <td>
                   <span class="badge-pill" [ngClass]="getNatureBadge(g.nature)">
                     {{ g.nature }}
                   </span>
                 </td>
-                <td>{{ g.parent?.name || 'Primary Group' }}</td>
                 <td>
-                  @if (g.isDebtorCustomer) {
-                    <span class="badge-pill badge-partial">Debtor (Customer)</span>
-                  } @else if (g.isCreditorVendor) {
-                    <span class="badge-pill badge-warning">Creditor (Vendor)</span>
+                  @if (g.parent?.name) {
+                    <span class="parent-pill">
+                      <i class="pi pi-folder"></i> {{ g.parent?.name }}
+                    </span>
                   } @else {
-                    <span style="color: var(--surface-400);">—</span>
-                  }
-                </td>
-                <td>
-                  @if (g.isPredefined) {
-                    <span class="badge-pill badge-cleared"><i class="pi pi-lock"></i> Standard</span>
-                  } @else {
-                    <span class="badge-pill badge-custom">Custom</span>
+                    <span style="color: var(--surface-500);">Primary Group</span>
                   }
                 </td>
                 <td class="text-right actions-cell">
@@ -153,7 +193,6 @@ interface LedgerGroupItem {
                   <input
                     type="text"
                     [(ngModel)]="formData.name"
-                    placeholder="e.g. Secured Loans, Direct Factory Overheads"
                     class="form-control"
                   />
                 </div>
@@ -163,7 +202,6 @@ interface LedgerGroupItem {
                   <input
                     type="text"
                     [(ngModel)]="formData.code"
-                    placeholder="e.g. SEC-LN"
                     class="form-control"
                   />
                 </div>
@@ -180,7 +218,7 @@ interface LedgerGroupItem {
 
                 <div class="form-group full-width">
                   <label>Parent Group (Leave blank if Primary)</label>
-                  <select [(ngModel)]="formData.parentId" class="form-control">
+                  <select [(ngModel)]="formData.parentId" (change)="onParentChange()" class="form-control">
                     <option [ngValue]="null">-- Primary (No Parent) --</option>
                     @for (p of availableParents; track p.id) {
                       <option [value]="p.id">{{ p.name }} ({{ p.nature }})</option>
@@ -227,7 +265,37 @@ interface LedgerGroupItem {
     .toolbar-search input:focus { border-color: var(--primary-600); }
     .form-select { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; background: #fff; }
 
-    .group-name-cell { display: flex; align-items: center; gap: 10px; }
+    .group-name-cell { display: flex; align-items: center; gap: 8px; }
+    .btn-expand-toggle {
+      background: none; border: none; width: 22px; height: 22px; display: inline-flex;
+      align-items: center; justify-content: center; cursor: pointer; color: var(--surface-500);
+      border-radius: 4px; padding: 0; transition: all 0.15s ease; font-size: 0.75rem;
+      &:hover { background-color: var(--surface-100); color: var(--surface-900); }
+    }
+    .expand-spacer { width: 22px; display: inline-block; flex-shrink: 0; }
+    .tree-branch-line { color: var(--surface-400); font-family: monospace; font-weight: 700; font-size: 0.85rem; margin-right: 4px; display: inline-block; }
+    .folder-icon { font-size: 1.1rem; transition: transform 0.15s ease; }
+    .group-name-text { color: var(--surface-900); font-size: 0.875rem; font-weight: 600; }
+    .parent-group-bold { font-weight: 700; }
+    .sub-group-count-badge {
+      font-size: 0.7rem; font-weight: 600; color: var(--primary-700); background: #eff6ff;
+      border: 1px solid #bfdbfe; padding: 2px 7px; border-radius: 12px; cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover { background: #dbeafe; }
+    }
+    .parent-pill {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 0.8125rem; color: var(--surface-700); font-weight: 500;
+      i { font-size: 0.75rem; color: var(--surface-400); }
+    }
+    .btn-text-tool {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; background: #fff;
+      border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.8125rem; font-weight: 600;
+      color: var(--surface-600); cursor: pointer; transition: all 0.15s ease;
+      &:hover { background: var(--surface-50); color: var(--primary-600); border-color: var(--primary-400); }
+    }
+    .child-row td { background-color: #fafbfc; }
+    .child-row:hover td { background-color: #f1f5f9; }
+
     .badge-custom { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
     .badge-warning { background: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
 
@@ -254,7 +322,8 @@ interface LedgerGroupItem {
 })
 export class LedgerGroupsComponent implements OnInit {
   groups: LedgerGroupItem[] = [];
-  filteredGroups: LedgerGroupItem[] = [];
+  displayedRows: LedgerGroupNode[] = [];
+  expandedGroupIds = new Set<string>();
   loading = false;
   saving = false;
   searchQuery = '';
@@ -318,23 +387,143 @@ export class LedgerGroupsComponent implements OnInit {
     });
   }
 
-  filterGroups() {
-    let result = [...this.groups];
+  get hasAnySubGroups(): boolean {
+    return this.groups.some((g) => {
+      const pId = g.parentId || g.parent?.id;
+      return !!pId && this.groups.some((parent) => parent.id === pId);
+    });
+  }
 
-    if (this.natureFilter !== 'ALL') {
-      result = result.filter((g) => g.nature === this.natureFilter);
-    }
-
+  isExpanded(id: string): boolean {
     if (this.searchQuery.trim()) {
-      const q = this.searchQuery.toLowerCase();
-      result = result.filter(
-        (g) =>
-          g.name.toLowerCase().includes(q) ||
-          (g.code && g.code.toLowerCase().includes(q)),
-      );
+      return true;
+    }
+    return this.expandedGroupIds.has(id);
+  }
+
+  toggleExpand(id: string, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.expandedGroupIds.has(id)) {
+      this.expandedGroupIds.delete(id);
+    } else {
+      this.expandedGroupIds.add(id);
+    }
+    this.filterGroups();
+  }
+
+  expandAll() {
+    for (const g of this.groups) {
+      this.expandedGroupIds.add(g.id);
+    }
+    this.filterGroups();
+  }
+
+  collapseAll() {
+    this.expandedGroupIds.clear();
+    this.filterGroups();
+  }
+
+  onParentChange() {
+    if (this.formData.parentId) {
+      const parent = this.groups.find((g) => g.id === this.formData.parentId);
+      if (parent) {
+        this.formData.nature = parent.nature;
+      }
+    }
+  }
+
+  filterGroups() {
+    // 1. Index all groups by id
+    const groupMap = new Map<string, LedgerGroupItem>();
+    this.groups.forEach((g) => groupMap.set(g.id, g));
+
+    // 2. Identify child groups and root groups
+    const childrenMap = new Map<string, LedgerGroupItem[]>();
+    const rootGroups: LedgerGroupItem[] = [];
+
+    for (const g of this.groups) {
+      const pId = g.parentId || g.parent?.id;
+      if (pId && groupMap.has(pId)) {
+        if (!childrenMap.has(pId)) {
+          childrenMap.set(pId, []);
+        }
+        childrenMap.get(pId)!.push(g);
+      } else {
+        rootGroups.push(g);
+      }
     }
 
-    this.filteredGroups = result;
+    // 3. Sort root groups alphabetically by name
+    rootGroups.sort((a, b) => a.name.localeCompare(b.name));
+
+    // 4. Recursive tree builder
+    const buildTree = (item: LedgerGroupItem, level: number): LedgerGroupNode => {
+      const rawChildren = childrenMap.get(item.id) || [];
+      rawChildren.sort((a, b) => a.name.localeCompare(b.name));
+      const childrenList = rawChildren.map((c) => buildTree(c, level + 1));
+      return {
+        ...item,
+        level,
+        hasChildren: childrenList.length > 0,
+        childCount: childrenList.length,
+        childrenList,
+      };
+    };
+
+    const tree = rootGroups.map((r) => buildTree(r, 0));
+
+    // 5. Filter tree based on search query and nature filter
+    const q = this.searchQuery.trim().toLowerCase();
+    const nature = this.natureFilter;
+
+    const matchesDirectly = (node: LedgerGroupNode): boolean => {
+      const natureMatch = nature === 'ALL' || node.nature === nature;
+      const queryMatch = !q || node.name.toLowerCase().includes(q) || Boolean(node.code && node.code.toLowerCase().includes(q));
+      return Boolean(natureMatch && queryMatch);
+    };
+
+    const filterNode = (node: LedgerGroupNode): LedgerGroupNode | null => {
+      const direct = matchesDirectly(node);
+      const filteredChildren = node.childrenList
+        .map((c) => filterNode(c))
+        .filter((c): c is LedgerGroupNode => c !== null);
+
+      if (direct || filteredChildren.length > 0) {
+        return {
+          ...node,
+          hasChildren: filteredChildren.length > 0,
+          childCount: filteredChildren.length,
+          childrenList: filteredChildren,
+        };
+      }
+      return null;
+    };
+
+    const filteredTree = tree
+      .map((root) => filterNode(root))
+      .filter((r): r is LedgerGroupNode => r !== null);
+
+    // 6. Flatten to displayedRows
+    const rows: LedgerGroupNode[] = [];
+    const isSearching = q.length > 0;
+
+    const flatten = (node: LedgerGroupNode) => {
+      rows.push(node);
+      const expanded = isSearching || this.expandedGroupIds.has(node.id);
+      if (node.hasChildren && expanded) {
+        for (const child of node.childrenList) {
+          flatten(child);
+        }
+      }
+    };
+
+    for (const root of filteredTree) {
+      flatten(root);
+    }
+
+    this.displayedRows = rows;
   }
 
   getNatureBadge(nature: string): string {
@@ -391,6 +580,9 @@ export class LedgerGroupsComponent implements OnInit {
       isDebtorCustomer: group.isDebtorCustomer,
       isCreditorVendor: group.isCreditorVendor,
     };
+    if (group.parentId) {
+      this.expandedGroupIds.add(group.parentId);
+    }
     this.errorMessage = '';
     this.showModal = true;
   }
@@ -416,6 +608,10 @@ export class LedgerGroupsComponent implements OnInit {
       companyId,
       parentId: this.formData.parentId || null,
     };
+
+    if (this.formData.parentId) {
+      this.expandedGroupIds.add(this.formData.parentId);
+    }
 
     if (this.editingGroup) {
       this.mastersService.updateLedgerGroup(this.editingGroup.id, payload).subscribe({

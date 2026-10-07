@@ -23,6 +23,8 @@ const item_group_entity_1 = require("../entities/item-group.entity");
 const item_category_entity_1 = require("../entities/item-category.entity");
 const item_entity_1 = require("../entities/item.entity");
 const item_variant_entity_1 = require("../entities/item-variant.entity");
+const variant_definition_entity_1 = require("../entities/variant-definition.entity");
+const enums_1 = require("../../../common/enums");
 let MastersService = class MastersService {
     groupRepo;
     ledgerRepo;
@@ -31,7 +33,8 @@ let MastersService = class MastersService {
     itemCatRepo;
     itemRepo;
     variantRepo;
-    constructor(groupRepo, ledgerRepo, unitRepo, itemGroupRepo, itemCatRepo, itemRepo, variantRepo) {
+    variantDefRepo;
+    constructor(groupRepo, ledgerRepo, unitRepo, itemGroupRepo, itemCatRepo, itemRepo, variantRepo, variantDefRepo) {
         this.groupRepo = groupRepo;
         this.ledgerRepo = ledgerRepo;
         this.unitRepo = unitRepo;
@@ -39,17 +42,67 @@ let MastersService = class MastersService {
         this.itemCatRepo = itemCatRepo;
         this.itemRepo = itemRepo;
         this.variantRepo = variantRepo;
+        this.variantDefRepo = variantDefRepo;
     }
     async getLedgerGroups(tenantId, companyId) {
         const qb = this.groupRepo
             .createQueryBuilder('group')
             .leftJoinAndSelect('group.parent', 'parent')
-            .leftJoinAndSelect('group.children', 'children')
-            .where('group.tenant_id = :tenantId', { tenantId });
-        if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
-            qb.andWhere('(group.company_id = :companyId OR group.is_predefined = true)', { companyId });
+            .leftJoinAndSelect('group.children', 'children');
+        if (tenantId) {
+            qb.where('(group.tenant_id = :tenantId OR group.tenant_id IS NULL OR group.is_predefined = true)', { tenantId });
         }
-        return qb.orderBy('group.name', 'ASC').getMany();
+        if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
+            qb.andWhere('(group.company_id = :companyId OR group.company_id IS NULL OR group.is_predefined = true)', { companyId });
+        }
+        let groups = await qb.orderBy('group.name', 'ASC').getMany();
+        if (groups.length === 0 && tenantId) {
+            const defaultGroupDefs = [
+                { name: 'Capital Account', nature: enums_1.LedgerGroupNature.LIABILITY, isPredefined: true },
+                { name: 'Current Liabilities', nature: enums_1.LedgerGroupNature.LIABILITY, isPredefined: true },
+                {
+                    name: 'Sundry Creditors (Vendors)',
+                    nature: enums_1.LedgerGroupNature.LIABILITY,
+                    isCreditorVendor: true,
+                    isPredefined: true,
+                },
+                { name: 'Duties & Taxes', nature: enums_1.LedgerGroupNature.LIABILITY, isPredefined: true },
+                { name: 'Current Assets', nature: enums_1.LedgerGroupNature.ASSET, isPredefined: true },
+                {
+                    name: 'Sundry Debtors (Customers)',
+                    nature: enums_1.LedgerGroupNature.ASSET,
+                    isDebtorCustomer: true,
+                    isPredefined: true,
+                },
+                { name: 'Bank Accounts', nature: enums_1.LedgerGroupNature.ASSET, isPredefined: true },
+                { name: 'Cash-in-hand', nature: enums_1.LedgerGroupNature.ASSET, isPredefined: true },
+                { name: 'Stock-in-hand', nature: enums_1.LedgerGroupNature.ASSET, isPredefined: true },
+                { name: 'Purchase Accounts', nature: enums_1.LedgerGroupNature.EXPENSE, isPredefined: true },
+                { name: 'Direct Expenses', nature: enums_1.LedgerGroupNature.EXPENSE, isPredefined: true },
+                { name: 'Indirect Expenses', nature: enums_1.LedgerGroupNature.EXPENSE, isPredefined: true },
+                { name: 'Sales Accounts', nature: enums_1.LedgerGroupNature.INCOME, isPredefined: true },
+                { name: 'Direct Incomes', nature: enums_1.LedgerGroupNature.INCOME, isPredefined: true },
+                { name: 'Indirect Incomes', nature: enums_1.LedgerGroupNature.INCOME, isPredefined: true },
+            ];
+            for (const def of defaultGroupDefs) {
+                try {
+                    const g = this.groupRepo.create({
+                        tenantId,
+                        companyId: companyId && companyId !== 'undefined' && companyId !== 'null' ? companyId : undefined,
+                        name: def.name,
+                        nature: def.nature,
+                        isCreditorVendor: def.isCreditorVendor || false,
+                        isDebtorCustomer: def.isDebtorCustomer || false,
+                        isPredefined: true,
+                    });
+                    await this.groupRepo.save(g);
+                }
+                catch {
+                }
+            }
+            groups = await qb.orderBy('group.name', 'ASC').getMany();
+        }
+        return groups;
     }
     async createLedgerGroup(tenantId, companyId, data) {
         const group = this.groupRepo.create({
@@ -232,6 +285,36 @@ let MastersService = class MastersService {
         await this.variantRepo.delete({ id, tenantId });
         return { success: true, message: 'Variant deleted' };
     }
+    async getVariantDefinitions(tenantId, companyId) {
+        const qb = this.variantDefRepo
+            .createQueryBuilder('vd')
+            .where('vd.tenant_id = :tenantId', { tenantId });
+        if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
+            qb.andWhere('(vd.company_id = :companyId OR vd.company_id IS NULL)', { companyId });
+        }
+        return qb.orderBy('vd.name', 'ASC').getMany();
+    }
+    async getVariantDefinitionById(tenantId, id) {
+        return this.variantDefRepo.findOne({ where: { id, tenantId } });
+    }
+    async createVariantDefinition(tenantId, companyId, data) {
+        const vd = this.variantDefRepo.create({ ...data, tenantId, companyId });
+        return this.variantDefRepo.save(vd);
+    }
+    async updateVariantDefinition(tenantId, id, data) {
+        const vd = await this.variantDefRepo.findOne({ where: { id, tenantId } });
+        if (!vd)
+            throw new common_1.BadRequestException('Variant definition not found');
+        Object.assign(vd, data);
+        return this.variantDefRepo.save(vd);
+    }
+    async deleteVariantDefinition(tenantId, id) {
+        const vd = await this.variantDefRepo.findOne({ where: { id, tenantId } });
+        if (!vd)
+            throw new common_1.BadRequestException('Variant definition not found');
+        await this.variantDefRepo.delete({ id, tenantId });
+        return { success: true, message: 'Variant definition deleted' };
+    }
     async getItems(tenantId, companyId, search) {
         const qb = this.itemRepo
             .createQueryBuilder('item')
@@ -267,11 +350,32 @@ let MastersService = class MastersService {
         return this.getItemById(tenantId, savedItem.id);
     }
     async updateItem(tenantId, id, data) {
+        const { variants, ...itemData } = data;
         const item = await this.itemRepo.findOne({ where: { id, tenantId } });
         if (!item)
             throw new common_1.BadRequestException('Item not found');
-        Object.assign(item, data);
-        return this.itemRepo.save(item);
+        Object.assign(item, itemData);
+        await this.itemRepo.save(item);
+        if (variants && Array.isArray(variants)) {
+            await this.variantRepo.delete({ itemId: id, tenantId });
+            if (variants.length > 0) {
+                const vars = variants.map((v) => this.variantRepo.create({
+                    ...v,
+                    tenantId,
+                    itemId: id,
+                }));
+                await this.variantRepo.save(vars);
+            }
+        }
+        return this.getItemById(tenantId, id);
+    }
+    async deleteItem(tenantId, id) {
+        const item = await this.itemRepo.findOne({ where: { id, tenantId } });
+        if (!item)
+            throw new common_1.BadRequestException('Item not found');
+        await this.variantRepo.delete({ itemId: id, tenantId });
+        await this.itemRepo.delete({ id, tenantId });
+        return { success: true, message: 'Item deleted' };
     }
 };
 exports.MastersService = MastersService;
@@ -284,7 +388,9 @@ exports.MastersService = MastersService = __decorate([
     __param(4, (0, typeorm_1.InjectRepository)(item_category_entity_1.ItemCategory)),
     __param(5, (0, typeorm_1.InjectRepository)(item_entity_1.Item)),
     __param(6, (0, typeorm_1.InjectRepository)(item_variant_entity_1.ItemVariant)),
+    __param(7, (0, typeorm_1.InjectRepository)(variant_definition_entity_1.VariantDefinition)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

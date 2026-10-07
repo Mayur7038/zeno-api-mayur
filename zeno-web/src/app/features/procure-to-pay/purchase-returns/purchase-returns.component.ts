@@ -6,6 +6,7 @@ import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -30,9 +31,21 @@ import { ToastService } from '../../../core/services/toast.service';
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search Debit Note #, vendor, or invoice..."
               [(ngModel)]="searchQuery"
             />
+          </div>
+
+          <div class="filter-actions">
+            <select class="filter-select" [(ngModel)]="selectedVendor">
+              <option value="">All Vendors</option>
+              @for (v of vendors; track v.id) {
+                <option [value]="v.id">{{ v.name }}</option>
+              }
+            </select>
+
+            <button class="btn-export" (click)="exportReturns()" [disabled]="filteredReturns.length === 0" title="Export to CSV">
+              <i class="pi pi-download"></i> Export
+            </button>
           </div>
         </div>
 
@@ -481,6 +494,7 @@ export class PurchaseReturnsComponent implements OnInit {
   itemsList: any[] = [];
   vendorInvoices: any[] = [];
   searchQuery = '';
+  selectedVendor = '';
 
   submitting = false;
   createError = '';
@@ -500,15 +514,40 @@ export class PurchaseReturnsComponent implements OnInit {
   returnGrandTotal = 0;
 
   get filteredReturns(): any[] {
-    if (!this.searchQuery) return this.returns;
-    const q = this.searchQuery.toLowerCase();
-    return this.returns.filter(
-      (r) =>
-        r.voucherNo?.toLowerCase().includes(q) ||
-        r.vendorLedger?.name?.toLowerCase().includes(q) ||
-        r.purchaseInvoice?.voucherNo?.toLowerCase().includes(q) ||
-        r.reason?.toLowerCase().includes(q),
-    );
+    let list = this.returns || [];
+    if (this.selectedVendor) {
+      list = list.filter((r) => r.vendorLedgerId === this.selectedVendor);
+    }
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.voucherNo?.toLowerCase().includes(q) ||
+          r.vendorLedger?.name?.toLowerCase().includes(q) ||
+          r.purchaseInvoice?.voucherNo?.toLowerCase().includes(q) ||
+          r.reason?.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }
+
+  exportReturns() {
+    const list = this.filteredReturns;
+    if (!list || list.length === 0) return;
+    const headers = ['Debit Note No', 'Return Date', 'Vendor', 'Against Invoice', 'Godown', 'Reason', 'Taxable', 'Tax Reversed', 'Grand Total'];
+    const rows = list.map((pr) => [
+      pr.voucherNo || '',
+      pr.returnDate || '',
+      pr.vendorLedger?.name || '',
+      pr.purchaseInvoice?.voucherNo || 'Direct Return',
+      pr.godown?.name || '',
+      pr.reason || '',
+      pr.taxableTotal || 0,
+      pr.taxTotal || 0,
+      pr.grandTotal || 0
+    ]);
+    exportToCsv('Purchase_Returns_Debit_Notes', headers, rows);
+    this.toast.success('Purchase returns exported successfully!', 'Export Complete');
   }
 
   get totalReturnValue(): number {

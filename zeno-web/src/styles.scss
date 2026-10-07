@@ -4,6 +4,7 @@
 
 @import 'primeicons/primeicons.css';
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import './app/shared/ui/zeno-ui.scss';
 
 :root {
   /* Brand Primary */
@@ -511,5 +512,129 @@ html, body {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+/* =========================================================
+   Standard List Page Toolbar, Filter Dropdowns & Export Buttons
+   ========================================================= */
+.filter-card {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .filter-group {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+    max-width: 380px;
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--surface-400);
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 9px 12px 9px 36px;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      background: var(--surface-0);
+      color: var(--surface-900);
+      outline: none;
+      transition: border-color 0.15s ease;
+
+      &:focus {
+        border-color: var(--primary-600);
+        box-shadow: 0 0 0 2px var(--primary-100);
+      }
+    }
+  }
+
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+.filter-select {
+  height: 38px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--surface-300);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--surface-800);
+  background-color: var(--surface-0);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  min-width: 170px;
+
+  &:hover {
+    border-color: var(--surface-400);
+    background-color: var(--surface-50);
+  }
+
+  &:focus {
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 2px var(--primary-100);
+  }
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  background-color: var(--surface-0);
+  color: var(--surface-700);
+  border: 1px solid var(--surface-300);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.95rem;
+    color: #10b981;
+  }
+
+  &:hover {
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--surface-100);
+    border-color: var(--surface-200);
+    color: var(--surface-400);
+  }
 }
 

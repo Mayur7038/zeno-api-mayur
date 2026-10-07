@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ToastService } from '../../core/services/toast.service';
+import { exportToCsv } from '../../core/utils/export.util';
+import { ZENO_UI_COMPONENTS } from '../../shared/ui';
 
 interface UnitItem {
   id: string;
@@ -16,60 +19,53 @@ interface UnitItem {
 @Component({
   selector: 'app-units',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="masters-page">
-      <div class="page-header">
-        <div>
-          <h1>Unit</h1>
+    <div class="zeno-page-container">
+      <zeno-page-header title="Unit">
+        <div actions>
+          <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
+            New Unit
+          </zeno-button>
         </div>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="openCreateModal()">
-            <i class="pi pi-plus"></i> New Unit
-          </button>
-        </div>
-      </div>
+      </zeno-page-header>
 
-      <!-- FILTER & TOOLBAR -->
-      <div class="zeno-card">
-        <div class="table-toolbar">
-          <div class="toolbar-search">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              placeholder="Search by unit name or code..."
-              [(ngModel)]="searchQuery"
-              (input)="filterUnits()"
-            />
-          </div>
+      <!-- TABLE & LIST CONTAINER -->
+      <zeno-table
+        [loading]="loading"
+        [empty]="filteredUnits.length === 0"
+        loadingMessage="Loading measurement units..."
+        emptyMessage="No units found. Click 'New Unit' to create one."
+      >
+        <div toolbar-left>
+          <zeno-search
+            [(ngModel)]="searchQuery"
+            (searchChange)="filterUnits()"
+          ></zeno-search>
+        </div>
+        <div toolbar-right>
+          <zeno-button
+            variant="secondary"
+            icon="pi pi-download"
+            [disabled]="filteredUnits.length === 0"
+            (btnClick)="exportUnits()"
+            title="Export to CSV"
+          >
+            Export
+          </zeno-button>
         </div>
 
-        <!-- TABLE -->
         <table class="zeno-table">
           <thead>
             <tr>
               <th>Unit Name</th>
               <th>Symbol / Code</th>
               <th class="text-center">Allowed Decimal Places</th>
-              <th>Precision Rule</th>
               <th>Status</th>
               <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            @if (loading) {
-              <tr>
-                <td colspan="6" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  <i class="pi pi-spin pi-spinner"></i> Loading measurement units...
-                </td>
-              </tr>
-            } @else if (filteredUnits.length === 0) {
-              <tr>
-                <td colspan="6" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No units found. Click "New Unit of Measure" to create one.
-                </td>
-              </tr>
-            }
             @for (u of filteredUnits; track u.id) {
               <tr>
                 <td>
@@ -85,104 +81,63 @@ interface UnitItem {
                   {{ u.decimalPlaces }}
                 </td>
                 <td>
-                  @if (u.decimalPlaces === 0) {
-                    <span class="badge-pill badge-partial">Integer / Discrete (e.g. 1, 2)</span>
-                  } @else {
-                    <span class="badge-pill badge-custom">Fractional (up to {{ u.decimalPlaces }} decimals)</span>
-                  }
-                </td>
-                <td>
                   @if (u.isActive) {
-                    <span class="badge-pill badge-cleared"><i class="pi pi-check"></i> Active</span>
+                    <zeno-badge type="success" icon="pi pi-check">Active</zeno-badge>
                   } @else {
-                    <span class="badge-pill badge-cancelled">Inactive</span>
+                    <zeno-badge type="danger">Inactive</zeno-badge>
                   }
                 </td>
                 <td class="text-right actions-cell">
-                  <button class="btn-icon" (click)="openEditModal(u)" title="Edit Unit">
-                    <i class="pi pi-pencil"></i>
-                  </button>
-                  <button class="btn-icon text-danger" (click)="deleteUnit(u)" title="Delete Unit">
-                    <i class="pi pi-trash"></i>
-                  </button>
+                  <zeno-button variant="icon" icon="pi pi-pencil" title="Edit Unit" (btnClick)="openEditModal(u)"></zeno-button>
+                  <zeno-button variant="icon" icon="pi pi-trash" title="Delete Unit" (btnClick)="deleteUnit(u)" class="text-danger"></zeno-button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
-      </div>
+      </zeno-table>
 
       <!-- CREATE / EDIT MODAL -->
-      @if (showModal) {
-        <div class="modal-backdrop" (click)="closeModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h3>{{ editingUnit ? 'Edit Unit of Measure' : 'New Unit of Measure' }}</h3>
-              <button class="close-btn" (click)="closeModal()">&times;</button>
-            </div>
-
-            <div class="modal-body">
-              @if (errorMessage) {
-                <div class="alert alert-error">
-                  <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
-                </div>
-              }
-
-              <div class="form-grid">
-                <div class="form-group full-width">
-                  <label class="required">Unit Name</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.name"
-                    placeholder="e.g. Kilograms, Pieces, Meters, Liters, Boxes"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="required">Unit Code / Symbol</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.code"
-                    placeholder="e.g. KG, PCS, MTR, LTR, BOX"
-                    class="form-control"
-                    style="text-transform: uppercase;"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="required">Allowed Decimal Places</label>
-                  <select [(ngModel)]="formData.decimalPlaces" class="form-control">
-                    <option [ngValue]="0">0 (Whole numbers e.g. Nos, Pcs)</option>
-                    <option [ngValue]="1">1 decimal (e.g. 1.5)</option>
-                    <option [ngValue]="2">2 decimals (e.g. 1.25 mtrs)</option>
-                    <option [ngValue]="3">3 decimals (e.g. 1.250 kg)</option>
-                    <option [ngValue]="4">4 decimals (high precision)</option>
-                  </select>
-                </div>
-
-                <div class="form-group full-width" style="margin-top: 6px;">
-                  <label class="checkbox-label">
-                    <input type="checkbox" [(ngModel)]="formData.isActive" />
-                    Unit is Active and available for invoicing & POs
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-              <button class="btn-primary" (click)="saveUnit()" [disabled]="saving">
-                @if (saving) {
-                  <i class="pi pi-spin pi-spinner"></i> Saving...
-                } @else {
-                  <i class="pi pi-check"></i> {{ editingUnit ? 'Update Unit' : 'Create Unit' }}
-                }
-              </button>
-            </div>
+      <zeno-modal
+        [isOpen]="showModal"
+        [title]="editingUnit ? 'Edit Unit of Measure' : 'New Unit of Measure'"
+        size="md"
+        (close)="closeModal()"
+      >
+        @if (errorMessage) {
+          <div class="alert alert-error">
+            <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
           </div>
+        }
+
+        <div class="zeno-form-grid-2">
+          <zeno-form-group label="Unit Name" [required]="true" [span]="2">
+            <zeno-input [(ngModel)]="formData.name"></zeno-input>
+          </zeno-form-group>
+
+          <zeno-form-group label="Unit Code / Symbol" [required]="true">
+            <zeno-input [(ngModel)]="formData.code" [uppercase]="true"></zeno-input>
+          </zeno-form-group>
+
+          <zeno-form-group label="Allowed Decimal Places" [required]="true">
+            <zeno-select
+              [(ngModel)]="formData.decimalPlaces"
+              [options]="decimalOptions"
+            ></zeno-select>
+          </zeno-form-group>
+
+          <zeno-form-group [span]="2">
+            <zeno-checkbox [(ngModel)]="formData.isActive" label="Unit is Active and available for invoicing & POs"></zeno-checkbox>
+          </zeno-form-group>
         </div>
-      }
+
+        <div footer>
+          <zeno-button variant="secondary" (btnClick)="closeModal()">Cancel</zeno-button>
+          <zeno-button variant="primary" icon="pi pi-check" [loading]="saving" (btnClick)="saveUnit()">
+            {{ editingUnit ? 'Update Unit' : 'Create Unit' }}
+          </zeno-button>
+        </div>
+      </zeno-modal>
     </div>
   `,
   styles: [`
@@ -241,6 +196,13 @@ export class UnitsComponent implements OnInit {
   showModal = false;
   editingUnit: UnitItem | null = null;
   errorMessage = '';
+  readonly decimalOptions = [
+    { label: '0 (Whole numbers e.g. Nos, Pcs)', value: 0 },
+    { label: '1 decimal (e.g. 1.5)', value: 1 },
+    { label: '2 decimals (e.g. 1.25 mtrs)', value: 2 },
+    { label: '3 decimals (e.g. 1.250 kg)', value: 3 },
+    { label: '4 decimals (high precision)', value: 4 },
+  ];
 
   formData = {
     name: '',
@@ -252,6 +214,7 @@ export class UnitsComponent implements OnInit {
   constructor(
     private mastersService: MastersService,
     private tenantService: TenantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -389,5 +352,18 @@ export class UnitsComponent implements OnInit {
         alert(err?.error?.message || 'Failed to delete unit');
       },
     });
+  }
+
+  exportUnits() {
+    if (!this.filteredUnits || this.filteredUnits.length === 0) return;
+    const headers = ['Unit Name', 'Symbol / Code', 'Allowed Decimal Places', 'Status'];
+    const rows = this.filteredUnits.map((u) => [
+      u.name || '',
+      u.code || '',
+      u.decimalPlaces ?? 0,
+      u.isActive ? 'Active' : 'Inactive'
+    ]);
+    exportToCsv('Units_of_Measure', headers, rows);
+    this.toast.success('Units exported successfully!', 'Export Complete');
   }
 }

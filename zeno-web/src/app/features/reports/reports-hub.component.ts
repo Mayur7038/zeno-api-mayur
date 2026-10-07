@@ -32,7 +32,6 @@ interface ReportCard {
             <i class="pi pi-search search-icon"></i>
             <input
               type="text"
-              placeholder="Search reports..."
               [(ngModel)]="searchQuery"
             />
           </div>

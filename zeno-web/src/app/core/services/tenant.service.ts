@@ -13,6 +13,8 @@ export class TenantService {
   currentCompany = signal<any>(null);
   currentBranch = signal<any>(null);
   currentGodown = signal<any>(null);
+  companySettings = signal<any>(null);
+  taxMasters = signal<any[]>([]);
 
   constructor(private api: ApiService) {}
 
@@ -33,12 +35,48 @@ export class TenantService {
     this.currentCompany.set(company);
     localStorage.setItem('zeno_company_id', company.id);
 
+    this.loadCompanySettings(company.id);
+
     if (company.branches && company.branches.length > 0) {
       this.branches.set(company.branches);
       const savedBranchId = localStorage.getItem('zeno_branch_id');
       const branch = company.branches.find((b: any) => b.id === savedBranchId) || company.branches[0];
       this.setBranch(branch);
     }
+  }
+
+  loadCompanySettings(companyId?: string) {
+    const compId = companyId || this.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+    if (!compId) return;
+    this.api.get<any>(`/settings?companyId=${compId}`).subscribe({
+      next: (s) => {
+        if (s) {
+          this.companySettings.set(s);
+        }
+      },
+      error: () => {},
+    });
+    this.api.get<any[]>(`/settings/tax-masters?companyId=${compId}`).subscribe({
+      next: (taxes) => {
+        if (taxes) {
+          this.taxMasters.set(taxes);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  getGstActiveLevel(): 'COMPANY' | 'ITEM_GROUP' | 'ITEM_CATEGORY' | 'ITEM' {
+    return this.companySettings()?.gstActiveLevel || 'ITEM';
+  }
+
+  getCompanyFlatGstRate(): number {
+    const taxes = this.taxMasters();
+    if (taxes && taxes.length > 0) {
+      const active = taxes.find((t) => t.isActive !== false) || taxes[0];
+      return Number(active.taxRate) || 18;
+    }
+    return 18;
   }
 
   setBranch(branch: any) {

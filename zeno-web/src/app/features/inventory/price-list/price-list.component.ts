@@ -5,6 +5,7 @@ import { InventoryService } from '../../../core/services/inventory.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { exportToCsv } from '../../../core/utils/export.util';
 
 interface PriceListLineItem {
   id?: string;
@@ -29,29 +30,13 @@ interface PriceListLineItem {
             <h1>Price Lists & Rule Engine</h1>
           </div>
           <div class="header-actions">
+            <button class="tab-btn tab-simulator" [class.active]="selectedTab === 'SIMULATOR'" (click)="setTab(selectedTab === 'SIMULATOR' ? 'ALL' : 'SIMULATOR')">
+              <i class="pi pi-calculator"></i> {{ selectedTab === 'SIMULATOR' ? 'Back to Rules' : 'Price Simulator' }}
+            </button>
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> New Price List
             </button>
           </div>
-        </div>
-
-        <!-- DIMENSION NAVIGATION TABS -->
-        <div class="dimension-tabs">
-          <button class="tab-btn" [class.active]="selectedTab === 'ALL'" (click)="setTab('ALL')">
-            <i class="pi pi-list"></i> All Rules ({{ priceLists.length }})
-          </button>
-          <button class="tab-btn" [class.active]="selectedTab === 'STOCK_GROUP_WISE'" (click)="setTab('STOCK_GROUP_WISE')">
-            <i class="pi pi-folder"></i> Stock Group Wise ({{ groupRulesCount }})
-          </button>
-          <button class="tab-btn" [class.active]="selectedTab === 'CUSTOMER_WISE'" (click)="setTab('CUSTOMER_WISE')">
-            <i class="pi pi-user"></i> Customer Wise ({{ customerRulesCount }})
-          </button>
-          <button class="tab-btn" [class.active]="selectedTab === 'PRODUCT_WISE'" (click)="setTab('PRODUCT_WISE')">
-            <i class="pi pi-tag"></i> Product Wise ({{ productRulesCount }})
-          </button>
-          <button class="tab-btn tab-simulator" [class.active]="selectedTab === 'SIMULATOR'" (click)="setTab('SIMULATOR')">
-            <i class="pi pi-calculator"></i> Price Lookup Simulator
-          </button>
         </div>
 
         @if (selectedTab !== 'SIMULATOR') {
@@ -62,17 +47,25 @@ interface PriceListLineItem {
                 <i class="pi pi-search search-icon"></i>
                 <input
                   type="text"
-                  placeholder="Search by price list name, target group, or customer..."
                   [(ngModel)]="searchQuery"
                   (input)="filterPriceLists()"
                 />
               </div>
-              <div class="toolbar-filters">
-                <select [(ngModel)]="activeFilter" (change)="filterPriceLists()" class="form-control" style="width: 160px;">
+              <div class="toolbar-filters" style="display: flex; gap: 8px; align-items: center;">
+                <select [(ngModel)]="selectedTab" (change)="setTab(selectedTab)" class="filter-select" style="min-width: 190px;">
+                  <option value="ALL">All Dimensions ({{ priceLists.length }})</option>
+                  <option value="STOCK_GROUP_WISE">Stock Group Wise ({{ groupRulesCount }})</option>
+                  <option value="CUSTOMER_WISE">Customer Wise ({{ customerRulesCount }})</option>
+                  <option value="PRODUCT_WISE">Product Wise ({{ productRulesCount }})</option>
+                </select>
+                <select [(ngModel)]="activeFilter" (change)="filterPriceLists()" class="filter-select" style="min-width: 140px;">
                   <option value="ALL">All Statuses</option>
                   <option value="ACTIVE">Active Only</option>
                   <option value="INACTIVE">Inactive</option>
                 </select>
+                <button class="btn-export" (click)="exportPriceLists()" [disabled]="filteredPriceLists.length === 0" title="Export to CSV">
+                  <i class="pi pi-download"></i> Export
+                </button>
               </div>
             </div>
 
@@ -286,12 +279,12 @@ interface PriceListLineItem {
             <div class="form-grid">
               <div class="form-group">
                 <label>Price List Name <span class="required">*</span></label>
-                <input type="text" [(ngModel)]="formData.name" placeholder="e.g. Wholesale Tier 1, Summer 2026..." class="form-control" />
+                <input type="text" [(ngModel)]="formData.name" class="form-control" />
               </div>
 
               <div class="form-group">
                 <label>Price List Code (Optional)</label>
-                <input type="text" [(ngModel)]="formData.code" placeholder="e.g. PL-WS-01" class="form-control" />
+                <input type="text" [(ngModel)]="formData.code" class="form-control" />
               </div>
 
               <!-- DYNAMIC TARGET SELECTOR -->
@@ -344,7 +337,7 @@ interface PriceListLineItem {
 
               <div class="form-group full-width">
                 <label>Description / Notes</label>
-                <textarea [(ngModel)]="formData.notes" rows="2" placeholder="Terms, contract references..." class="form-control"></textarea>
+                <textarea [(ngModel)]="formData.notes" rows="2" class="form-control"></textarea>
               </div>
             </div>
           </div>
@@ -732,6 +725,22 @@ export class PriceListComponent implements OnInit {
       default:
         return type;
     }
+  }
+
+  exportPriceLists() {
+    if (!this.filteredPriceLists || this.filteredPriceLists.length === 0) return;
+    const headers = ['Price List Name', 'Code', 'Dimension', 'Target', 'Currency', 'Items Count', 'Status'];
+    const rows = this.filteredPriceLists.map((pl) => [
+      pl.name || '',
+      pl.code || '',
+      this.formatDimension(pl.pricingType) || '',
+      pl.itemGroup?.name || pl.customer?.name || 'All',
+      pl.currency || 'INR',
+      pl.items?.length || 0,
+      pl.isActive ? 'Active' : 'Inactive'
+    ]);
+    exportToCsv('Price_Lists', headers, rows);
+    this.toast.success('Price lists exported successfully!', 'Export Complete');
   }
 
   openCreatePage() {
