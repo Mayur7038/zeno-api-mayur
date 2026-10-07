@@ -6,6 +6,8 @@ export declare class TenancyController {
     updateCompany(tenantId: string, companyId: string, data: any): Promise<import("../entities/company.entity").Company>;
     getBranches(tenantId: string, companyId?: string): Promise<import("../entities/branch.entity").Branch[]>;
     createBranch(tenantId: string, data: any): Promise<import("../entities/branch.entity").Branch>;
+    updateBranch(tenantId: string, branchId: string, data: any): Promise<import("../entities/branch.entity").Branch>;
+    deleteBranch(tenantId: string, branchId: string): Promise<import("../entities/branch.entity").Branch>;
     getGodowns(tenantId: string, branchId?: string): Promise<import("../entities/godown.entity").Godown[]>;
     createGodown(tenantId: string, data: any): Promise<import("../entities/godown.entity").Godown>;
     updateGodown(tenantId: string, godownId: string, data: any): Promise<import("../entities/godown.entity").Godown>;

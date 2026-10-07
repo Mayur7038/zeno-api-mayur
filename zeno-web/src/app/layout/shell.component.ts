@@ -342,6 +342,17 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Company Profile</span>
             </a>
 
+            <!-- 2. BRANCH -->
+            <a
+              [routerLink]="['/settings']"
+              [queryParams]="{ tab: 'branches' }"
+              [class.active]="currentSettingsTab === 'branches'"
+              class="nav-item"
+            >
+              <i class="pi pi-sitemap"></i>
+              <span>Branch</span>
+            </a>
+
             <!-- 2. WAREHOUSE -->
             <a
               [routerLink]="['/settings']"
@@ -533,11 +544,11 @@ import { TenantService } from '../core/services/tenant.service';
     }
 
     .sidebar-header {
-      padding: 16px 20px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--surface-200);
       display: flex;
       align-items: center;
-      min-height: 80px;
+      min-height: 90px;
     }
 
     .brand-logo {
@@ -548,8 +559,8 @@ import { TenantService } from '../core/services/tenant.service';
     }
 
     .brand-logo-img {
-      height: 56px;
-      max-height: 62px;
+      height: 72px;
+      max-height: 78px;
       width: auto;
       max-width: 100%;
       object-fit: contain;

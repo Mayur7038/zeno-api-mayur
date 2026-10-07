@@ -58,6 +58,18 @@ export class Company {
   @Column({ name: 'gst_registration_type', length: 50, nullable: true, default: 'Regular' })
   gstRegistrationType: string;
 
+  @Column({ name: 'state_name', length: 100, nullable: true })
+  stateName: string;
+
+  @Column({ name: 'filing_frequency', length: 50, nullable: true })
+  filingFrequency: string;
+
+  @Column({ name: 'tan_number', length: 20, nullable: true })
+  tanNumber: string;
+
+  @Column({ name: 'arn_number', length: 50, nullable: true })
+  arnNumber: string;
+
   @Column({ name: 'billing_address', type: 'jsonb', nullable: true })
   billingAddress: any;
 

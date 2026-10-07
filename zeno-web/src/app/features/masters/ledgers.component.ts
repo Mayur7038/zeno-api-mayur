@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ToastService } from '../../core/services/toast.service';
+import { INDIAN_STATES } from '../../core/constants/states.constant';
 
 @Component({
   selector: 'app-ledgers',
@@ -14,12 +16,6 @@ import { TenantService } from '../../core/services/tenant.service';
       <div class="page-header">
         <h1>Ledger</h1>
         <div class="header-actions">
-          <button class="btn-secondary" (click)="openPartyModal('CUSTOMER')">
-            <i class="pi pi-user-plus"></i> + Add Customer
-          </button>
-          <button class="btn-secondary" (click)="openPartyModal('VENDOR')">
-            <i class="pi pi-truck"></i> + Add Vendor
-          </button>
           <button class="btn-primary" (click)="openCreateModal()">
             <i class="pi pi-plus"></i> Create New Ledger
           </button>
@@ -62,7 +58,7 @@ import { TenantService } from '../../core/services/tenant.service';
           <thead>
             <tr>
               <th>Ledger Name</th>
-              <th>Parent Group (Tally)</th>
+              <th>Ledger Group</th>
               <th>GSTIN / PAN</th>
               <th>State / City</th>
               <th>Contact / Phone</th>
@@ -84,34 +80,46 @@ import { TenantService } from '../../core/services/tenant.service';
                   <span class="group-tag">{{ l.ledgerGroup?.name }}</span>
                 </td>
                 <td>
-                  @if (l.gstin) {
-                    <div class="font-mono font-bold">{{ l.gstin }}</div>
-                  }
-                  @if (l.pan) {
-                    <div class="font-xs text-muted">PAN: {{ l.pan }}</div>
-                  }
-                  @if (!l.gstin && !l.pan) {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td>
-                  @if (l.city || l.stateCode) {
-                    <span>{{ l.city || 'State ' + l.stateCode }}</span>
-                    @if (l.state) {
-                      <span class="font-xs text-muted">, {{ l.state }}</span>
+                  @if (isGroupParty(l.ledgerGroup)) {
+                    @if (l.gstin) {
+                      <div class="font-mono font-bold">{{ l.gstin }}</div>
+                    }
+                    @if (l.pan) {
+                      <div class="font-xs text-muted">PAN: {{ l.pan }}</div>
+                    }
+                    @if (!l.gstin && !l.pan) {
+                      <span class="text-muted">—</span>
                     }
                   } @else {
                     <span class="text-muted">—</span>
                   }
                 </td>
                 <td>
-                  @if (l.phone || l.mobile) {
-                    <div class="font-xs font-mono"><i class="pi pi-phone"></i> {{ l.phone || l.mobile }}</div>
+                  @if (isGroupParty(l.ledgerGroup)) {
+                    @if (l.city || l.stateCode) {
+                      <span>{{ l.city || 'State ' + l.stateCode }}</span>
+                      @if (l.state) {
+                        <span class="font-xs text-muted">, {{ l.state }}</span>
+                      }
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  } @else {
+                    <span class="text-muted">—</span>
                   }
-                  @if (l.contactPerson) {
-                    <div class="font-xs text-muted">{{ l.contactPerson }}</div>
-                  }
-                  @if (!l.phone && !l.mobile && !l.contactPerson) {
+                </td>
+                <td>
+                  @if (isGroupParty(l.ledgerGroup)) {
+                    @if (l.phone || l.mobile) {
+                      <div class="font-xs font-mono"><i class="pi pi-phone"></i> {{ l.phone || l.mobile }}</div>
+                    }
+                    @if (l.contactPerson) {
+                      <div class="font-xs text-muted">{{ l.contactPerson }}</div>
+                    }
+                    @if (!l.phone && !l.mobile && !l.contactPerson) {
+                      <span class="text-muted">—</span>
+                    }
+                  } @else {
                     <span class="text-muted">—</span>
                   }
                 </td>
@@ -163,17 +171,6 @@ import { TenantService } from '../../core/services/tenant.service';
             <div>
               <div class="modal-title-wrap">
                 <h3>{{ editingLedgerId ? 'Edit Ledger Account' : 'Create New Ledger Account' }}</h3>
-                @if (isParty) {
-                  @if (partyRole === 'CUSTOMER') {
-                    <span class="party-header-badge customer">
-                      <i class="pi pi-user"></i> Sundry Debtor (Customer / Client)
-                    </span>
-                  } @else if (partyRole === 'VENDOR') {
-                    <span class="party-header-badge vendor">
-                      <i class="pi pi-truck"></i> Sundry Creditor (Vendor / Supplier)
-                    </span>
-                  }
-                }
               </div>
             </div>
             <button class="close-btn" (click)="showCreateModal = false"><i class="pi pi-times"></i></button>
@@ -182,20 +179,19 @@ import { TenantService } from '../../core/services/tenant.service';
           <!-- MODAL TABS -->
           <div class="modal-tabs">
             <button type="button" [class.active]="modalTab === 'basic'" (click)="modalTab = 'basic'">
-              <i class="pi pi-id-card"></i> Basic & Tax Info
+              <i class="pi pi-id-card"></i> {{ isParty ? 'Basic & Tax Info' : 'Basic Info' }}
             </button>
-            <button type="button" [class.active]="modalTab === 'address'" (click)="modalTab = 'address'">
-              <i class="pi pi-map-marker"></i> Address & Shipping
-              @if (isParty) { <span class="tab-indicator-badge">Party</span> }
-            </button>
-            <button type="button" [class.active]="modalTab === 'contact'" (click)="modalTab = 'contact'">
-              <i class="pi pi-phone"></i> Contact Details
-              @if (isParty) { <span class="tab-indicator-badge">Party</span> }
-            </button>
-            <button type="button" [class.active]="modalTab === 'bank'" (click)="modalTab = 'bank'">
-              <i class="pi pi-building"></i> Bank & Payment
-              @if (isParty) { <span class="tab-indicator-badge">Party</span> }
-            </button>
+            @if (isParty) {
+              <button type="button" [class.active]="modalTab === 'address'" (click)="modalTab = 'address'">
+                <i class="pi pi-map-marker"></i> Address & Shipping
+              </button>
+              <button type="button" [class.active]="modalTab === 'contact'" (click)="modalTab = 'contact'">
+                <i class="pi pi-phone"></i> Contact Details
+              </button>
+              <button type="button" [class.active]="modalTab === 'bank'" (click)="modalTab = 'bank'">
+                <i class="pi pi-building"></i> Bank & Payment
+              </button>
+            }
           </div>
 
           <div class="modal-body">
@@ -230,13 +226,13 @@ import { TenantService } from '../../core/services/tenant.service';
                 </div>
 
                 <div class="form-row">
-                  <div class="form-group flex-2">
-                    <label>Parent Ledger Group (Tally Classification) *</label>
+                  <div class="form-group" [ngClass]="isParty ? 'flex-2' : 'flex-1'">
+                    <label>Ledger Group *</label>
                     <select [(ngModel)]="form.ledgerGroupId" (change)="onGroupChange()" required>
-                      <option value="">-- Select Parent Ledger Group --</option>
+                      <option value="">-- Select Ledger Group --</option>
                       @for (g of groups; track g.id) {
                         <option [value]="g.id">
-                          {{ g.name }} ({{ g.nature }})
+                          {{ g.name }}
                         </option>
                       }
                     </select>
@@ -246,42 +242,46 @@ import { TenantService } from '../../core/services/tenant.service';
                       </span>
                     }
                   </div>
-                  <div class="form-group flex-1">
-                    <label>State Code</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.stateCode"
-                      placeholder="e.g. 27"
-                      maxlength="2"
-                    />
-                    <span class="helper-text">e.g. 27 for Maharashtra</span>
-                  </div>
+                  @if (isParty) {
+                    <div class="form-group flex-1">
+                      <label>State & Code</label>
+                      <select [(ngModel)]="form.stateCode" (change)="onPartyStateCodeChange()">
+                        <option value="">-- Select State --</option>
+                        @for (s of indianStates; track s.code) {
+                          <option [value]="s.code">
+                            {{ s.code }} - {{ s.name }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                  }
                 </div>
 
-                <div class="form-row">
-                  <div class="form-group flex-1">
-                    <label>GSTIN (15 Digits)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.gstin"
-                      (input)="onGstinInput()"
-                      placeholder="27AABCU9603R1ZM"
-                      maxlength="15"
-                      class="font-mono"
-                    />
-                    <span class="helper-text">Auto-detects State Code and PAN</span>
+                @if (isParty) {
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label>GSTIN (15 Digits)</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="form.gstin"
+                        (input)="onGstinInput()"
+                        placeholder="27AABCU9603R1ZM"
+                        maxlength="15"
+                        class="font-mono"
+                      />
+                    </div>
+                    <div class="form-group flex-1">
+                      <label>PAN (10 Digits)</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="form.pan"
+                        placeholder="AABCU9603R"
+                        maxlength="10"
+                        class="font-mono"
+                      />
+                    </div>
                   </div>
-                  <div class="form-group flex-1">
-                    <label>PAN (10 Digits)</label>
-                    <input
-                      type="text"
-                      [(ngModel)]="form.pan"
-                      placeholder="AABCU9603R"
-                      maxlength="10"
-                      class="font-mono"
-                    />
-                  </div>
-                </div>
+                }
 
                 <div class="form-row">
                   <div class="form-group flex-1">
@@ -333,7 +333,6 @@ import { TenantService } from '../../core/services/tenant.service';
                   <i class="pi pi-map-marker"></i>
                   <div>
                     <strong>Billing & Shipping Dispatch Addresses</strong>
-                    <p>Printed on Purchase Orders, Tax Invoices, Delivery Challans, and E-Way Bills</p>
                   </div>
                 </div>
 
@@ -353,7 +352,14 @@ import { TenantService } from '../../core/services/tenant.service';
                   </div>
                   <div class="form-group flex-1">
                     <label>State</label>
-                    <input type="text" [(ngModel)]="form.state" placeholder="e.g. Maharashtra / Karnataka" />
+                    <select [(ngModel)]="form.state" (change)="onPartyStateChange()">
+                      <option value="">-- Select State --</option>
+                      @for (s of indianStates; track s.code) {
+                        <option [value]="s.name">
+                          {{ s.name }} ({{ s.code }})
+                        </option>
+                      }
+                    </select>
                   </div>
                   <div class="form-group flex-1">
                     <label>Pincode / ZIP</label>
@@ -388,7 +394,6 @@ import { TenantService } from '../../core/services/tenant.service';
                   <i class="pi pi-user"></i>
                   <div>
                     <strong>Contact Representatives & Communication Channels</strong>
-                    <p>Primary points of contact for billing reminders, purchase orders, and payment alerts</p>
                   </div>
                 </div>
 
@@ -450,7 +455,6 @@ import { TenantService } from '../../core/services/tenant.service';
                   <i class="pi pi-building"></i>
                   <div>
                     <strong>Direct Bank & Electronic Payment Coordinates</strong>
-                    <p>Utilized for electronic vendor payouts, RTGS/NEFT transfers, and invoice deposit notes</p>
                   </div>
                 </div>
 
@@ -520,7 +524,7 @@ import { TenantService } from '../../core/services/tenant.service';
           <!-- MODAL FOOTER -->
           <div class="modal-footer">
             <button class="btn-secondary" (click)="showCreateModal = false">Cancel</button>
-            @if (modalTab !== 'bank') {
+            @if (isParty && modalTab !== 'bank') {
               <button class="btn-secondary" (click)="nextModalTab()">
                 Next <i class="pi pi-arrow-right"></i>
               </button>
@@ -566,26 +570,30 @@ import { TenantService } from '../../core/services/tenant.service';
           <div class="modal-body view-modal-body">
             <!-- CARDS GRID -->
             <div class="view-grid">
-              <!-- CARD 1: STATUTORY & FINANCIAL -->
+              <!-- CARD 1: STATUTORY / FINANCIAL BALANCES -->
               <div class="view-card">
-                <div class="view-card-title"><i class="pi pi-id-card"></i> Statutory & Balances</div>
-                <div class="view-field">
-                  <span class="label">GSTIN:</span>
-                  <strong class="font-mono">{{ viewingLedger.gstin || 'Unregistered' }}</strong>
+                <div class="view-card-title">
+                  <i class="pi pi-id-card"></i> {{ isViewingParty ? 'Statutory & Balances' : 'Account & Balances' }}
                 </div>
-                <div class="view-field">
-                  <span class="label">PAN:</span>
-                  <strong class="font-mono">{{ viewingLedger.pan || '—' }}</strong>
-                </div>
-                <div class="view-field">
-                  <span class="label">State Code:</span>
-                  <span>{{ viewingLedger.stateCode || '27' }}</span>
-                </div>
+                @if (isViewingParty) {
+                  <div class="view-field">
+                    <span class="label">GSTIN:</span>
+                    <strong class="font-mono">{{ viewingLedger.gstin || 'Unregistered' }}</strong>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">PAN:</span>
+                    <strong class="font-mono">{{ viewingLedger.pan || '—' }}</strong>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">State Code:</span>
+                    <span>{{ viewingLedger.stateCode || '27' }}</span>
+                  </div>
+                }
                 <div class="view-field highlight-field">
                   <span class="label">Opening Balance:</span>
                   <strong class="font-mono">₹{{ viewingLedger.openingBalance | number:'1.2-2' }} {{ viewingLedger.balanceType }}</strong>
                 </div>
-                @if (viewingLedger.creditLimit) {
+                @if (isViewingParty && viewingLedger.creditLimit) {
                   <div class="view-field">
                     <span class="label">Credit Limit:</span>
                     <span>₹{{ viewingLedger.creditLimit | number:'1.2-2' }} ({{ viewingLedger.creditDays || 0 }} days)</span>
@@ -593,72 +601,74 @@ import { TenantService } from '../../core/services/tenant.service';
                 }
               </div>
 
-              <!-- CARD 2: ADDRESS -->
-              <div class="view-card">
-                <div class="view-card-title"><i class="pi pi-map-marker"></i> Billing & Shipping</div>
-                <div class="view-field">
-                  <span class="label">Billing Address:</span>
-                  <p class="address-text">{{ viewingLedger.address || 'No billing address specified' }}</p>
-                </div>
-                <div class="view-field">
-                  <span class="label">Location:</span>
-                  <span>{{ viewingLedger.city || '—' }}, {{ viewingLedger.state || '—' }} {{ viewingLedger.pincode }}</span>
-                </div>
-                @if (viewingLedger.shippingAddress) {
+              @if (isViewingParty) {
+                <!-- CARD 2: ADDRESS -->
+                <div class="view-card">
+                  <div class="view-card-title"><i class="pi pi-map-marker"></i> Billing & Shipping</div>
                   <div class="view-field">
-                    <span class="label">Shipping Address:</span>
-                    <p class="address-text">{{ viewingLedger.shippingAddress }}</p>
+                    <span class="label">Billing Address:</span>
+                    <p class="address-text">{{ viewingLedger.address || 'No billing address specified' }}</p>
                   </div>
-                }
-              </div>
-
-              <!-- CARD 3: CONTACT -->
-              <div class="view-card">
-                <div class="view-card-title"><i class="pi pi-phone"></i> Contact Details</div>
-                <div class="view-field">
-                  <span class="label">Contact Person:</span>
-                  <strong>{{ viewingLedger.contactPerson || '—' }}</strong>
-                </div>
-                <div class="view-field">
-                  <span class="label">Mobile / Phone:</span>
-                  <span class="font-mono">{{ viewingLedger.mobile || viewingLedger.phone || '—' }}</span>
-                </div>
-                <div class="view-field">
-                  <span class="label">Email:</span>
-                  <span>{{ viewingLedger.email || '—' }}</span>
-                </div>
-                <div class="view-field">
-                  <span class="label">Website:</span>
-                  <span>{{ viewingLedger.website || '—' }}</span>
-                </div>
-              </div>
-
-              <!-- CARD 4: BANK -->
-              <div class="view-card">
-                <div class="view-card-title"><i class="pi pi-building"></i> Banking Profile</div>
-                <div class="view-field">
-                  <span class="label">Bank Name:</span>
-                  <strong>{{ viewingLedger.bankName || '—' }}</strong>
-                </div>
-                <div class="view-field">
-                  <span class="label">Account Number:</span>
-                  <strong class="font-mono">{{ viewingLedger.bankAccountNumber || '—' }}</strong>
-                </div>
-                <div class="view-field">
-                  <span class="label">IFSC Code:</span>
-                  <span class="font-mono">{{ viewingLedger.bankIfsc || '—' }}</span>
-                </div>
-                <div class="view-field">
-                  <span class="label">Branch:</span>
-                  <span>{{ viewingLedger.bankBranch || '—' }}</span>
-                </div>
-                @if (viewingLedger.upiId) {
                   <div class="view-field">
-                    <span class="label">UPI VPA:</span>
-                    <span class="font-mono">{{ viewingLedger.upiId }}</span>
+                    <span class="label">Location:</span>
+                    <span>{{ viewingLedger.city || '—' }}, {{ viewingLedger.state || '—' }} {{ viewingLedger.pincode }}</span>
                   </div>
-                }
-              </div>
+                  @if (viewingLedger.shippingAddress) {
+                    <div class="view-field">
+                      <span class="label">Shipping Address:</span>
+                      <p class="address-text">{{ viewingLedger.shippingAddress }}</p>
+                    </div>
+                  }
+                </div>
+
+                <!-- CARD 3: CONTACT -->
+                <div class="view-card">
+                  <div class="view-card-title"><i class="pi pi-phone"></i> Contact Details</div>
+                  <div class="view-field">
+                    <span class="label">Contact Person:</span>
+                    <strong>{{ viewingLedger.contactPerson || '—' }}</strong>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">Mobile / Phone:</span>
+                    <span class="font-mono">{{ viewingLedger.mobile || viewingLedger.phone || '—' }}</span>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">Email:</span>
+                    <span>{{ viewingLedger.email || '—' }}</span>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">Website:</span>
+                    <span>{{ viewingLedger.website || '—' }}</span>
+                  </div>
+                </div>
+
+                <!-- CARD 4: BANK -->
+                <div class="view-card">
+                  <div class="view-card-title"><i class="pi pi-building"></i> Banking Profile</div>
+                  <div class="view-field">
+                    <span class="label">Bank Name:</span>
+                    <strong>{{ viewingLedger.bankName || '—' }}</strong>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">Account Number:</span>
+                    <strong class="font-mono">{{ viewingLedger.bankAccountNumber || '—' }}</strong>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">IFSC Code:</span>
+                    <span class="font-mono">{{ viewingLedger.bankIfsc || '—' }}</span>
+                  </div>
+                  <div class="view-field">
+                    <span class="label">Branch:</span>
+                    <span>{{ viewingLedger.bankBranch || '—' }}</span>
+                  </div>
+                  @if (viewingLedger.upiId) {
+                    <div class="view-field">
+                      <span class="label">UPI VPA:</span>
+                      <span class="font-mono">{{ viewingLedger.upiId }}</span>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
 
@@ -851,9 +861,7 @@ import { TenantService } from '../../core/services/tenant.service';
     }
 
     .modal-subtitle {
-      font-size: 0.8125rem;
-      color: var(--surface-500);
-      margin-top: 4px;
+      display: none;
     }
 
     .party-header-badge {
@@ -1131,6 +1139,7 @@ import { TenantService } from '../../core/services/tenant.service';
   `],
 })
 export class LedgersComponent implements OnInit {
+  readonly indianStates = INDIAN_STATES;
   ledgers: any[] = [];
   groups: any[] = [];
   searchQuery = '';
@@ -1148,6 +1157,7 @@ export class LedgersComponent implements OnInit {
   constructor(
     private masters: MastersService,
     public tenant: TenantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -1220,24 +1230,61 @@ export class LedgersComponent implements OnInit {
     });
   }
 
+  isGroupParty(group: any): boolean {
+    if (!group) return false;
+    if (group.isDebtorCustomer || group.isCreditorVendor) return true;
+    const name = (group.name || '').toLowerCase();
+    const code = (group.code || '').toLowerCase();
+    return (
+      name.includes('debtor') ||
+      name.includes('creditor') ||
+      name.includes('customer') ||
+      name.includes('vendor') ||
+      name.includes('supplier') ||
+      code.includes('debtor') ||
+      code.includes('creditor')
+    );
+  }
+
+  isDebtorGroup(group: any): boolean {
+    if (!group) return false;
+    if (group.isDebtorCustomer) return true;
+    const name = (group.name || '').toLowerCase();
+    const code = (group.code || '').toLowerCase();
+    return name.includes('debtor') || name.includes('customer') || name.includes('client') || code.includes('debtor');
+  }
+
+  isCreditorGroup(group: any): boolean {
+    if (!group) return false;
+    if (group.isCreditorVendor) return true;
+    const name = (group.name || '').toLowerCase();
+    const code = (group.code || '').toLowerCase();
+    return name.includes('creditor') || name.includes('vendor') || name.includes('supplier') || code.includes('creditor');
+  }
+
   get isParty(): boolean {
     const selected = this.groups.find((g) => g.id === this.form.ledgerGroupId);
-    return !!(selected?.isDebtorCustomer || selected?.isCreditorVendor);
+    return this.isGroupParty(selected);
   }
 
   get partyRole(): 'CUSTOMER' | 'VENDOR' | 'OTHER' {
     const selected = this.groups.find((g) => g.id === this.form.ledgerGroupId);
-    if (selected?.isDebtorCustomer) return 'CUSTOMER';
-    if (selected?.isCreditorVendor) return 'VENDOR';
+    if (this.isDebtorGroup(selected)) return 'CUSTOMER';
+    if (this.isCreditorGroup(selected)) return 'VENDOR';
     return 'OTHER';
+  }
+
+  get isViewingParty(): boolean {
+    if (!this.viewingLedger?.ledgerGroup) return false;
+    return this.isGroupParty(this.viewingLedger.ledgerGroup);
   }
 
   onGroupChange() {
     const selected = this.groups.find((g) => g.id === this.form.ledgerGroupId);
     if (selected) {
-      if (selected.isDebtorCustomer) {
+      if (this.isDebtorGroup(selected)) {
         this.form.balanceType = 'DR';
-      } else if (selected.isCreditorVendor) {
+      } else if (this.isCreditorGroup(selected)) {
         this.form.balanceType = 'CR';
       } else if (selected.nature === 'LIABILITY' || selected.nature === 'INCOME') {
         this.form.balanceType = 'CR';
@@ -1245,13 +1292,42 @@ export class LedgersComponent implements OnInit {
         this.form.balanceType = 'DR';
       }
     }
+    // If switched away from sundry debtors/creditors, reset modal tab to basic and clear party tax fields
+    if (!this.isParty) {
+      if (this.modalTab !== 'basic') {
+        this.modalTab = 'basic';
+      }
+      this.form.gstin = '';
+      this.form.pan = '';
+    }
+  }
+
+  onPartyStateCodeChange() {
+    const found = this.indianStates.find((s) => s.code === this.form.stateCode);
+    if (found) {
+      this.form.state = found.name;
+    }
+  }
+
+  onPartyStateChange() {
+    const found = this.indianStates.find(
+      (s) => s.name.toLowerCase() === (this.form.state || '').trim().toLowerCase(),
+    );
+    if (found) {
+      this.form.stateCode = found.code;
+    }
   }
 
   onGstinInput() {
     const gstin = (this.form.gstin || '').trim().toUpperCase();
     this.form.gstin = gstin;
     if (gstin.length >= 2) {
-      this.form.stateCode = gstin.substring(0, 2);
+      const code = gstin.substring(0, 2);
+      this.form.stateCode = code;
+      const found = this.indianStates.find((s) => s.code === code);
+      if (found) {
+        this.form.state = found.name;
+      }
     }
     if (gstin.length >= 12) {
       this.form.pan = gstin.substring(2, 12);
@@ -1339,6 +1415,7 @@ export class LedgersComponent implements OnInit {
   }
 
   nextModalTab() {
+    if (!this.isParty) return;
     if (this.modalTab === 'basic') this.modalTab = 'address';
     else if (this.modalTab === 'address') this.modalTab = 'contact';
     else if (this.modalTab === 'contact') this.modalTab = 'bank';
@@ -1364,12 +1441,17 @@ export class LedgersComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.submitting = false;
+        this.toast.success(
+          `Ledger "${this.form.name}" ${this.editingLedgerId ? 'updated' : 'created'} successfully!`,
+          'Ledger Saved',
+        );
         this.showCreateModal = false;
         this.loadLedgers();
       },
       error: (err) => {
         this.submitting = false;
         this.createError = err.error?.message || 'Failed to save ledger profile';
+        this.toast.error(this.createError, 'Save Failed');
       },
     });
   }

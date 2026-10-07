@@ -32,15 +32,54 @@ export class TenancyService {
     return this.branchRepo.find({ where, relations: ['godowns'] });
   }
 
-  async updateCompany(tenantId: string, companyId: string, data: Partial<Company>) {
+  async updateCompany(tenantId: string, companyId: string, data: any) {
     const company = await this.companyRepo.findOne({
       where: { tenantId, id: companyId },
+      relations: ['branches'],
     });
     if (!company) {
       throw new Error('Company not found');
     }
+
+    // Clean up empty date strings so PostgreSQL doesn't fail on invalid date syntax
+    if (data.financialYearEnd === '') data.financialYearEnd = null;
+    if (data.financialYearStart === '') data.financialYearStart = '2025-04-01';
+    if (data.booksBeginFrom === '') data.booksBeginFrom = '2025-04-01';
+
+    // Store in extraDetails as fallback
+    if (!company.extraDetails) company.extraDetails = {};
+    if (data.extraDetails) {
+      company.extraDetails = { ...company.extraDetails, ...data.extraDetails };
+    }
+    if (data.tanNumber) company.extraDetails.tanNumber = data.tanNumber;
+    if (data.arnNumber) company.extraDetails.arnNumber = data.arnNumber;
+    if (data.stateName) company.extraDetails.stateName = data.stateName;
+    if (data.filingFrequency) company.extraDetails.filingFrequency = data.filingFrequency;
+
+    // Sync default branch address with billing address if head branch exists
+    if (data.billingAddress && company.branches && company.branches.length > 0) {
+      const headBranch = company.branches.find((b) => b.isHeadOffice) || company.branches[0];
+      if (headBranch) {
+        if (data.billingAddress.addressLine1) headBranch.addressLine1 = data.billingAddress.addressLine1;
+        if (data.billingAddress.pincode) headBranch.pincode = data.billingAddress.pincode;
+        if (data.billingAddress.state) headBranch.stateName = data.billingAddress.state;
+        await this.branchRepo.save(headBranch);
+      }
+    }
+
+    // Prevent overwriting relations or primary keys
+    delete data.branches;
+    delete data.tenant;
+    delete data.id;
+    delete data.tenantId;
+
     Object.assign(company, data);
-    return this.companyRepo.save(company);
+    await this.companyRepo.save(company);
+
+    return this.companyRepo.findOne({
+      where: { tenantId, id: companyId },
+      relations: ['branches'],
+    });
   }
 
   async getGodowns(tenantId: string, branchId?: string) {
@@ -54,8 +93,47 @@ export class TenancyService {
   }
 
   async createBranch(tenantId: string, data: Partial<Branch>) {
+    if (!data.companyId) {
+      const company = await this.companyRepo.findOne({ where: { tenantId } });
+      if (company) {
+        data.companyId = company.id;
+      }
+    }
+    if (data.isHeadOffice && data.companyId) {
+      await this.branchRepo.update({ tenantId, companyId: data.companyId }, { isHeadOffice: false });
+    }
     const branch = this.branchRepo.create({ ...data, tenantId });
     return this.branchRepo.save(branch);
+  }
+
+  async updateBranch(tenantId: string, branchId: string, data: Partial<Branch>) {
+    const branch = await this.branchRepo.findOne({
+      where: { tenantId, id: branchId },
+    });
+    if (!branch) {
+      throw new Error('Branch not found');
+    }
+    if (data.isHeadOffice && branch.companyId) {
+      await this.branchRepo.update({ tenantId, companyId: branch.companyId }, { isHeadOffice: false });
+    }
+    delete (data as any).id;
+    delete (data as any).tenantId;
+    delete (data as any).company;
+    delete (data as any).godowns;
+
+    Object.assign(branch, data);
+    return this.branchRepo.save(branch);
+  }
+
+  async deleteBranch(tenantId: string, branchId: string) {
+    const branch = await this.branchRepo.findOne({
+      where: { tenantId, id: branchId },
+      relations: ['godowns'],
+    });
+    if (!branch) {
+      throw new Error('Branch not found');
+    }
+    return this.branchRepo.remove(branch);
   }
 
   async createGodown(tenantId: string, data: Partial<Godown>) {

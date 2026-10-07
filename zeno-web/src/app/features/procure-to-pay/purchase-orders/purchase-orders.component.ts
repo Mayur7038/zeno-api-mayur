@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-purchase-orders',
@@ -19,38 +20,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-plus"></i> Create Purchase Order
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-shopping-cart"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL ORDERS</span>
-              <span class="kpi-value">{{ orders.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-clock"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">PENDING RECEIPT</span>
-              <span class="kpi-value">{{ pendingCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-check"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">CLEARED ORDERS</span>
-              <span class="kpi-value">{{ clearedCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL PO VALUE</span>
-              <span class="kpi-value">₹{{ totalPoValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -950,6 +919,7 @@ export class PurchaseOrdersComponent implements OnInit {
     private p2p: P2pService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -1101,14 +1071,19 @@ export class PurchaseOrdersComponent implements OnInit {
     };
 
     this.p2p.createPurchaseOrder(payload).subscribe({
-      next: () => {
+      next: (po: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Purchase Order ${po?.voucherNo || ''} created successfully! Total: ₹${Number(this.orderGrandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'PO Generated',
+        );
         this.viewMode = 'list';
         this.loadOrders();
       },
       error: (err) => {
         this.submitting = false;
         this.createError = err.error?.message || 'Failed to create PO';
+        this.toast.error(this.createError, 'Creation Failed');
       },
     });
   }
@@ -1116,8 +1091,15 @@ export class PurchaseOrdersComponent implements OnInit {
   cancelOrder(id: string) {
     if (!confirm('Are you sure you want to cancel this purchase order?')) return;
     this.p2p.cancelPurchaseOrder(id).subscribe({
-      next: () => this.loadOrders(),
-      error: (err) => alert(err.error?.message || 'Cannot cancel PO'),
+      next: () => {
+        this.toast.success('Purchase Order cancelled successfully.', 'PO Cancelled');
+        this.loadOrders();
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Cannot cancel PO';
+        this.toast.error(msg, 'Cancellation Failed');
+        alert(msg);
+      },
     });
   }
 

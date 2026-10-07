@@ -34,31 +34,6 @@ interface LedgerGroupItem {
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon blue"><i class="pi pi-sitemap"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Groups</span>
-            <span class="kpi-value">{{ groups.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon green"><i class="pi pi-shield"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Predefined (Standard)</span>
-            <span class="kpi-value">{{ predefinedCount }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon purple"><i class="pi pi-users"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Debtor / Creditor Groups</span>
-            <span class="kpi-value">{{ partyGroupsCount }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- FILTER & TOOLBAR -->
       <div class="zeno-card">
         <div class="table-toolbar">

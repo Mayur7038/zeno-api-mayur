@@ -5,6 +5,7 @@ import { InventoryService } from '../../../core/services/inventory.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface AdjustmentLineItem {
   itemId: string;
@@ -27,37 +28,11 @@ interface AdjustmentLineItem {
         <div class="page-header">
           <div>
             <h1>Stock Adjustment</h1>
-            <p class="subtitle">Correct inventory discrepancies for shrinkage, damages, scrap, or surplus</p>
           </div>
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> New Stock Adjustment
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRICS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-sliders-h"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Adjustments</span>
-              <span class="kpi-value">{{ adjustments.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Units Adjusted</span>
-              <span class="kpi-value">{{ totalUnitsAdjusted | number:'1.0-3' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Net Valuation Impact</span>
-              <span class="kpi-value">₹{{ totalValuationImpact | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -172,7 +147,6 @@ interface AdjustmentLineItem {
             </button>
             <div>
               <h1>New Stock Adjustment</h1>
-              <p class="subtitle">Record inventory adjustments for damages, scrap, audit differences, or surplus</p>
             </div>
           </div>
           <div class="header-actions">
@@ -676,6 +650,7 @@ export class StockAdjustmentComponent implements OnInit {
     private mastersService: MastersService,
     private tenantService: TenantService,
     private api: ApiService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -849,14 +824,19 @@ export class StockAdjustmentComponent implements OnInit {
     };
 
     this.inventoryService.createAdjustment(payload).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Stock Adjustment ${res?.voucherNo || ''} posted successfully! Inventory reconciled.`,
+          'Adjustment Saved',
+        );
         this.viewMode = 'list';
         this.loadData();
       },
       error: (err) => {
         this.submitting = false;
         this.errorMessage = err.error?.message || 'Failed to post stock adjustment.';
+        this.toast.error(this.errorMessage, 'Adjustment Failed');
       },
     });
   }
@@ -872,10 +852,13 @@ export class StockAdjustmentComponent implements OnInit {
 
     this.inventoryService.cancelAdjustment(a.id).subscribe({
       next: () => {
+        this.toast.success(`Stock Adjustment ${a.voucherNo} cancelled and stock reversed.`, 'Adjustment Cancelled');
         this.loadData();
       },
       error: (err) => {
-        alert(err.error?.message || 'Failed to cancel adjustment');
+        const msg = err.error?.message || 'Failed to cancel adjustment';
+        this.toast.error(msg, 'Cancellation Failed');
+        alert(msg);
       },
     });
   }

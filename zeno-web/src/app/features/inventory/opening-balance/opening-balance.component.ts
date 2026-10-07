@@ -5,6 +5,7 @@ import { InventoryService } from '../../../core/services/inventory.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface OpeningItemRow {
   itemId: string;
@@ -28,7 +29,6 @@ interface OpeningItemRow {
       <div class="page-header">
         <div>
           <h1>Update Opening Stock Balance</h1>
-          <p class="subtitle">Set or calibrate initial stock quantities and valuation rates per warehouse with effective date</p>
         </div>
         <div class="header-actions">
           <button class="btn-primary" (click)="saveOpeningBalances()" [disabled]="submitting || loading">
@@ -327,6 +327,7 @@ export class OpeningBalanceComponent implements OnInit {
     private mastersService: MastersService,
     private tenantService: TenantService,
     private api: ApiService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -463,11 +464,16 @@ export class OpeningBalanceComponent implements OnInit {
       next: (res) => {
         this.submitting = false;
         this.saveSuccessMessage = 'Opening balances updated and committed to stock ledger successfully!';
+        this.toast.success(
+          `Opening balances saved! ${this.configuredCount} products updated with total valuation ₹${Number(this.totalValuation).toLocaleString('en-IN', { minimumFractionDigits: 2 })}.`,
+          'Opening Balances Saved',
+        );
         this.loadOpeningBalances();
       },
       error: (err) => {
         this.submitting = false;
         this.errorMessage = err.error?.message || 'Failed to save opening balances';
+        this.toast.error(this.errorMessage, 'Save Failed');
       },
     });
   }

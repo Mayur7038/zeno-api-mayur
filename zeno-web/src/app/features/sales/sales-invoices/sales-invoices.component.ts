@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-sales-invoices',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-plus"></i> Create Sales Invoice
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-file-o"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Invoiced</span>
-              <span class="kpi-value">{{ invoices.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-check"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Paid Invoices</span>
-              <span class="kpi-value">{{ paidCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-exclamation-circle"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Unpaid Receivable</span>
-              <span class="kpi-value">₹{{ totalReceivables | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Sales Volume</span>
-              <span class="kpi-value">₹{{ totalSalesValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -581,6 +550,7 @@ export class SalesInvoicesComponent implements OnInit {
     private salesService: SalesService,
     private tenantService: TenantService,
     private mastersService: MastersService,
+    private toast: ToastService,
     private router: Router
   ) {}
 
@@ -804,14 +774,20 @@ export class SalesInvoicesComponent implements OnInit {
     };
 
     this.salesService.createSalesInvoice(payload).subscribe({
-      next: () => {
+      next: (created: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Sales Invoice ${created?.invoiceNo || ''} created successfully! Total: ₹${Number(this.modalTotals.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Invoice Generated',
+        );
         this.viewMode = 'list';
         this.loadInvoices();
       },
       error: (err) => {
         this.submitting = false;
-        alert(err?.error?.message || 'Failed to create sales invoice');
+        const msg = err?.error?.message || 'Failed to create sales invoice';
+        this.toast.error(msg, 'Creation Failed');
+        alert(msg);
       }
     });
   }

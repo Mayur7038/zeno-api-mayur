@@ -43,6 +43,25 @@ export class TenancyController {
     return this.tenancyService.createBranch(tenantId, data);
   }
 
+  @Put('branches/:id')
+  @ApiOperation({ summary: 'Update branch' })
+  async updateBranch(
+    @CurrentTenant() tenantId: string,
+    @Param('id') branchId: string,
+    @Body() data: any,
+  ) {
+    return this.tenancyService.updateBranch(tenantId, branchId, data);
+  }
+
+  @Delete('branches/:id')
+  @ApiOperation({ summary: 'Delete branch' })
+  async deleteBranch(
+    @CurrentTenant() tenantId: string,
+    @Param('id') branchId: string,
+  ) {
+    return this.tenancyService.deleteBranch(tenantId, branchId);
+  }
+
   @Get('godowns')
   @ApiOperation({ summary: 'Get godowns/warehouses' })
   async getGodowns(

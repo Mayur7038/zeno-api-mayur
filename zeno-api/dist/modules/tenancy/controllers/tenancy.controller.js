@@ -36,6 +36,12 @@ let TenancyController = class TenancyController {
     async createBranch(tenantId, data) {
         return this.tenancyService.createBranch(tenantId, data);
     }
+    async updateBranch(tenantId, branchId, data) {
+        return this.tenancyService.updateBranch(tenantId, branchId, data);
+    }
+    async deleteBranch(tenantId, branchId) {
+        return this.tenancyService.deleteBranch(tenantId, branchId);
+    }
     async getGodowns(tenantId, branchId) {
         return this.tenancyService.getGodowns(tenantId, branchId);
     }
@@ -92,6 +98,25 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], TenancyController.prototype, "createBranch", null);
+__decorate([
+    (0, common_1.Put)('branches/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Update branch' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], TenancyController.prototype, "updateBranch", null);
+__decorate([
+    (0, common_1.Delete)('branches/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Delete branch' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], TenancyController.prototype, "deleteBranch", null);
 __decorate([
     (0, common_1.Get)('godowns'),
     (0, swagger_1.ApiOperation)({ summary: 'Get godowns/warehouses' }),

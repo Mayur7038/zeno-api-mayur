@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ManufacturingService } from '../../core/services/manufacturing.service';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface BomLine {
   itemId: string;
@@ -30,31 +31,6 @@ interface BomLine {
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> New BOM Recipe
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRIC CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-cog"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Active Recipes</span>
-              <span class="kpi-value">{{ boms.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Finished Products Mapped</span>
-              <span class="kpi-value">{{ uniqueFinishedProductsCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Avg Assembly Cost</span>
-              <span class="kpi-value">₹{{ averageCost | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -523,6 +499,7 @@ export class BomsComponent implements OnInit {
     private manufacturingService: ManufacturingService,
     private mastersService: MastersService,
     private tenantService: TenantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -717,24 +694,28 @@ export class BomsComponent implements OnInit {
       this.manufacturingService.updateBom(this.editingBom.id, payload).subscribe({
         next: () => {
           this.saving = false;
+          this.toast.success(`BOM Recipe "${this.formData.name}" updated successfully!`, 'BOM Updated');
           this.backToList();
           this.loadData();
         },
         error: (err) => {
           this.saving = false;
           this.errorMessage = err?.error?.message || 'Failed to update BOM';
+          this.toast.error(this.errorMessage, 'Update Failed');
         },
       });
     } else {
       this.manufacturingService.createBom(payload).subscribe({
         next: () => {
           this.saving = false;
+          this.toast.success(`BOM Recipe "${this.formData.name}" created successfully!`, 'BOM Created');
           this.backToList();
           this.loadData();
         },
         error: (err) => {
           this.saving = false;
           this.errorMessage = err?.error?.message || 'Failed to create BOM';
+          this.toast.error(this.errorMessage, 'Creation Failed');
         },
       });
     }
@@ -747,10 +728,13 @@ export class BomsComponent implements OnInit {
 
     this.manufacturingService.deleteBom(bom.id).subscribe({
       next: () => {
+        this.toast.success(`BOM Recipe "${bom.name}" deleted successfully.`, 'BOM Deleted');
         this.loadData();
       },
       error: (err) => {
-        alert(err?.error?.message || 'Failed to delete BOM');
+        const msg = err?.error?.message || 'Failed to delete BOM';
+        this.toast.error(msg, 'Deletion Failed');
+        alert(msg);
       },
     });
   }

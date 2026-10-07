@@ -167,8 +167,8 @@ import { AuthService } from '../../core/services/auth.service';
       margin-bottom: 24px;
 
       .auth-brand-logo {
-        height: 68px;
-        max-width: 280px;
+        height: 82px;
+        max-width: 320px;
         object-fit: contain;
         margin: 0 auto 16px;
         display: block;

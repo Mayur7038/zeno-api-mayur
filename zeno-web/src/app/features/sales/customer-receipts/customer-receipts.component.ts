@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-customer-receipts',
@@ -22,31 +23,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> Record Customer Receipt
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRIC CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-wallet"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Receipts</span>
-              <span class="kpi-value">{{ receipts.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Cash / Bank Inflow</span>
-              <span class="kpi-value">₹{{ totalInflow | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-users"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Active Customers Collected</span>
-              <span class="kpi-value">{{ uniqueCustomersCount }}</span>
-            </div>
           </div>
         </div>
 
@@ -395,6 +371,7 @@ export class CustomerReceiptsComponent implements OnInit {
     private salesService: SalesService,
     private tenantService: TenantService,
     private mastersService: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute
   ) {}
 
@@ -563,14 +540,20 @@ export class CustomerReceiptsComponent implements OnInit {
     };
 
     this.salesService.createCustomerReceipt(payload).subscribe({
-      next: () => {
+      next: (created: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Customer Receipt ${created?.receiptNo || ''} recorded successfully! Total: ₹${Number(this.newRec.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Receipt Recorded',
+        );
         this.backToList();
         this.loadReceipts();
       },
       error: (err) => {
         this.submitting = false;
-        alert(err?.error?.message || 'Failed to record customer receipt');
+        const msg = err?.error?.message || 'Failed to record customer receipt';
+        this.toast.error(msg, 'Recording Failed');
+        alert(msg);
       }
     });
   }

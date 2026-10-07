@@ -31,31 +31,6 @@ interface StockCategoryItem {
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon blue"><i class="pi pi-tags"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Categories</span>
-            <span class="kpi-value">{{ categories.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon green"><i class="pi pi-folder"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Parent Stock Groups</span>
-            <span class="kpi-value">{{ stockGroups.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon purple"><i class="pi pi-box"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Active Items Classified</span>
-            <span class="kpi-value">{{ totalItemsClassified }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- FILTER & TOOLBAR -->
       <div class="zeno-card">
         <div class="table-toolbar">

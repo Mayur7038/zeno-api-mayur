@@ -5,6 +5,7 @@ import { ManufacturingService } from '../../core/services/manufacturing.service'
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { ApiService } from '../../core/services/api.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface ProductionLine {
   itemId: string;
@@ -28,31 +29,6 @@ interface ProductionLine {
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> Record Assembly Run
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRIC CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-sync"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Assembly Runs</span>
-              <span class="kpi-value">{{ entries.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Units Assembled</span>
-              <span class="kpi-value">{{ totalUnitsProduced | number:'1.0-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Production Value</span>
-              <span class="kpi-value">₹{{ totalProductionValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -653,6 +629,7 @@ export class ProductionEntriesComponent implements OnInit {
     private mastersService: MastersService,
     private tenantService: TenantService,
     private api: ApiService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -889,14 +866,19 @@ export class ProductionEntriesComponent implements OnInit {
     };
 
     this.manufacturingService.createProductionEntry(payload).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
+        this.toast.success(
+          `Production Assembly Run ${res?.voucherNo || ''} recorded successfully! Produced ${this.formData.assembledQty} units.`,
+          'Production Recorded',
+        );
         this.backToList();
         this.loadData();
       },
       error: (err) => {
         this.saving = false;
         this.errorMessage = err?.error?.message || 'Failed to record assembly run';
+        this.toast.error(this.errorMessage, 'Recording Failed');
       },
     });
   }
@@ -925,13 +907,16 @@ export class ProductionEntriesComponent implements OnInit {
 
     this.manufacturingService.cancelProductionEntry(entry.id).subscribe({
       next: () => {
+        this.toast.success(`Assembly Run "${entry.voucherNo}" reversed and inventory balanced.`, 'Production Reversed');
         if (this.selectedEntry && this.selectedEntry.id === entry.id) {
           this.backToList();
         }
         this.loadData();
       },
       error: (err) => {
-        alert(err?.error?.message || 'Failed to reverse assembly run');
+        const msg = err?.error?.message || 'Failed to reverse assembly run';
+        this.toast.error(msg, 'Reversal Failed');
+        alert(msg);
       },
     });
   }

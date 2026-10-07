@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-purchase-returns',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-plus"></i> Create Purchase Return
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-replay"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL DEBIT NOTES</span>
-              <span class="kpi-value">{{ returns.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">RETURNED UNITS</span>
-              <span class="kpi-value">{{ totalRestockedUnits }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-percentage"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TAX REVERSED</span>
-              <span class="kpi-value">₹{{ totalTaxReversal | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL RETURN VALUE</span>
-              <span class="kpi-value">₹{{ totalReturnValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -558,6 +527,7 @@ export class PurchaseReturnsComponent implements OnInit {
     private p2p: P2pService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute,
   ) {}
 
@@ -795,14 +765,19 @@ export class PurchaseReturnsComponent implements OnInit {
     };
 
     this.p2p.createPurchaseReturn(payload).subscribe({
-      next: () => {
+      next: (pr: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Purchase Return / Debit Note ${pr?.voucherNo || ''} recorded successfully! Total: ₹${Number(this.returnGrandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Debit Note Created',
+        );
         this.viewMode = 'list';
         this.loadReturns();
       },
       error: (err) => {
         this.submitting = false;
         this.createError = err.error?.message || 'Failed to create purchase return';
+        this.toast.error(this.createError, 'Return Failed');
       },
     });
   }

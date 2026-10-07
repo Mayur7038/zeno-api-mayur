@@ -30,31 +30,6 @@ interface UnitItem {
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon blue"><i class="pi pi-compass"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Defined Units</span>
-            <span class="kpi-value">{{ units.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon green"><i class="pi pi-check-circle"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Active Units</span>
-            <span class="kpi-value">{{ activeUnitsCount }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon purple"><i class="pi pi-sliders-h"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Fractional Units (Decimals > 0)</span>
-            <span class="kpi-value">{{ fractionalUnitsCount }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- FILTER & TOOLBAR -->
       <div class="zeno-card">
         <div class="table-toolbar">

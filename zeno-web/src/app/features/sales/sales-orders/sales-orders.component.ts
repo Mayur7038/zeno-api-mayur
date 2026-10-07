@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-sales-orders',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-plus"></i> Create Sales Order
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-shopping-bag"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Orders</span>
-              <span class="kpi-value">{{ orders.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-clock"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Pending Dispatch</span>
-              <span class="kpi-value">{{ pendingCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-check-circle"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Cleared Orders</span>
-              <span class="kpi-value">{{ clearedCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Pipeline Value</span>
-              <span class="kpi-value">₹{{ totalPipelineValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -538,6 +507,7 @@ export class SalesOrdersComponent implements OnInit {
     private salesService: SalesService,
     private tenantService: TenantService,
     private mastersService: MastersService,
+    private toast: ToastService,
     private router: Router
   ) {}
 
@@ -706,14 +676,20 @@ export class SalesOrdersComponent implements OnInit {
     };
 
     this.salesService.createSalesOrder(payload).subscribe({
-      next: () => {
+      next: (created: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Sales Order ${created?.orderNo || ''} created successfully! Total: ₹${Number(this.modalTotals.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Sales Order Created',
+        );
         this.viewMode = 'list';
         this.loadOrders();
       },
       error: (err) => {
         this.submitting = false;
-        alert(err?.error?.message || 'Failed to create sales order');
+        const msg = err?.error?.message || 'Failed to create sales order';
+        this.toast.error(msg, 'Creation Failed');
+        alert(msg);
       }
     });
   }
@@ -730,7 +706,13 @@ export class SalesOrdersComponent implements OnInit {
   cancelOrder(id: string) {
     if (confirm('Are you sure you want to cancel this sales order?')) {
       this.salesService.cancelSalesOrder(id).subscribe({
-        next: () => this.loadOrders()
+        next: () => {
+          this.toast.success('Sales order cancelled successfully.', 'Order Cancelled');
+          this.loadOrders();
+        },
+        error: (err) => {
+          this.toast.error(err?.error?.message || 'Failed to cancel sales order.', 'Cancellation Failed');
+        }
       });
     }
   }

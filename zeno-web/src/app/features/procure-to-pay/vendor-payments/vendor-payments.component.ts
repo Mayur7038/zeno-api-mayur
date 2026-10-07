@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-vendor-payments',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-credit-card"></i> Make Payment
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-credit-card"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL PAYMENTS</span>
-              <span class="kpi-value">{{ payments.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL DISBURSED</span>
-              <span class="kpi-value">₹{{ totalDisbursed | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-tag"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">DISCOUNTS TAKEN</span>
-              <span class="kpi-value">₹{{ totalDiscountReceived | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-users"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">VENDORS SETTLED</span>
-              <span class="kpi-value">{{ uniqueVendorsCount }}</span>
-            </div>
           </div>
         </div>
 
@@ -320,6 +289,7 @@ export class VendorPaymentsComponent implements OnInit {
     private p2p: P2pService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute,
   ) {}
 
@@ -469,14 +439,19 @@ export class VendorPaymentsComponent implements OnInit {
     };
 
     this.p2p.createVendorPayment(payload).subscribe({
-      next: () => {
+      next: (vp: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Vendor Payment ${vp?.voucherNo || ''} recorded successfully! Total Paid: ₹${Number(this.totalAllocated || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Disbursement Complete',
+        );
         this.viewMode = 'list';
         this.loadPayments();
       },
       error: (err) => {
         this.submitting = false;
         this.createError = err.error?.message || 'Failed to record payment';
+        this.toast.error(this.createError, 'Payment Failed');
       },
     });
   }

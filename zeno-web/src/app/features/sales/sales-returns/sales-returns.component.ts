@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-sales-returns',
@@ -22,31 +23,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> Issue Credit Note
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRIC CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-replay"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Credit Notes Issued</span>
-              <span class="kpi-value">{{ returns.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon red"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Returned Value</span>
-              <span class="kpi-value">₹{{ totalReturnValue | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Restocked Units</span>
-              <span class="kpi-value">{{ totalRestockedUnits }}</span>
-            </div>
           </div>
         </div>
 
@@ -420,6 +396,7 @@ export class SalesReturnsComponent implements OnInit {
     private salesService: SalesService,
     private tenantService: TenantService,
     private mastersService: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute
   ) {}
 
@@ -603,14 +580,20 @@ export class SalesReturnsComponent implements OnInit {
     };
 
     this.salesService.createSalesReturn(payload).subscribe({
-      next: () => {
+      next: (created: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Sales Return / Credit Note ${created?.creditNoteNo || ''} created successfully! Total: ₹${Number(this.modalTotals.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Credit Note Issued',
+        );
         this.backToList();
         this.loadReturns();
       },
       error: (err) => {
         this.submitting = false;
-        alert(err?.error?.message || 'Failed to issue credit note');
+        const msg = err?.error?.message || 'Failed to issue credit note';
+        this.toast.error(msg, 'Issue Failed');
+        alert(msg);
       }
     });
   }

@@ -5,6 +5,7 @@ import { InventoryService } from '../../../core/services/inventory.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { ApiService } from '../../../core/services/api.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface TransferLineItem {
   itemId: string;
@@ -26,37 +27,11 @@ interface TransferLineItem {
         <div class="page-header">
           <div>
             <h1>Stock Transfer</h1>
-            <p class="subtitle">Inter-warehouse and godown inventory movements with gap-safe voucher audit</p>
           </div>
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> New Stock Transfer
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRICS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-arrows-h"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Transfers</span>
-              <span class="kpi-value">{{ transfers.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Units Moved</span>
-              <span class="kpi-value">{{ totalUnitsMoved | number:'1.0-2' }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Transfer Valuation</span>
-              <span class="kpi-value">₹{{ totalTransferValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -165,7 +140,6 @@ interface TransferLineItem {
             </button>
             <div>
               <h1>New Stock Transfer</h1>
-              <p class="subtitle">Transfer physical stock between godowns with real-time stock balance verification</p>
             </div>
           </div>
           <div class="header-actions">
@@ -767,6 +741,7 @@ export class StockTransferComponent implements OnInit {
     private mastersService: MastersService,
     private tenantService: TenantService,
     private api: ApiService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -944,14 +919,19 @@ export class StockTransferComponent implements OnInit {
     };
 
     this.inventoryService.createTransfer(payload).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Stock Transfer ${res?.voucherNo || ''} completed successfully!`,
+          'Transfer Saved',
+        );
         this.viewMode = 'list';
         this.loadData();
       },
       error: (err) => {
         this.submitting = false;
         this.errorMessage = err.error?.message || 'Failed to save stock transfer.';
+        this.toast.error(this.errorMessage, 'Transfer Failed');
       },
     });
   }
@@ -967,10 +947,13 @@ export class StockTransferComponent implements OnInit {
 
     this.inventoryService.cancelTransfer(t.id).subscribe({
       next: () => {
+        this.toast.success(`Stock Transfer ${t.voucherNo} cancelled and stock reversed.`, 'Transfer Cancelled');
         this.loadData();
       },
       error: (err) => {
-        alert(err.error?.message || 'Failed to cancel stock transfer');
+        const msg = err.error?.message || 'Failed to cancel stock transfer';
+        this.toast.error(msg, 'Cancellation Failed');
+        alert(msg);
       },
     });
   }

@@ -11,10 +11,12 @@ export declare class TenancyService {
     constructor(companyRepo: Repository<Company>, branchRepo: Repository<Branch>, godownRepo: Repository<Godown>, rackBinRepo: Repository<RackBin>);
     getCompanies(tenantId: string): Promise<Company[]>;
     getBranches(tenantId: string, companyId?: string): Promise<Branch[]>;
-    updateCompany(tenantId: string, companyId: string, data: Partial<Company>): Promise<Company>;
+    updateCompany(tenantId: string, companyId: string, data: any): Promise<Company>;
     getGodowns(tenantId: string, branchId?: string): Promise<Godown[]>;
     getRacksBins(tenantId: string, godownId: string): Promise<RackBin[]>;
     createBranch(tenantId: string, data: Partial<Branch>): Promise<Branch>;
+    updateBranch(tenantId: string, branchId: string, data: Partial<Branch>): Promise<Branch>;
+    deleteBranch(tenantId: string, branchId: string): Promise<Branch>;
     createGodown(tenantId: string, data: Partial<Godown>): Promise<Godown>;
     updateGodown(tenantId: string, godownId: string, data: Partial<Godown>): Promise<Godown>;
     deleteGodown(tenantId: string, godownId: string): Promise<Godown>;

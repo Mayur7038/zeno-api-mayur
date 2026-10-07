@@ -8,6 +8,7 @@ import {
 } from '../../core/services/accounting.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { MastersService } from '../../core/services/masters.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface JournalLine {
   type: 'DR' | 'CR';
@@ -39,39 +40,7 @@ interface StandardLine {
             </button>
           </div>
         </div>
-
-        <!-- 4 KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i [class]="config.icon"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL {{ config.shortName }}S</span>
-              <span class="kpi-value">{{ vouchers.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-wallet"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">{{ config.kpi2Label }}</span>
-              <span class="kpi-value">{{ kpi2Value }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-building"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">{{ config.kpi3Label }}</span>
-              <span class="kpi-value">{{ kpi3Value }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL VALUE</span>
-              <span class="kpi-value">₹{{ totalVoucherValue | number:'1.2-2' }}</span>
-            </div>
-          </div>
-        </div>
-
+        
         <!-- FILTER CARD -->
         <div class="zeno-card filter-card">
           <div class="filter-group">
@@ -491,82 +460,6 @@ interface StandardLine {
                 [(ngModel)]="createForm.narration"
                 placeholder="Enter voucher description, payee details, instrument particulars..."
               ></textarea>
-            </div>
-
-            <!-- DOUBLE-ENTRY PREVIEW -->
-            <div class="gl-impact-preview">
-              <div class="preview-title">
-                <i class="pi pi-share-alt"></i> Double-Entry General Ledger Impact
-              </div>
-              <div class="preview-content">
-                @if (voucherType === 'PAYMENT') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Selected Expense / Vendor Accounts</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Paid From: {{ getLedgerName(createForm.sourceAccountLedgerId) || '[Cash/Bank Account]' }}</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                } @else if (voucherType === 'RECEIPT') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Received In: {{ getLedgerName(createForm.sourceAccountLedgerId) || '[Cash/Bank Account]' }}</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Selected Income / Customer Accounts</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                } @else if (voucherType === 'CONTRA') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Destination: {{ getLedgerName(createForm.destinationLedgerId) || '[To Account]' }}</span>
-                    <strong class="font-mono">₹{{ contraAmount | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Source: {{ getLedgerName(createForm.sourceAccountLedgerId) || '[From Account]' }}</span>
-                    <strong class="font-mono">₹{{ contraAmount | number:'1.2-2' }}</strong>
-                  </div>
-                } @else if (voucherType === 'JOURNAL') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Total Debit Accounts</span>
-                    <strong class="font-mono">₹{{ totalJournalDebits | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Total Credit Accounts</span>
-                    <strong class="font-mono">₹{{ totalJournalCredits | number:'1.2-2' }}</strong>
-                  </div>
-                } @else if (voucherType === 'DEBIT_NOTE') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Party: {{ getLedgerName(createForm.sourceAccountLedgerId) || '[Party Account]' }}</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Offset Account(s)</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                } @else if (voucherType === 'CREDIT_NOTE') {
-                  <div class="entry-line dr">
-                    <span class="dr-cr-badge dr">Dr</span>
-                    <span class="entry-desc">Offset Account(s)</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                  <div class="entry-line cr">
-                    <span class="dr-cr-badge cr">Cr</span>
-                    <span class="entry-desc">Party: {{ getLedgerName(createForm.sourceAccountLedgerId) || '[Party Account]' }}</span>
-                    <strong class="font-mono">₹{{ totalStandardAmount | number:'1.2-2' }}</strong>
-                  </div>
-                }
-              </div>
             </div>
           </div>
         </div>
@@ -1448,6 +1341,7 @@ export class AccountingVouchersComponent implements OnInit {
     private accountingService: AccountingService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -1710,7 +1604,7 @@ export class AccountingVouchersComponent implements OnInit {
     if (reason !== null) {
       this.accountingService.cancelVoucher(voucher.id, reason).subscribe({
         next: () => {
-          alert(`Voucher ${voucher.voucherNo} cancelled successfully and ledger entries reversed.`);
+          this.toast.success(`Voucher ${voucher.voucherNo} cancelled successfully and ledger entries reversed.`, 'Voucher Cancelled');
           if (this.viewMode === 'view') {
             this.viewVoucher(voucher.id);
           } else {
@@ -1718,7 +1612,9 @@ export class AccountingVouchersComponent implements OnInit {
           }
         },
         error: (err: any) => {
-          alert(err.error?.message || 'Error cancelling voucher');
+          const msg = err.error?.message || 'Error cancelling voucher';
+          this.toast.error(msg, 'Cancellation Failed');
+          alert(msg);
         },
       });
     }
@@ -1912,12 +1808,17 @@ export class AccountingVouchersComponent implements OnInit {
     this.accountingService.createVoucher(payload).subscribe({
       next: (saved: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Voucher ${saved.voucherNo || ''} posted successfully! Total: ₹${Number(saved.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          `${this.config.shortName} Saved`,
+        );
         this.viewVoucher(saved.id);
       },
       error: (err: any) => {
         this.submitting = false;
         this.errorMessage =
           err.error?.message || 'Failed to post voucher. Please review entries.';
+        this.toast.error(this.errorMessage, 'Voucher Error');
       },
     });
   }

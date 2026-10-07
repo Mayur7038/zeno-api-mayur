@@ -34,31 +34,6 @@ interface VariantItem {
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon blue"><i class="pi pi-sliders-v"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Variants</span>
-            <span class="kpi-value">{{ variants.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon green"><i class="pi pi-box"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Parent Items Configured</span>
-            <span class="kpi-value">{{ itemsWithVariantsCount }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon purple"><i class="pi pi-check-circle"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Active SKUs</span>
-            <span class="kpi-value">{{ activeVariantsCount }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- FILTER & TOOLBAR -->
       <div class="zeno-card">
         <div class="table-toolbar">

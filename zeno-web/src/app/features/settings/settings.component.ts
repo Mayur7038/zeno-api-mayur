@@ -6,6 +6,8 @@ import { forkJoin } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { MastersService } from '../../core/services/masters.service';
+import { ToastService } from '../../core/services/toast.service';
+import { INDIAN_STATES } from '../../core/constants/states.constant';
 
 @Component({
   selector: 'app-settings',
@@ -25,6 +27,10 @@ import { MastersService } from '../../core/services/masters.service';
           @if (activeTab === 'company') {
             <button class="btn-primary" (click)="saveCompanyProfile()" [disabled]="savingCompany">
               <i class="pi pi-check"></i> {{ savingCompany ? 'Saving...' : 'Save Company Profile' }}
+            </button>
+          } @else if (activeTab === 'branches') {
+            <button class="btn-primary" (click)="openCreateBranchModal()">
+              <i class="pi pi-plus"></i> Add New Branch
             </button>
           } @else if (activeTab === 'warehouses') {
             <button class="btn-primary" (click)="openCreateWarehouseModal()">
@@ -73,9 +79,6 @@ import { MastersService } from '../../core/services/masters.service';
       @if (activeTab === 'toggles') {
         <div class="zeno-card padded-card">
           <div class="card-title">Modular System Capabilities</div>
-          <p class="card-description">
-            Activate or deactivate enterprise modules on demand. Changes reflect immediately across workflows and menu trees.
-          </p>
 
           <div class="toggle-grid">
             @for (toggle of toggles; track toggle.featureKey) {
@@ -239,7 +242,7 @@ import { MastersService } from '../../core/services/masters.service';
                         <td>
                           <div class="privilege-coverage-cell">
                             <div class="privilege-count-line">
-                              <span class="priv-count"><strong>{{ (r.permissions || []).length }}</strong> / 126</span>
+                              <span class="priv-count"><strong>{{ (r.permissions || []).length }}</strong> / {{ totalPrivilegesCount }}</span>
                               <span class="priv-pct">{{ getPrivilegePercentage(r) }}%</span>
                             </div>
                             <div class="priv-progress-bar">
@@ -322,23 +325,9 @@ import { MastersService } from '../../core/services/masters.service';
         <!-- VIEW 2: CREATE NEW ROLE PAGE -->
         @else if (roleViewMode === 'create') {
           <div class="role-create-view">
-            <!-- SUB-NAV / BREADCRUMB -->
-            <div class="view-subnav">
-              <button type="button" class="btn-subnav-back" (click)="backToRoleList()">
-                <i class="pi pi-arrow-left"></i> Back to Roles List
-              </button>
-              <div class="subnav-title-wrap">
-                <span class="subnav-title">New Custom Role</span>
-                <span class="badge-custom"><i class="pi pi-sparkles"></i> CUSTOM</span>
-              </div>
-            </div>
-
             <!-- ROLE DETAILS FORM CARD -->
             <div class="zeno-card role-form-card">
               <div class="card-title">1. Role Definition & Baseline Template</div>
-              <p class="card-description">
-                Define the role title, description, and optionally pre-fill privileges from an existing role template.
-              </p>
 
               <div class="role-form-grid">
                 <div class="form-group">
@@ -349,7 +338,6 @@ import { MastersService } from '../../core/services/masters.service';
                     placeholder="e.g. Sales Executive, Inventory Auditor, Junior Accountant" 
                     autofocus
                   />
-                  <span class="helper-text">Unique name identifying this organizational role</span>
                 </div>
 
                 <div class="form-group">
@@ -362,7 +350,6 @@ import { MastersService } from '../../core/services/masters.service';
                       </option>
                     }
                   </select>
-                  <span class="helper-text">Copies initial permission checkboxes from an existing role</span>
                 </div>
 
                 <div class="form-group full-width">
@@ -379,9 +366,6 @@ import { MastersService } from '../../core/services/masters.service';
             <!-- PERMISSION MATRIX FOR NEW ROLE -->
             <div class="zeno-card matrix-editor-card">
               <div class="card-title">2. Configure Module Permissions</div>
-              <p class="card-description">
-                Grant or restrict granular capabilities across Masters, Procure-to-Pay, Sales, and Administration.
-              </p>
 
               <!-- MATRIX TOOLBAR -->
               <div class="matrix-filter-bar">
@@ -400,22 +384,14 @@ import { MastersService } from '../../core/services/masters.service';
                 </div>
 
                 <div class="category-tabs">
-                  <button 
-                    type="button" 
-                    class="cat-tab" 
-                    [class.active]="selectedCategoryFilter === 'ALL'" 
-                    (click)="selectedCategoryFilter = 'ALL'"
-                  >
-                    All Modules ({{ permissionModules.length }})
-                  </button>
-                  @for (cat of getUniqueCategories(); track cat) {
+                  @for (cat of categoryOptions; track cat.key) {
                     <button 
                       type="button" 
                       class="cat-tab" 
-                      [class.active]="selectedCategoryFilter === cat" 
-                      (click)="selectedCategoryFilter = cat"
+                      [class.active]="selectedCategoryFilter === cat.key" 
+                      (click)="selectedCategoryFilter = cat.key"
                     >
-                      {{ cat }} ({{ getCategoryModuleCount(cat) }})
+                      {{ cat.label }} ({{ cat.count }})
                     </button>
                   }
                 </div>
@@ -473,7 +449,7 @@ import { MastersService } from '../../core/services/masters.service';
                           </div>
                         </td>
                         <td>
-                          <span class="category-pill">{{ mod.category }}</span>
+                          <span class="category-pill" [ngClass]="'cat-' + mod.category.toLowerCase()">{{ mod.category }}</span>
                         </td>
                         @for (act of permissionActions; track act.key) {
                           <td style="text-align: center;">
@@ -500,25 +476,6 @@ import { MastersService } from '../../core/services/masters.service';
                     }
                   </tbody>
                 </table>
-              </div>
-            </div>
-
-            <!-- STICKY BOTTOM SAVE ACTIONS -->
-            <div class="sticky-save-bar">
-              <div class="save-bar-info">
-                <i class="pi pi-shield"></i>
-                <span>Configuring <strong>{{ (newRole.permissions || []).length }}</strong> active privileges for <strong>{{ newRole.name || 'New Role' }}</strong></span>
-              </div>
-              <div class="save-bar-actions">
-                <button type="button" class="btn-secondary" (click)="backToRoleList()">Cancel</button>
-                <button 
-                  type="button" 
-                  class="btn-primary" 
-                  (click)="submitCreateRole()" 
-                  [disabled]="savingRole || !newRole.name.trim()"
-                >
-                  <i class="pi pi-check"></i> {{ savingRole ? 'Creating Role...' : 'Create Role & Save Privileges' }}
-                </button>
               </div>
             </div>
           </div>
@@ -565,7 +522,7 @@ import { MastersService } from '../../core/services/masters.service';
                 <div class="role-privilege-summary-bar">
                   <div class="summary-stat">
                     <span class="stat-number">{{ (selectedRole.permissions || []).length }}</span>
-                    <span class="stat-text">of 126 Privileges Active ({{ getPrivilegePercentage(selectedRole) }}%)</span>
+                    <span class="stat-text">of {{ totalPrivilegesCount }} Privileges Active ({{ getPrivilegePercentage(selectedRole) }}%)</span>
                   </div>
                   <div class="summary-progress">
                     <div class="summary-progress-fill" [style.width.%]="getPrivilegePercentage(selectedRole)"></div>
@@ -591,22 +548,14 @@ import { MastersService } from '../../core/services/masters.service';
               </div>
 
               <div class="category-tabs">
-                <button 
-                  type="button" 
-                  class="cat-tab" 
-                  [class.active]="selectedCategoryFilter === 'ALL'" 
-                  (click)="selectedCategoryFilter = 'ALL'"
-                >
-                  All Modules ({{ permissionModules.length }})
-                </button>
-                @for (cat of getUniqueCategories(); track cat) {
+                @for (cat of categoryOptions; track cat.key) {
                   <button 
                     type="button" 
                     class="cat-tab" 
-                    [class.active]="selectedCategoryFilter === cat" 
-                    (click)="selectedCategoryFilter = cat"
+                    [class.active]="selectedCategoryFilter === cat.key" 
+                    (click)="selectedCategoryFilter = cat.key"
                   >
-                    {{ cat }} ({{ getCategoryModuleCount(cat) }})
+                    {{ cat.label }} ({{ cat.count }})
                   </button>
                 }
               </div>
@@ -665,7 +614,7 @@ import { MastersService } from '../../core/services/masters.service';
                           </div>
                         </td>
                         <td>
-                          <span class="category-pill">{{ mod.category }}</span>
+                          <span class="category-pill" [ngClass]="'cat-' + mod.category.toLowerCase()">{{ mod.category }}</span>
                         </td>
                         @for (act of permissionActions; track act.key) {
                           <td style="text-align: center;">
@@ -735,10 +684,7 @@ import { MastersService } from '../../core/services/masters.service';
       @if (activeTab === 'users') {
         <div class="zeno-card">
           <div class="card-header-flex">
-            <div>
-              <div class="card-title">User Directory & Role Assignments ({{ users.length }})</div>
-              <p class="card-description">Manage tenant users, assign functional roles, and control account active status.</p>
-            </div>
+            <div class="card-title">User Directory & Role Assignments ({{ users.length }})</div>
           </div>
           <div class="zeno-card-table-wrap">
             <table class="zeno-table">
@@ -796,9 +742,6 @@ import { MastersService } from '../../core/services/masters.service';
           <!-- SECTION 1: SALES & PURCHASES (3 FIELDS PER LINE) -->
           <div class="zeno-card padded-card">
             <div class="card-title">Core Sales & Purchase Accounts</div>
-            <p class="card-description">
-              Primary ledger accounts automatically debited or credited during standard transaction posting.
-            </p>
             <div class="mapping-grid">
               <div class="form-group">
                 <label>Default Sales Account (Income) *</label>
@@ -808,7 +751,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }} ({{ l.ledgerGroup?.name }})</option>
                   }
                 </select>
-                <span class="helper-text">Credited when billing customers on Sales Invoices</span>
               </div>
 
               <div class="form-group">
@@ -819,7 +761,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }} ({{ l.ledgerGroup?.name }})</option>
                   }
                 </select>
-                <span class="helper-text">Debited on customer Credit Notes and sales returns</span>
               </div>
 
               <div class="form-group">
@@ -830,7 +771,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }} ({{ l.ledgerGroup?.name }})</option>
                   }
                 </select>
-                <span class="helper-text">Debited when recording incoming vendor Purchase Invoices</span>
               </div>
 
               <div class="form-group">
@@ -841,7 +781,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }} ({{ l.ledgerGroup?.name }})</option>
                   }
                 </select>
-                <span class="helper-text">Credited on vendor Debit Notes and goods return</span>
               </div>
 
               <div class="form-group">
@@ -852,7 +791,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Fractional currency round-off adjustments</span>
               </div>
 
               <div class="form-group">
@@ -863,7 +801,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Transportation, shipping and delivery charges</span>
               </div>
             </div>
           </div>
@@ -871,9 +808,6 @@ import { MastersService } from '../../core/services/masters.service';
           <!-- SECTION 2: GST STATUTORY TAX LEDGERS (3 FIELDS PER LINE) -->
           <div class="zeno-card padded-card">
             <div class="card-title">GST Statutory Input & Output Tax Ledgers</div>
-            <p class="card-description">
-              Tax credit (Input) and tax liability (Output) accounts for automated CGST, SGST, IGST, and Cess distribution.
-            </p>
             <div class="mapping-grid">
               <div class="form-group">
                 <label>Input CGST Ledger (Asset/Credit)</label>
@@ -883,7 +817,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Central GST input tax credit account</span>
               </div>
 
               <div class="form-group">
@@ -894,7 +827,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Central GST output tax liability account</span>
               </div>
 
               <div class="form-group">
@@ -905,7 +837,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">State GST input tax credit account</span>
               </div>
 
               <div class="form-group">
@@ -916,7 +847,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">State GST output tax liability account</span>
               </div>
 
               <div class="form-group">
@@ -927,7 +857,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Inter-state integrated GST credit</span>
               </div>
 
               <div class="form-group">
@@ -938,7 +867,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Inter-state integrated GST liability</span>
               </div>
 
               <div class="form-group">
@@ -949,7 +877,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">GST Compensation Cess credit account</span>
               </div>
 
               <div class="form-group">
@@ -960,7 +887,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">GST Compensation Cess liability account</span>
               </div>
 
               <div class="form-group">
@@ -971,7 +897,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Rounding account for statutory fractional taxes</span>
               </div>
             </div>
           </div>
@@ -979,9 +904,6 @@ import { MastersService } from '../../core/services/masters.service';
           <!-- SECTION 3: LIQUID SETTLEMENT & ADJUSTMENTS (3 FIELDS PER LINE) -->
           <div class="zeno-card padded-card">
             <div class="card-title">Settlement Funds, Cash & Bank Accounts</div>
-            <p class="card-description">
-              Default liquid accounts and transactional adjustments applied across vouchers.
-            </p>
             <div class="mapping-grid">
               <div class="form-group">
                 <label>Default Cash-in-Hand Ledger</label>
@@ -991,7 +913,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Standard liquid cash account for direct point-of-sale/payment</span>
               </div>
 
               <div class="form-group">
@@ -1002,7 +923,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Primary bank ledger for wire transfers, cheques, and customer receipts</span>
               </div>
 
               <div class="form-group">
@@ -1013,7 +933,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Discounts granted to customers on sales bills</span>
               </div>
 
               <div class="form-group">
@@ -1024,7 +943,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Cash discounts received from suppliers</span>
               </div>
 
               <div class="form-group">
@@ -1035,7 +953,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Fractional currency round-off adjustments</span>
               </div>
 
               <div class="form-group">
@@ -1046,7 +963,6 @@ import { MastersService } from '../../core/services/masters.service';
                     <option [value]="l.id">{{ l.name }}</option>
                   }
                 </select>
-                <span class="helper-text">Transportation, shipping and delivery charges</span>
               </div>
             </div>
           </div>
@@ -1057,12 +973,7 @@ import { MastersService } from '../../core/services/masters.service';
       @if (activeTab === 'vouchers') {
         <div class="zeno-card">
           <div class="card-header-flex">
-            <div>
-              <div class="card-title">Voucher Numbering Series & Rules</div>
-              <p class="card-description">
-                Configure prefixes, suffixes, numbering padding, and reset frequencies for all enterprise documents.
-              </p>
-            </div>
+            <div class="card-title">Voucher Numbering Series & Rules</div>
           </div>
 
           <div class="zeno-card-table-wrap">
@@ -1153,7 +1064,6 @@ import { MastersService } from '../../core/services/masters.service';
           <!-- INVOICING & CREDIT POLICIES -->
           <div class="zeno-card padded-card">
             <div class="card-title">Sales Invoicing & Statutory Compliance</div>
-            <p class="card-description">Statutory thresholds and billing controls for sales orders and tax invoices.</p>
             
             <div class="config-grid">
               <div class="form-group">
@@ -1164,7 +1074,6 @@ import { MastersService } from '../../core/services/masters.service';
                   placeholder="30" 
                   min="0"
                 />
-                <span class="helper-text">Standard days before sales invoice is flagged as overdue</span>
               </div>
 
               <div class="form-group">
@@ -1175,7 +1084,6 @@ import { MastersService } from '../../core/services/masters.service';
                   placeholder="50000" 
                   min="0"
                 />
-                <span class="helper-text">Mandatory E-Way bill alert for consignments exceeding this amount</span>
               </div>
 
               <div class="form-group">
@@ -1185,7 +1093,6 @@ import { MastersService } from '../../core/services/masters.service';
                   <option value="BLOCK">Strict Block (Prevent Invoice Creation)</option>
                   <option value="IGNORE">No Verification</option>
                 </select>
-                <span class="helper-text">System reaction when customer ledger exceeds authorized limit</span>
               </div>
 
               <div class="form-group">
@@ -1196,7 +1103,6 @@ import { MastersService } from '../../core/services/masters.service';
                   <option value="THERMAL_80MM">Thermal POS Receipt (80mm)</option>
                   <option value="EXPORT_INVOICE">Export & Commercial Invoice</option>
                 </select>
-                <span class="helper-text">Format chosen for print and customer PDF exports</span>
               </div>
             </div>
 
@@ -1252,7 +1158,6 @@ import { MastersService } from '../../core/services/masters.service';
         <div class="config-sections-wrapper">
           <div class="zeno-card padded-card">
             <div class="card-title">Procurement Policies & Verification</div>
-            <p class="card-description">Vendor bill controls, approval workflow limits, and automatic warehouse receiving rules.</p>
             
             <div class="config-grid">
               <div class="form-group">
@@ -1263,7 +1168,6 @@ import { MastersService } from '../../core/services/masters.service';
                   placeholder="100000" 
                   min="0"
                 />
-                <span class="helper-text">Orders exceeding this total require manager authorization</span>
               </div>
 
               <div class="form-group">
@@ -1275,7 +1179,6 @@ import { MastersService } from '../../core/services/masters.service';
                   min="0" 
                   max="100"
                 />
-                <span class="helper-text">Permitted price deviation between PO rate and vendor bill rate</span>
               </div>
 
               <div class="form-group">
@@ -1286,7 +1189,6 @@ import { MastersService } from '../../core/services/masters.service';
                   placeholder="30" 
                   min="0"
                 />
-                <span class="helper-text">Standard payment terms for incoming vendor bills</span>
               </div>
             </div>
 
@@ -1344,7 +1246,6 @@ import { MastersService } from '../../core/services/masters.service';
         <div class="config-sections-wrapper">
           <div class="zeno-card padded-card">
             <div class="card-title">Warehouse & Inventory Management Controls</div>
-            <p class="card-description">Stock valuation methodology, batch tracking rules, and warehouse movements.</p>
             
             <div class="config-grid">
               <div class="form-group">
@@ -1353,7 +1254,6 @@ import { MastersService } from '../../core/services/masters.service';
                   <option value="FIFO">FIFO (First In, First Out)</option>
                   <option value="WEIGHTED_AVG">Weighted Average Cost (WAC)</option>
                 </select>
-                <span class="helper-text">Methodology used to calculate balance sheet inventory valuation</span>
               </div>
 
               <div class="form-group">
@@ -1362,7 +1262,6 @@ import { MastersService } from '../../core/services/masters.service';
                   <option [ngValue]="false">Strict Block (Prevent negative stock)</option>
                   <option [ngValue]="true">Allowed with Warning Notification</option>
                 </select>
-                <span class="helper-text">Policy enforced when issuing stock with insufficient balance</span>
               </div>
             </div>
 
@@ -1458,9 +1357,6 @@ import { MastersService } from '../../core/services/masters.service';
           @if (gstSubTab === 'hierarchy') {
             <div class="zeno-card padded-card">
               <div class="card-title">GST Active Resolution Hierarchy</div>
-              <p class="card-description">
-                Determine at which granular level GST rate rules are evaluated when generating PO, GRN, and Invoices.
-              </p>
 
               <div class="gst-levels-grid">
                 <div 
@@ -1528,10 +1424,7 @@ import { MastersService } from '../../core/services/masters.service';
             <!-- SUB-MODE 2: TAX SLABS MASTER -->
             <div class="zeno-card">
               <div class="card-header-flex">
-                <div>
-                  <div class="card-title">Statutory GST Tax Slabs</div>
-                  <p class="card-description">Standardized GST percentage rates available for inventory items and service vouchers</p>
-                </div>
+                <div class="card-title">Statutory GST Tax Slabs</div>
               </div>
 
               <div class="zeno-card-table-wrap">
@@ -1623,7 +1516,6 @@ import { MastersService } from '../../core/services/masters.service';
           @if (companySubTab === 'basic') {
             <div class="zeno-card padded-card">
               <div class="card-title">Basic Organizational Information</div>
-              <p class="card-description">Core registration identity, entity structure, and statutory accounting year cycle.</p>
 
               <div class="form-grid-2col">
                 <div class="form-group">
@@ -1633,7 +1525,6 @@ import { MastersService } from '../../core/services/masters.service';
                     [(ngModel)]="companyForm.legalName" 
                     placeholder="e.g. Apex Technologies Private Limited" 
                   />
-                  <span class="field-hint">Registered name as per certificate of incorporation.</span>
                 </div>
 
                 <div class="form-group">
@@ -1643,7 +1534,6 @@ import { MastersService } from '../../core/services/masters.service';
                     [(ngModel)]="companyForm.tradeName" 
                     placeholder="e.g. Apex Tech" 
                   />
-                  <span class="field-hint">Public trade name used on customer invoices and slips.</span>
                 </div>
 
                 <div class="form-group">
@@ -1654,7 +1544,6 @@ import { MastersService } from '../../core/services/masters.service';
                     placeholder="e.g. APEX-01" 
                     class="font-mono uppercase" 
                   />
-                  <span class="field-hint">Unique identifier prefix used in multi-entity accounting.</span>
                 </div>
 
                 <div class="form-group">
@@ -1676,7 +1565,6 @@ import { MastersService } from '../../core/services/masters.service';
                     type="date" 
                     [(ngModel)]="companyForm.financialYearStart" 
                   />
-                  <span class="field-hint">Standard fiscal year opening date (typically 1st April).</span>
                 </div>
 
                 <div class="form-group">
@@ -1685,7 +1573,6 @@ import { MastersService } from '../../core/services/masters.service';
                     type="date" 
                     [(ngModel)]="companyForm.financialYearEnd" 
                   />
-                  <span class="field-hint">Standard fiscal year closing date (typically 31st March).</span>
                 </div>
 
                 <div class="form-group">
@@ -1694,7 +1581,6 @@ import { MastersService } from '../../core/services/masters.service';
                     type="date" 
                     [(ngModel)]="companyForm.booksBeginFrom" 
                   />
-                  <span class="field-hint">Date from which ledger vouchers and opening balances are recorded.</span>
                 </div>
 
                 <div class="form-group">
@@ -1716,9 +1602,8 @@ import { MastersService } from '../../core/services/masters.service';
               <!-- BILLING ADDRESS CARD -->
               <div class="zeno-card padded-card">
                 <div class="card-title"><i class="pi pi-home"></i> Registered Billing Address</div>
-                <p class="card-description">Official statutory office location appearing on tax invoices and filings.</p>
 
-                <div class="form-stack">
+                <div class="form-grid-4col">
                   <div class="form-group">
                     <label>Address Line 1 <span class="required">*</span></label>
                     <input 
@@ -1737,45 +1622,42 @@ import { MastersService } from '../../core/services/masters.service';
                     />
                   </div>
 
-                  <div class="form-grid-2col">
-                    <div class="form-group">
-                      <label>City <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.billingAddress.city" 
-                        placeholder="e.g. Mumbai" 
-                      />
-                    </div>
-
-                    <div class="form-group">
-                      <label>State <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.billingAddress.state" 
-                        placeholder="e.g. Maharashtra" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>City <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.billingAddress.city" 
+                      placeholder="e.g. Mumbai" 
+                    />
                   </div>
 
-                  <div class="form-grid-2col">
-                    <div class="form-group">
-                      <label>Pincode / Postal Code <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.billingAddress.pincode" 
-                        placeholder="e.g. 400021" 
-                        class="font-mono" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>State <span class="required">*</span></label>
+                    <select [(ngModel)]="companyForm.billingAddress.state" (change)="onCompanyBillingStateChange()">
+                      <option value="">-- Select State --</option>
+                      @for (s of indianStates; track s.code) {
+                        <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                      }
+                    </select>
+                  </div>
 
-                    <div class="form-group">
-                      <label>Country</label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.billingAddress.country" 
-                        placeholder="India" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>Pincode / Postal Code <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.billingAddress.pincode" 
+                      placeholder="e.g. 400021" 
+                      class="font-mono" 
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Country</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.billingAddress.country" 
+                      placeholder="India" 
+                    />
                   </div>
                 </div>
               </div>
@@ -1783,16 +1665,13 @@ import { MastersService } from '../../core/services/masters.service';
               <!-- SHIPPING ADDRESS CARD -->
               <div class="zeno-card padded-card">
                 <div class="card-header-flex">
-                  <div>
-                    <div class="card-title"><i class="pi pi-truck"></i> Primary Shipping / Plant Address</div>
-                    <p class="card-description">Physical dispatch godown, warehouse or plant location for goods movements.</p>
-                  </div>
+                  <div class="card-title"><i class="pi pi-truck"></i> Primary Shipping / Plant Address</div>
                   <button type="button" class="btn-secondary btn-sm" (click)="copyBillingToShipping()">
                     <i class="pi pi-copy"></i> Copy from Billing
                   </button>
                 </div>
 
-                <div class="form-stack">
+                <div class="form-grid-4col">
                   <div class="form-group">
                     <label>Address Line 1 <span class="required">*</span></label>
                     <input 
@@ -1811,45 +1690,42 @@ import { MastersService } from '../../core/services/masters.service';
                     />
                   </div>
 
-                  <div class="form-grid-2col">
-                    <div class="form-group">
-                      <label>City <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.shippingAddress.city" 
-                        placeholder="e.g. Navi Mumbai" 
-                      />
-                    </div>
-
-                    <div class="form-group">
-                      <label>State <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.shippingAddress.state" 
-                        placeholder="e.g. Maharashtra" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>City <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.shippingAddress.city" 
+                      placeholder="e.g. Navi Mumbai" 
+                    />
                   </div>
 
-                  <div class="form-grid-2col">
-                    <div class="form-group">
-                      <label>Pincode / Postal Code <span class="required">*</span></label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.shippingAddress.pincode" 
-                        placeholder="e.g. 410208" 
-                        class="font-mono" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>State <span class="required">*</span></label>
+                    <select [(ngModel)]="companyForm.shippingAddress.state">
+                      <option value="">-- Select State --</option>
+                      @for (s of indianStates; track s.code) {
+                        <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                      }
+                    </select>
+                  </div>
 
-                    <div class="form-group">
-                      <label>Country</label>
-                      <input 
-                        type="text" 
-                        [(ngModel)]="companyForm.shippingAddress.country" 
-                        placeholder="India" 
-                      />
-                    </div>
+                  <div class="form-group">
+                    <label>Pincode / Postal Code <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.shippingAddress.pincode" 
+                      placeholder="e.g. 410208" 
+                      class="font-mono" 
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Country</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="companyForm.shippingAddress.country" 
+                      placeholder="India" 
+                    />
                   </div>
                 </div>
               </div>
@@ -1860,7 +1736,6 @@ import { MastersService } from '../../core/services/masters.service';
           @if (companySubTab === 'gst') {
             <div class="zeno-card padded-card">
               <div class="card-title">GST & Statutory Tax Identifiers</div>
-              <p class="card-description">State tax jurisdiction, GSTIN format compliance, and return filing periodicity.</p>
 
               <div class="form-grid-2col">
                 <div class="form-group">
@@ -1884,7 +1759,6 @@ import { MastersService } from '../../core/services/masters.service';
                     maxlength="15" 
                     class="font-mono uppercase font-bold" 
                   />
-                  <span class="field-hint">e.g. 27 (State) + AABCU9603R (PAN) + 1ZM (Check digits).</span>
                 </div>
 
                 <div class="form-group">
@@ -1896,16 +1770,16 @@ import { MastersService } from '../../core/services/masters.service';
                     maxlength="10" 
                     class="font-mono uppercase font-bold" 
                   />
-                  <span class="field-hint">10-digit income tax permanent account number.</span>
                 </div>
 
                 <div class="form-group">
                   <label>Jurisdiction State & State Code</label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="companyForm.stateName" 
-                    placeholder="e.g. Maharashtra (27)" 
-                  />
+                  <select [(ngModel)]="companyForm.stateName">
+                    <option value="">-- Select Jurisdiction State --</option>
+                    @for (s of indianStates; track s.code) {
+                      <option [value]="s.name + ' (' + s.code + ')'">{{ s.name }} ({{ s.code }})</option>
+                    }
+                  </select>
                 </div>
 
                 <div class="form-group">
@@ -1917,11 +1791,11 @@ import { MastersService } from '../../core/services/masters.service';
                 </div>
 
                 <div class="form-group">
-                  <label>Application Reference Number (ARN)</label>
+                  <label>TAN Number</label>
                   <input 
                     type="text" 
-                    [(ngModel)]="companyForm.arnNumber" 
-                    placeholder="e.g. AA270425000123P" 
+                    [(ngModel)]="companyForm.tanNumber" 
+                    placeholder="e.g. MUMA12345E" 
                     class="font-mono uppercase" 
                   />
                 </div>
@@ -1933,7 +1807,6 @@ import { MastersService } from '../../core/services/masters.service';
           @if (companySubTab === 'contact') {
             <div class="zeno-card padded-card">
               <div class="card-title">Corporate Contact & Communication Directory</div>
-              <p class="card-description">Designated point of contact, accounts desk email, and official customer helpline.</p>
 
               <div class="form-grid-2col">
                 <div class="form-group">
@@ -1952,7 +1825,6 @@ import { MastersService } from '../../core/services/masters.service';
                     [(ngModel)]="companyForm.contactDetails.email" 
                     placeholder="e.g. finance@apextechnologies.com" 
                   />
-                  <span class="field-hint">Used for automated invoice PDFs and statement dispatches.</span>
                 </div>
 
                 <div class="form-group">
@@ -1973,7 +1845,7 @@ import { MastersService } from '../../core/services/masters.service';
                   />
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group">
                   <label>Official Corporate Website</label>
                   <input 
                     type="url" 
@@ -1989,7 +1861,6 @@ import { MastersService } from '../../core/services/masters.service';
           @if (companySubTab === 'logo') {
             <div class="zeno-card padded-card">
               <div class="card-title">Logo, Brand Identity & Invoice Letterhead</div>
-              <p class="card-description">Upload corporate emblem, set document letterheads, and print declarations.</p>
 
               <div class="branding-layout">
                 <!-- LOGO PREVIEW BOX -->
@@ -2010,34 +1881,42 @@ import { MastersService } from '../../core/services/masters.service';
                   </div>
                 </div>
 
-                <!-- LOGO INPUTS & PRESETS -->
+                <!-- LOGO UPLOAD & BRANDING CONTROLS -->
                 <div class="logo-controls">
                   <div class="form-group">
-                    <label>Logo Image URL / CDN Link</label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="companyForm.logoUrl" 
-                      placeholder="https://example.com/assets/logo.png" 
-                    />
-                    <span class="field-hint">Direct HTTPS URL of PNG, JPG, or SVG logo.</span>
-                  </div>
-
-                  <div class="logo-presets">
-                    <label class="text-xs uppercase font-bold text-muted">Quick Demo Logos:</label>
-                    <div class="preset-buttons">
-                      <button type="button" class="preset-btn" (click)="setLogoPreset('zeno')">
-                        <i class="pi pi-check"></i> Zeno Modern
-                      </button>
-                      <button type="button" class="preset-btn" (click)="setLogoPreset('tech')">
-                        <i class="pi pi-bolt"></i> Apex Tech
-                      </button>
-                      <button type="button" class="preset-btn" (click)="setLogoPreset('corp')">
-                        <i class="pi pi-globe"></i> Global Corp
-                      </button>
-                      <button type="button" class="preset-btn text-danger" (click)="companyForm.logoUrl = ''">
-                        <i class="pi pi-trash"></i> Remove
-                      </button>
+                    <label>Upload Company Logo</label>
+                    <div 
+                      class="logo-upload-dropzone" 
+                      (click)="logoFileInput.click()"
+                      (dragover)="$event.preventDefault()"
+                      (drop)="onLogoDrop($event)"
+                    >
+                      <input 
+                        #logoFileInput 
+                        type="file" 
+                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" 
+                        (change)="onLogoFileSelected($event)" 
+                        style="display: none;" 
+                      />
+                      <div class="upload-icon-circle">
+                        <i class="pi pi-cloud-upload"></i>
+                      </div>
+                      <div class="upload-texts">
+                        <span class="upload-title">Click to upload logo or drag and drop</span>
+                        <span class="upload-subtitle">PNG, JPG, SVG, or WEBP (Max 2MB)</span>
+                      </div>
                     </div>
+
+                    @if (companyForm.logoUrl) {
+                      <div class="upload-actions">
+                        <button type="button" class="btn-secondary btn-sm" (click)="logoFileInput.click()">
+                          <i class="pi pi-upload"></i> Change Image
+                        </button>
+                        <button type="button" class="btn-secondary btn-sm text-danger" (click)="companyForm.logoUrl = ''">
+                          <i class="pi pi-trash"></i> Remove Logo
+                        </button>
+                      </div>
+                    }
                   </div>
 
                   <div class="form-group">
@@ -2066,6 +1945,289 @@ import { MastersService } from '../../core/services/masters.service';
                       placeholder="e.g. Certified that all particulars are true and correct. Subject to local jurisdiction."
                     ></textarea>
                   </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- TAB: BRANCH MASTER (UNDER SETTINGS) -->
+      @if (activeTab === 'branches') {
+        <div class="warehouses-page-view">
+          <!-- STATS / KPI SUMMARY CARDS -->
+          <div class="warehouse-stats-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap primary">
+                <i class="pi pi-sitemap"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ branches.length }}</div>
+                <div class="kpi-label">Registered Branches</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap custom">
+                <i class="pi pi-building"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ getHeadOfficeBranch()?.branchName || 'Main Branch' }}</div>
+                <div class="kpi-label">Head Office (HQ)</div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon-wrap users">
+                <i class="pi pi-warehouse"></i>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-value">{{ warehouses.length }}</div>
+                <div class="kpi-label">Associated Godowns</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOLBAR: SEARCH & ADD -->
+          <div class="warehouse-toolbar zeno-card">
+            <div class="search-input-wrap">
+              <i class="pi pi-search"></i>
+              <input 
+                type="text" 
+                [(ngModel)]="branchSearchQuery" 
+                placeholder="Search branches by name, code, state, or address..." 
+              />
+              @if (branchSearchQuery) {
+                <button class="clear-search-btn" (click)="branchSearchQuery = ''">
+                  <i class="pi pi-times"></i>
+                </button>
+              }
+            </div>
+
+            <button class="btn-primary" (click)="openCreateBranchModal()">
+              <i class="pi pi-plus"></i> Add New Branch
+            </button>
+          </div>
+
+          <!-- BRANCHES TABLE -->
+          <div class="zeno-card warehouse-table-card">
+            <div class="table-responsive">
+              <table class="zeno-table">
+                <thead>
+                  <tr>
+                    <th style="min-width: 220px;">Branch Name & Code</th>
+                    <th style="min-width: 140px;">Type / Status</th>
+                    <th style="min-width: 180px;">State & Jurisdiction</th>
+                    <th style="min-width: 260px;">Physical Address</th>
+                    <th style="min-width: 130px; text-align: center;">Linked Godowns</th>
+                    <th style="min-width: 110px; text-align: center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (filteredBranches.length === 0) {
+                    <tr>
+                      <td colspan="6" class="text-center py-8 text-muted">
+                        <i class="pi pi-sitemap" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                        No branches found matching your search.
+                      </td>
+                    </tr>
+                  }
+                  @for (b of filteredBranches; track b.id) {
+                    <tr>
+                      <td>
+                        <div class="warehouse-cell">
+                          <div class="wh-icon"><i class="pi pi-building"></i></div>
+                          <div>
+                            <strong class="wh-name">{{ b.branchName }}</strong>
+                            <div class="wh-code font-mono">{{ b.branchCode }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        @if (b.isHeadOffice) {
+                          <span class="badge-pill badge-system font-bold">
+                            <i class="pi pi-star-fill"></i> Head Office
+                          </span>
+                        } @else {
+                          <span class="badge-pill badge-custom">
+                            <i class="pi pi-circle-fill" style="font-size: 0.5rem;"></i> Branch Office
+                          </span>
+                        }
+                      </td>
+                      <td>
+                        <div class="branch-state-cell">
+                          <span class="state-name-text">{{ b.stateName || 'Maharashtra' }}</span>
+                          <span class="state-code-badge font-mono">{{ b.stateCode || '27' }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="wh-address">
+                          {{ b.addressLine1 || '—' }}
+                          @if (b.pincode) {
+                            <div class="text-xs text-muted font-mono">PIN: {{ b.pincode }}</div>
+                          }
+                        </div>
+                      </td>
+                      <td style="text-align: center;">
+                        <span class="badge-pill badge-primary">
+                          <i class="pi pi-warehouse"></i> {{ getGodownsCountForBranch(b.id) }} Godowns
+                        </span>
+                      </td>
+                      <td>
+                        <div class="action-buttons-wrap">
+                          <button class="btn-icon" (click)="openEditBranchModal(b)" title="Edit Branch">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button class="btn-icon text-danger" (click)="openDeleteBranchModal(b)" title="Delete Branch" [disabled]="b.isHeadOffice && branches.length === 1">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- MODAL: CREATE NEW BRANCH -->
+          @if (createBranchModalVisible) {
+            <div class="modal-backdrop">
+              <div class="modal-dialog">
+                <div class="modal-header">
+                  <h3>Add New Company Branch</h3>
+                  <button class="close-btn" (click)="createBranchModalVisible = false"><i class="pi pi-times"></i></button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-group">
+                    <label>Branch Name <span class="required">*</span></label>
+                    <input type="text" [(ngModel)]="newBranch.branchName" placeholder="e.g. Pune Regional Branch, Delhi Logistics Hub" />
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Branch Code <span class="required">*</span></label>
+                      <input type="text" [(ngModel)]="newBranch.branchCode" placeholder="e.g. BR-PUN" class="font-mono uppercase" />
+                    </div>
+                    <div class="form-group">
+                      <label>State <span class="required">*</span></label>
+                      <select [(ngModel)]="newBranch.stateName" (change)="onNewBranchStateChange()">
+                        @for (s of indianStates; track s.code) {
+                          <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>State Code</label>
+                      <input type="text" [(ngModel)]="newBranch.stateCode" class="font-mono" placeholder="27" />
+                    </div>
+                    <div class="form-group">
+                      <label>Pincode / Postal Code</label>
+                      <input type="text" [(ngModel)]="newBranch.pincode" placeholder="e.g. 411001" class="font-mono" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Street / Building Address</label>
+                    <input type="text" [(ngModel)]="newBranch.addressLine1" placeholder="Plot / Suite / Landmark / Area" />
+                  </div>
+                  <div class="form-group flex-center-start" style="padding-top: 12px;">
+                    <label class="switch-inline">
+                      <input type="checkbox" [(ngModel)]="newBranch.isHeadOffice" />
+                      <span>Primary Head Office (Corporate HQ)</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn-secondary" (click)="createBranchModalVisible = false">Cancel</button>
+                  <button class="btn-primary" (click)="submitCreateBranch()" [disabled]="savingBranch || !newBranch.branchName.trim() || !newBranch.branchCode.trim()">
+                    <i class="pi pi-check"></i> {{ savingBranch ? 'Saving...' : 'Save Branch' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- MODAL: EDIT BRANCH -->
+          @if (editBranchModalVisible && branchToEdit) {
+            <div class="modal-backdrop">
+              <div class="modal-dialog">
+                <div class="modal-header">
+                  <h3>Edit Branch Information</h3>
+                  <button class="close-btn" (click)="editBranchModalVisible = false"><i class="pi pi-times"></i></button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-group">
+                    <label>Branch Name <span class="required">*</span></label>
+                    <input type="text" [(ngModel)]="branchToEdit.branchName" placeholder="Branch Name" />
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Branch Code <span class="required">*</span></label>
+                      <input type="text" [(ngModel)]="branchToEdit.branchCode" placeholder="Code" class="font-mono uppercase" />
+                    </div>
+                    <div class="form-group">
+                      <label>State <span class="required">*</span></label>
+                      <select [(ngModel)]="branchToEdit.stateName" (change)="onEditBranchStateChange()">
+                        @for (s of indianStates; track s.code) {
+                          <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>State Code</label>
+                      <input type="text" [(ngModel)]="branchToEdit.stateCode" class="font-mono" placeholder="27" />
+                    </div>
+                    <div class="form-group">
+                      <label>Pincode / Postal Code</label>
+                      <input type="text" [(ngModel)]="branchToEdit.pincode" placeholder="Pincode" class="font-mono" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Street / Building Address</label>
+                    <input type="text" [(ngModel)]="branchToEdit.addressLine1" placeholder="Address" />
+                  </div>
+                  <div class="form-group flex-center-start" style="padding-top: 12px;">
+                    <label class="switch-inline">
+                      <input type="checkbox" [(ngModel)]="branchToEdit.isHeadOffice" />
+                      <span>Primary Head Office (Corporate HQ)</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn-secondary" (click)="editBranchModalVisible = false">Cancel</button>
+                  <button class="btn-primary" (click)="submitEditBranch()" [disabled]="savingBranch || !branchToEdit.branchName.trim() || !branchToEdit.branchCode.trim()">
+                    <i class="pi pi-check"></i> {{ savingBranch ? 'Updating...' : 'Save Changes' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- MODAL: CONFIRM DELETE BRANCH -->
+          @if (deleteBranchModalVisible && branchToDelete) {
+            <div class="modal-backdrop">
+              <div class="modal-dialog">
+                <div class="modal-header">
+                  <h3>Delete Branch</h3>
+                  <button class="close-btn" (click)="deleteBranchModalVisible = false"><i class="pi pi-times"></i></button>
+                </div>
+                <div class="modal-body">
+                  <div class="delete-dialog-content">
+                    <i class="pi pi-exclamation-triangle warning-icon"></i>
+                    <div>
+                      <p>Are you sure you want to delete branch <strong>{{ branchToDelete.branchName }} ({{ branchToDelete.branchCode }})</strong>?</p>
+                      <p class="text-sm text-muted">This branch has {{ getGodownsCountForBranch(branchToDelete.id) }} associated godown(s). Deleting it will permanently remove the branch record.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn-secondary" (click)="deleteBranchModalVisible = false">Cancel</button>
+                  <button class="btn-danger" (click)="confirmDeleteBranch()" [disabled]="savingBranch">
+                    <i class="pi pi-trash"></i> {{ savingBranch ? 'Deleting...' : 'Confirm Delete' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -2250,7 +2412,12 @@ import { MastersService } from '../../core/services/masters.service';
                   </div>
                   <div class="form-group">
                     <label>State</label>
-                    <input type="text" [(ngModel)]="newWarehouse.state" placeholder="e.g. Maharashtra" />
+                    <select [(ngModel)]="newWarehouse.state">
+                      <option value="">-- Select State --</option>
+                      @for (s of indianStates; track s.code) {
+                        <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                      }
+                    </select>
                   </div>
                 </div>
                 <div class="form-row">
@@ -2324,7 +2491,12 @@ import { MastersService } from '../../core/services/masters.service';
                   </div>
                   <div class="form-group">
                     <label>State</label>
-                    <input type="text" [(ngModel)]="warehouseToEdit.state" placeholder="State" />
+                    <select [(ngModel)]="warehouseToEdit.state">
+                      <option value="">-- Select State --</option>
+                      @for (s of indianStates; track s.code) {
+                        <option [value]="s.name">{{ s.name }} ({{ s.code }})</option>
+                      }
+                    </select>
                   </div>
                 </div>
                 <div class="form-row">
@@ -2405,9 +2577,6 @@ import { MastersService } from '../../core/services/masters.service';
                   [disabled]="editingRole.isSystem" 
                   placeholder="Role Name *" 
                 />
-                @if (editingRole.isSystem) {
-                  <span class="helper-text">System predefined role names cannot be renamed.</span>
-                }
               </div>
               <div class="form-group">
                 <label>Functional Duties / Description</label>
@@ -2615,24 +2784,26 @@ import { MastersService } from '../../core/services/masters.service';
       font-size: 1.125rem;
       font-weight: 700;
       color: var(--surface-900);
-      margin-bottom: 4px;
+      margin-bottom: 16px;
     }
 
     .card-description {
-      font-size: 0.8125rem;
-      color: var(--surface-500);
-      margin-bottom: 20px;
+      display: none;
     }
 
     .card-header-flex {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 24px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--surface-200);
 
       .card-title { margin-bottom: 0; }
-      .card-description { margin-bottom: 0; margin-top: 4px; }
+    }
+
+    .padded-card .card-header-flex {
+      padding: 0 0 14px 0;
+      margin-bottom: 16px;
     }
 
     .card-header-actions {
@@ -3379,7 +3550,13 @@ import { MastersService } from '../../core/services/masters.service';
     }
 
     /* Role Create & Edit Cards */
-    .role-create-view,
+    .role-create-view {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 24px;
+    }
+
     .role-permissions-view {
       display: flex;
       flex-direction: column;
@@ -3686,9 +3863,52 @@ import { MastersService } from '../../core/services/masters.service';
       font-weight: 600;
       color: var(--surface-600);
       background: var(--surface-100);
-      padding: 2px 8px;
+      padding: 3px 9px;
       border-radius: var(--radius-full);
       white-space: nowrap;
+      border: 1px solid transparent;
+
+      &.cat-masters {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+      }
+      &.cat-transactions {
+        background: #ecfdf5;
+        color: #047857;
+        border-color: #a7f3d0;
+      }
+      &.cat-reports {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border-color: #ddd6fe;
+      }
+      &.cat-administration {
+        background: #fffbeb;
+        color: #b45309;
+        border-color: #fde68a;
+      }
+    }
+
+    .branch-state-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .state-name-text {
+        font-weight: 500;
+        color: var(--surface-800);
+      }
+
+      .state-code-badge {
+        font-size: 0.6875rem;
+        background: var(--surface-100);
+        color: var(--surface-600);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        border: 1px solid var(--surface-200);
+      }
     }
 
     .perm-checkbox {
@@ -4064,10 +4284,7 @@ import { MastersService } from '../../core/services/masters.service';
     }
 
     .helper-text {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--surface-400);
-      margin-top: 4px;
+      display: none;
     }
 
     .badge-rate {
@@ -4277,16 +4494,29 @@ import { MastersService } from '../../core/services/masters.service';
     }
 
     .field-hint {
-      display: block;
-      font-size: 0.72rem;
-      color: var(--surface-500);
-      margin-top: 4px;
+      display: none;
     }
 
     .addresses-layout-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 20px;
+      width: 100%;
+    }
+
+    .form-grid-4col {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px 20px;
+      margin-top: 16px;
+
+      @media (max-width: 1200px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* Branding & Logo */
@@ -4315,8 +4545,9 @@ import { MastersService } from '../../core/services/masters.service';
     }
 
     .logo-box {
-      width: 140px;
-      height: 140px;
+      width: 220px;
+      height: 120px;
+      padding: 10px;
       border-radius: var(--radius-md);
       border: 2px dashed var(--surface-300);
       background: #ffffff;
@@ -4356,40 +4587,65 @@ import { MastersService } from '../../core/services/masters.service';
       gap: 16px;
     }
 
-    .logo-presets {
+    .logo-upload-dropzone {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .preset-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .preset-btn {
-      display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: #ffffff;
-      border: 1px solid var(--surface-300);
-      border-radius: var(--radius-sm);
+      justify-content: center;
+      gap: 10px;
+      padding: 24px 16px;
+      border: 2px dashed var(--surface-300);
+      border-radius: var(--radius-md);
+      background: var(--surface-50);
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
+      text-align: center;
 
       &:hover {
-        background: var(--surface-100);
-        border-color: var(--surface-400);
-      }
+        border-color: var(--primary-500);
+        background: var(--primary-50);
 
-      &.text-danger {
-        color: #dc2626;
-        &:hover { background: #fef2f2; border-color: #fca5a5; }
+        .upload-icon-circle {
+          background: var(--primary-600);
+          color: #ffffff;
+        }
       }
+    }
+
+    .upload-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--surface-200);
+      color: var(--surface-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      transition: all 0.2s ease;
+    }
+
+    .upload-texts {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .upload-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--surface-800);
+    }
+
+    .upload-subtitle {
+      font-size: 0.75rem;
+      color: var(--surface-500);
+    }
+
+    .upload-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
     }
 
     /* Warehouse Master Styles */
@@ -4517,7 +4773,8 @@ import { MastersService } from '../../core/services/masters.service';
   `],
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'company' | 'warehouses' | 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' = 'company';
+  readonly indianStates = INDIAN_STATES;
+  activeTab: 'company' | 'branches' | 'warehouses' | 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' = 'company';
   gstSubTab: 'hierarchy' | 'slabs' = 'hierarchy';
   companySubTab: 'basic' | 'address' | 'gst' | 'contact' | 'logo' = 'basic';
   saving = false;
@@ -4540,6 +4797,7 @@ export class SettingsComponent implements OnInit {
     pan: '',
     stateName: 'Maharashtra (27)',
     filingFrequency: 'Monthly',
+    tanNumber: '',
     arnNumber: '',
     billingAddress: {
       addressLine1: '',
@@ -4570,6 +4828,26 @@ export class SettingsComponent implements OnInit {
       invoiceHeaderNote: '',
       invoiceFooterNote: '',
     },
+  };
+
+  // Branch Master State
+  branches: any[] = [];
+  branchSearchQuery: string = '';
+  createBranchModalVisible = false;
+  editBranchModalVisible = false;
+  deleteBranchModalVisible = false;
+  branchToEdit: any = null;
+  branchToDelete: any = null;
+  savingBranch = false;
+
+  newBranch: any = {
+    branchName: '',
+    branchCode: '',
+    stateCode: '27',
+    stateName: 'Maharashtra',
+    addressLine1: '',
+    pincode: '',
+    isHeadOffice: false,
   };
 
   // Warehouse Master State
@@ -4686,6 +4964,9 @@ export class SettingsComponent implements OnInit {
     { featureKey: 'VARIANTS', isEnabled: true },
     { featureKey: 'RACK_BIN', isEnabled: true },
     { featureKey: 'MANUFACTURING', isEnabled: true },
+    { featureKey: 'STOCK_TRANSFER', isEnabled: true },
+    { featureKey: 'STOCK_ADJUSTMENT', isEnabled: true },
+    { featureKey: 'PRICE_LIST', isEnabled: true },
   ];
 
   taxMasters: any[] = [];
@@ -4764,28 +5045,93 @@ export class SettingsComponent implements OnInit {
   };
 
   permissionModules = [
+    // Masters
     { key: 'LEDGER_GROUP', label: 'Ledger Groups', category: 'Masters', icon: 'pi pi-sitemap' },
     { key: 'LEDGER', label: 'Ledgers', category: 'Masters', icon: 'pi pi-file-edit' },
     { key: 'ITEM', label: 'Products & SKUs', category: 'Masters', icon: 'pi pi-tags' },
     { key: 'ITEM_GROUP', label: 'Stock Groups', category: 'Masters', icon: 'pi pi-folder' },
     { key: 'ITEM_CATEGORY', label: 'Stock Categories', category: 'Masters', icon: 'pi pi-tag' },
     { key: 'UNIT', label: 'Units of Measure', category: 'Masters', icon: 'pi pi-compass' },
-    { key: 'VARIANT', label: 'Item Variants', category: 'Masters', icon: 'pi pi-sliders-v' },
-    { key: 'PURCHASE_ORDER', label: 'Purchase Orders', category: 'Procure to Pay', icon: 'pi pi-shopping-bag' },
-    { key: 'GOODS_RECEIPT_NOTE', label: 'Goods Receipt (GRN)', category: 'Procure to Pay', icon: 'pi pi-box' },
-    { key: 'PURCHASE_INVOICE', label: 'Purchase Invoices', category: 'Procure to Pay', icon: 'pi pi-file' },
-    { key: 'PURCHASE_RETURN', label: 'Purchase Returns', category: 'Procure to Pay', icon: 'pi pi-replay' },
-    { key: 'VENDOR_PAYMENT', label: 'Vendor Payments', category: 'Procure to Pay', icon: 'pi pi-credit-card' },
-    { key: 'SALES_ORDER', label: 'Sales Orders', category: 'Sales & Billing', icon: 'pi pi-shopping-cart' },
-    { key: 'DELIVERY_CHALLAN', label: 'Delivery Challans', category: 'Sales & Billing', icon: 'pi pi-truck' },
-    { key: 'SALES_INVOICE', label: 'Sales Invoices', category: 'Sales & Billing', icon: 'pi pi-receipt' },
-    { key: 'SALES_RETURN', label: 'Sales Returns', category: 'Sales & Billing', icon: 'pi pi-backward' },
-    { key: 'CUSTOMER_RECEIPT', label: 'Customer Receipts', category: 'Sales & Billing', icon: 'pi pi-wallet' },
+    { key: 'VARIANT', label: 'Item Variants', category: 'Masters', icon: 'pi pi-sliders-v', featureKey: 'VARIANTS' },
+    { key: 'RACK_BIN', label: 'Rack & Bin Locations', category: 'Masters', icon: 'pi pi-th-large', featureKey: 'RACK_BIN' },
+
+    // Transactions - Procure to Pay
+    { key: 'PURCHASE_ORDER', label: 'Purchase Orders', category: 'Transactions', icon: 'pi pi-shopping-bag', featureKey: 'PURCHASE_ORDER' },
+    { key: 'GOODS_RECEIPT_NOTE', label: 'Goods Receipt (GRN)', category: 'Transactions', icon: 'pi pi-box', featureKey: 'GRN' },
+    { key: 'PURCHASE_INVOICE', label: 'Purchase Invoices', category: 'Transactions', icon: 'pi pi-file' },
+    { key: 'PURCHASE_RETURN', label: 'Purchase Returns', category: 'Transactions', icon: 'pi pi-replay' },
+    { key: 'VENDOR_PAYMENT', label: 'Vendor Payments', category: 'Transactions', icon: 'pi pi-credit-card' },
+
+    // Transactions - Order to Cash (Sales)
+    { key: 'SALES_ORDER', label: 'Sales Orders', category: 'Transactions', icon: 'pi pi-shopping-cart', featureKey: 'SALES_ORDER' },
+    { key: 'DELIVERY_CHALLAN', label: 'Delivery Challans', category: 'Transactions', icon: 'pi pi-truck', featureKey: 'DELIVERY_CHALLAN' },
+    { key: 'SALES_INVOICE', label: 'Sales Invoices', category: 'Transactions', icon: 'pi pi-receipt' },
+    { key: 'SALES_RETURN', label: 'Sales Returns', category: 'Transactions', icon: 'pi pi-backward' },
+    { key: 'CUSTOMER_RECEIPT', label: 'Customer Receipts', category: 'Transactions', icon: 'pi pi-wallet' },
+
+    // Transactions - Accounting Vouchers
+    { key: 'PAYMENT_VOUCHER', label: 'Payment Vouchers', category: 'Transactions', icon: 'pi pi-arrow-circle-up' },
+    { key: 'RECEIPT_VOUCHER', label: 'Receipt Vouchers', category: 'Transactions', icon: 'pi pi-arrow-circle-down' },
+    { key: 'CONTRA_VOUCHER', label: 'Contra Vouchers', category: 'Transactions', icon: 'pi pi-sync' },
+    { key: 'JOURNAL_VOUCHER', label: 'Journal Vouchers', category: 'Transactions', icon: 'pi pi-book' },
+    { key: 'DEBIT_NOTE', label: 'Debit Notes', category: 'Transactions', icon: 'pi pi-file-export' },
+    { key: 'CREDIT_NOTE', label: 'Credit Notes', category: 'Transactions', icon: 'pi pi-file-import' },
+
+    // Transactions - Inventory & Warehouse
+    { key: 'STOCK_TRANSFER', label: 'Stock Transfers', category: 'Transactions', icon: 'pi pi-arrows-h', featureKey: 'STOCK_TRANSFER' },
+    { key: 'STOCK_ADJUSTMENT', label: 'Stock Adjustments', category: 'Transactions', icon: 'pi pi-sliders-h', featureKey: 'STOCK_ADJUSTMENT' },
+    { key: 'STOCK_OPENING_BALANCE', label: 'Opening Stock Balance', category: 'Transactions', icon: 'pi pi-calendar-plus' },
+    { key: 'PRICE_LIST', label: 'Price Lists & Multi-Tier Pricing', category: 'Transactions', icon: 'pi pi-percentage', featureKey: 'PRICE_LIST' },
+
+    // Transactions - Manufacturing
+    { key: 'BOM', label: 'Bills of Materials (BOM)', category: 'Transactions', icon: 'pi pi-list', featureKey: 'MANUFACTURING' },
+    { key: 'PRODUCTION', label: 'Production Entries', category: 'Transactions', icon: 'pi pi-cog', featureKey: 'MANUFACTURING' },
+
+    // Reports
+    { key: 'REPORTS', label: 'Financial & Audit Reports', category: 'Reports', icon: 'pi pi-chart-line' },
+
+    // Administration
     { key: 'SETTINGS', label: 'System Settings', category: 'Administration', icon: 'pi pi-cog' },
+    { key: 'BRANCH', label: 'Branches & Locations', category: 'Administration', icon: 'pi pi-building' },
+    { key: 'GODOWN', label: 'Godowns & Warehouses', category: 'Administration', icon: 'pi pi-warehouse' },
     { key: 'ROLES', label: 'Roles & Privileges', category: 'Administration', icon: 'pi pi-shield' },
     { key: 'USERS', label: 'User Directory', category: 'Administration', icon: 'pi pi-users' },
-    { key: 'REPORTS', label: 'Financial Reports', category: 'Administration', icon: 'pi pi-chart-line' },
   ];
+
+  isModuleFeatureEnabled(moduleKeyOrMod: any): boolean {
+    const mod = typeof moduleKeyOrMod === 'string'
+      ? this.permissionModules.find((m) => m.key === moduleKeyOrMod)
+      : moduleKeyOrMod;
+    if (!mod || !mod.featureKey) return true;
+    const toggle = this.toggles.find((t) => t.featureKey === mod.featureKey);
+    return toggle ? toggle.isEnabled !== false : true;
+  }
+
+  get activePermissionModules(): any[] {
+    return this.permissionModules.filter((m) => this.isModuleFeatureEnabled(m));
+  }
+
+  get categoryOptions(): { key: string; label: string; count: number }[] {
+    const active = this.activePermissionModules;
+    const uniqueCats: string[] = [];
+    for (const mod of active) {
+      if (mod.category && !uniqueCats.includes(mod.category)) {
+        uniqueCats.push(mod.category);
+      }
+    }
+    return [
+      { key: 'ALL', label: 'All', count: active.length },
+      ...uniqueCats.map((cat) => ({
+        key: cat,
+        label: cat,
+        count: active.filter((m) => m.category === cat).length,
+      })),
+    ];
+  }
+
+  get totalPrivilegesCount(): number {
+    return this.activePermissionModules.length * this.permissionActions.length;
+  }
 
   permissionActions = [
     { key: 'VIEW', label: 'View' },
@@ -4800,6 +5146,7 @@ export class SettingsComponent implements OnInit {
     private api: ApiService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
     private route: ActivatedRoute,
     private router: Router,
   ) {}
@@ -4815,7 +5162,7 @@ export class SettingsComponent implements OnInit {
         this.gstSubTab = 'hierarchy';
       } else if (
         tab &&
-        ['company', 'warehouses', 'toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory'].includes(tab)
+        ['company', 'branches', 'warehouses', 'toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory'].includes(tab)
       ) {
         this.activeTab = tab as any;
       }
@@ -4835,6 +5182,8 @@ export class SettingsComponent implements OnInit {
     switch (this.activeTab) {
       case 'company':
         return 'Company Profile';
+      case 'branches':
+        return 'Branches & Locations';
       case 'warehouses':
         return 'Warehouse';
       case 'toggles':
@@ -4912,6 +5261,7 @@ export class SettingsComponent implements OnInit {
 
   loadAll() {
     this.loadCompanyProfile();
+    this.loadBranches();
     this.loadWarehouses();
     const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
 
@@ -5082,12 +5432,15 @@ export class SettingsComponent implements OnInit {
         }
         this.saveSuccess = true;
         this.saveMessage = `Role "${role.name}" and privileges saved successfully!`;
+        this.toast.success(this.saveMessage, 'Privileges Saved');
         setTimeout(() => (this.saveSuccess = false), 3500);
       },
       error: (err: any) => {
         console.error('Failed to save role permissions', err);
         this.savingRole = false;
-        alert(err?.error?.message || 'Failed to save role. Please check network/permission.');
+        const msg = err?.error?.message || 'Failed to save role. Please check network/permission.';
+        this.toast.error(msg, 'Save Failed');
+        alert(msg);
       },
     });
   }
@@ -5125,11 +5478,13 @@ export class SettingsComponent implements OnInit {
   }
 
   getPrivilegeCount(role: any): number {
-    return (role?.permissions || []).length;
+    if (!role?.permissions) return 0;
+    const activeKeys = new Set(this.activePermissionModules.map((m) => m.key));
+    return role.permissions.filter((p: any) => activeKeys.has(p.moduleName || p.module)).length;
   }
 
   getPrivilegePercentage(role: any): number {
-    const total = this.permissionModules.length * this.permissionActions.length;
+    const total = this.totalPrivilegesCount;
     if (!total || !role) return 0;
     const count = this.getPrivilegeCount(role);
     return Math.min(100, Math.round((count / total) * 100));
@@ -5141,7 +5496,7 @@ export class SettingsComponent implements OnInit {
       role.permissions.map((p: any) => p.moduleName || p.module),
     );
     const cats = new Set<string>();
-    for (const mod of this.permissionModules) {
+    for (const mod of this.activePermissionModules) {
       if (activeMods.has(mod.key)) {
         cats.add(mod.category);
       }
@@ -5150,19 +5505,23 @@ export class SettingsComponent implements OnInit {
   }
 
   getUniqueCategories(): string[] {
-    const cats = new Set<string>();
-    this.permissionModules.forEach((m) => cats.add(m.category));
-    return Array.from(cats);
+    const cats: string[] = [];
+    for (const mod of this.activePermissionModules) {
+      if (mod.category && !cats.includes(mod.category)) {
+        cats.push(mod.category);
+      }
+    }
+    return cats;
   }
 
   getCategoryModuleCount(category: string): number {
-    return this.permissionModules.filter((m) => m.category === category).length;
+    return this.activePermissionModules.filter((m) => m.category === category).length;
   }
 
   filteredPermissionModules(): any[] {
-    let list = this.permissionModules || [];
+    let list = this.activePermissionModules || [];
     if (this.selectedCategoryFilter && this.selectedCategoryFilter !== 'ALL') {
-      list = list.filter((m) => m.category === this.selectedCategoryFilter);
+      list = list.filter((m) => m.category.toLowerCase() === this.selectedCategoryFilter.toLowerCase());
     }
     if (this.moduleSearchQuery && this.moduleSearchQuery.trim()) {
       const q = this.moduleSearchQuery.toLowerCase().trim();
@@ -5270,11 +5629,14 @@ export class SettingsComponent implements OnInit {
           this.roleViewMode = 'list';
           this.saveSuccess = true;
           this.saveMessage = `New role "${created.name}" created with ${permsPayload.length} privileges!`;
+          this.toast.success(this.saveMessage, 'Role Created');
           setTimeout(() => (this.saveSuccess = false), 3500);
         },
         error: (err: any) => {
           this.savingRole = false;
-          alert(err?.error?.message || 'Failed to create role. Ensure role name is unique.');
+          const msg = err?.error?.message || 'Failed to create role. Ensure role name is unique.';
+          this.toast.error(msg, 'Role Creation Failed');
+          alert(msg);
         },
       });
   }
@@ -5309,11 +5671,14 @@ export class SettingsComponent implements OnInit {
           }
           this.saveSuccess = true;
           this.saveMessage = `Role details updated successfully!`;
+          this.toast.success(this.saveMessage, 'Role Updated');
           setTimeout(() => (this.saveSuccess = false), 3000);
         },
         error: (err: any) => {
           this.savingRole = false;
-          alert(err?.error?.message || 'Failed to update role details.');
+          const msg = err?.error?.message || 'Failed to update role details.';
+          this.toast.error(msg, 'Update Failed');
+          alert(msg);
         },
       });
   }
@@ -5338,12 +5703,15 @@ export class SettingsComponent implements OnInit {
         this.deleteRoleModalVisible = false;
         this.saveSuccess = true;
         this.saveMessage = `Role "${this.roleToDelete.name}" deleted successfully.`;
+        this.toast.success(this.saveMessage, 'Role Deleted');
         this.roleToDelete = null;
         setTimeout(() => (this.saveSuccess = false), 3000);
       },
       error: (err: any) => {
         this.deletingRole = false;
-        alert(err?.error?.message || 'Failed to delete role. It may still be in use.');
+        const msg = err?.error?.message || 'Failed to delete role. It may still be in use.';
+        this.toast.error(msg, 'Delete Failed');
+        alert(msg);
       },
     });
   }
@@ -5449,10 +5817,13 @@ export class SettingsComponent implements OnInit {
         this.users.push(created);
         this.saveSuccess = true;
         this.saveMessage = `User "${created.fullName}" registered successfully!`;
+        this.toast.success(this.saveMessage, 'User Registered');
         setTimeout(() => (this.saveSuccess = false), 3500);
       },
       error: (err: any) => {
-        alert(err?.error?.message || 'Failed to create user. Ensure email is unique.');
+        const msg = err?.error?.message || 'Failed to create user. Ensure email is unique.';
+        this.toast.error(msg, 'Registration Failed');
+        alert(msg);
       },
     });
   }
@@ -5467,10 +5838,12 @@ export class SettingsComponent implements OnInit {
         }
         this.saveSuccess = true;
         this.saveMessage = `Role assignment updated for ${user.fullName}.`;
+        this.toast.success(this.saveMessage, 'Role Assigned');
         setTimeout(() => (this.saveSuccess = false), 2500);
       },
       error: (err: any) => {
         console.error('Failed to update user role', err);
+        this.toast.error('Failed to update user role.', 'Update Failed');
       },
     });
   }
@@ -5492,10 +5865,12 @@ export class SettingsComponent implements OnInit {
         this.saving = false;
         this.saveSuccess = true;
         this.saveMessage = 'All user role assignments saved successfully!';
+        this.toast.success(this.saveMessage, 'Users Updated');
         setTimeout(() => (this.saveSuccess = false), 3500);
       },
       error: () => {
         this.saving = false;
+        this.toast.error('Failed to save user role assignments.', 'Save Failed');
       },
     });
   }
@@ -5506,7 +5881,11 @@ export class SettingsComponent implements OnInit {
       next: () => {
         this.saveSuccess = true;
         this.saveMessage = `User status changed to ${user.isActive ? 'Active' : 'Inactive'}.`;
+        this.toast.success(this.saveMessage, 'Status Updated');
         setTimeout(() => (this.saveSuccess = false), 2500);
+      },
+      error: () => {
+        this.toast.error('Failed to change user status.', 'Update Failed');
       },
     });
   }
@@ -5529,10 +5908,12 @@ export class SettingsComponent implements OnInit {
           this.saving = false;
           this.saveSuccess = true;
           this.saveMessage = 'All modular system capabilities saved successfully!';
+          this.toast.success(this.saveMessage, 'Features Saved');
           setTimeout(() => (this.saveSuccess = false), 3500);
         },
         error: () => {
           this.saving = false;
+          this.toast.error('Failed to save modular system capabilities.', 'Save Failed');
         },
       });
       return;
@@ -5556,10 +5937,12 @@ export class SettingsComponent implements OnInit {
         this.saving = false;
         this.saveSuccess = true;
         this.saveMessage = 'Configuration saved successfully! All transactional engines and parameters refreshed.';
+        this.toast.success(this.saveMessage, 'Settings Saved');
         setTimeout(() => (this.saveSuccess = false), 3500);
       },
       error: () => {
         this.saving = false;
+        this.toast.error('Failed to save configuration settings.', 'Save Failed');
       },
     });
   }
@@ -5579,10 +5962,12 @@ export class SettingsComponent implements OnInit {
       next: () => {
         this.saveSuccess = true;
         this.saveMessage = `Module "${this.formatFeatureName(toggle.featureKey)}" set to ${isChecked ? 'Active' : 'Disabled'}.`;
+        this.toast.success(this.saveMessage, 'Feature Saved');
         setTimeout(() => (this.saveSuccess = false), 2500);
       },
       error: (err) => {
         console.error('Failed to update toggle', err);
+        this.toast.error('Failed to update feature setting.', 'Update Failed');
       },
     });
   }
@@ -5597,6 +5982,9 @@ export class SettingsComponent implements OnInit {
       case 'VARIANTS': return 'Item Variants & Attributes';
       case 'RACK_BIN': return 'Godown & Rack/Bin Storage';
       case 'MANUFACTURING': return 'BOM & Assembly Manufacturing';
+      case 'STOCK_TRANSFER': return 'Stock Transfers (Warehouse Transfer)';
+      case 'STOCK_ADJUSTMENT': return 'Stock Adjustments & Reconciliation';
+      case 'PRICE_LIST': return 'Price Lists & Tiered Pricing';
       default: return key;
     }
   }
@@ -5611,6 +5999,9 @@ export class SettingsComponent implements OnInit {
       case 'VARIANTS': return 'Manage matrix items with sizes, colors, and SKU-level variance.';
       case 'RACK_BIN': return 'Granular inventory location tracking within godowns and warehouses.';
       case 'MANUFACTURING': return 'Bill of Materials composition, component consumption, and finished goods assembly.';
+      case 'STOCK_TRANSFER': return 'Inter-warehouse and godown-to-godown stock transfer manifests with receipt verification.';
+      case 'STOCK_ADJUSTMENT': return 'Inventory physical audits, shrinkage write-offs, and stock reconciliation vouchers.';
+      case 'PRICE_LIST': return 'Custom price lists, wholesale trade tiers, and customer-specific rate structures.';
       default: return 'Core system functionality module.';
     }
   }
@@ -5625,6 +6016,9 @@ export class SettingsComponent implements OnInit {
       case 'VARIANTS': return 'pi pi-tags';
       case 'RACK_BIN': return 'pi pi-warehouse';
       case 'MANUFACTURING': return 'pi pi-cog';
+      case 'STOCK_TRANSFER': return 'pi pi-arrows-h';
+      case 'STOCK_ADJUSTMENT': return 'pi pi-sliders-h';
+      case 'PRICE_LIST': return 'pi pi-percentage';
       default: return 'pi pi-sliders-h';
     }
   }
@@ -5634,23 +6028,27 @@ export class SettingsComponent implements OnInit {
     const comp = this.tenant.currentCompany();
     if (comp) {
       this.initCompanyForm(comp);
-    } else {
-      this.api.get<any[]>('/tenancy/companies').subscribe({
-        next: (companies) => {
-          if (companies && companies.length > 0) {
-            this.initCompanyForm(companies[0]);
-          }
-        },
-      });
     }
+    // Always fetch fresh company profile from API
+    this.api.get<any[]>('/tenancy/companies').subscribe({
+      next: (companies) => {
+        if (companies && companies.length > 0) {
+          const savedCompId = localStorage.getItem('zeno_company_id');
+          const found = (savedCompId ? companies.find((c) => c.id === savedCompId) : null) || companies[0];
+          this.tenant.setCompany(found);
+          this.initCompanyForm(found);
+        }
+      },
+      error: (err) => console.error('Failed to load company profile from API', err),
+    });
   }
 
   initCompanyForm(comp: any) {
     if (!comp) return;
     this.companyForm = {
       id: comp.id,
-      legalName: comp.legalName || comp.tradeName || comp.name || 'Apex Technologies Private Limited',
-      tradeName: comp.tradeName || comp.legalName || 'Apex Tech',
+      legalName: comp.legalName !== undefined && comp.legalName !== null ? comp.legalName : (comp.tradeName || 'Apex Technologies Private Limited'),
+      tradeName: comp.tradeName !== undefined && comp.tradeName !== null ? comp.tradeName : (comp.legalName || 'Apex Tech'),
       code: comp.code || 'APEX-01',
       businessType: comp.businessType || 'Private Limited Company',
       financialYearStart: comp.financialYearStart ? String(comp.financialYearStart).split('T')[0] : '2025-04-01',
@@ -5658,39 +6056,40 @@ export class SettingsComponent implements OnInit {
       booksBeginFrom: comp.booksBeginFrom ? String(comp.booksBeginFrom).split('T')[0] : '2025-04-01',
       currencyCode: comp.currencyCode || 'INR',
       gstRegistrationType: comp.gstRegistrationType || 'Regular',
-      gstin: comp.gstin || '27AABCU9603R1ZM',
-      pan: comp.pan || 'AABCU9603R',
-      stateName: comp.stateName || 'Maharashtra (27)',
-      filingFrequency: comp.filingFrequency || 'Monthly',
-      arnNumber: comp.arnNumber || 'AA270425000123P',
+      gstin: comp.gstin || '',
+      pan: comp.pan || '',
+      stateName: comp.stateName || comp.extraDetails?.stateName || 'Maharashtra (27)',
+      filingFrequency: comp.filingFrequency || comp.extraDetails?.filingFrequency || 'Monthly',
+      tanNumber: comp.tanNumber || comp.arnNumber || comp.extraDetails?.tanNumber || comp.extraDetails?.arnNumber || '',
+      arnNumber: comp.tanNumber || comp.arnNumber || comp.extraDetails?.tanNumber || comp.extraDetails?.arnNumber || '',
       billingAddress: comp.billingAddress || {
-        addressLine1: this.currentBranch?.addressLine1 || 'Corporate Headquarters, Nariman Point',
+        addressLine1: this.currentBranch?.addressLine1 || '',
         addressLine2: this.currentBranch?.addressLine2 || '',
-        city: this.currentBranch?.city || 'Mumbai',
+        city: this.currentBranch?.city || '',
         state: this.currentBranch?.stateName || 'Maharashtra',
-        pincode: this.currentBranch?.pincode || '400021',
+        pincode: this.currentBranch?.pincode || '',
         country: 'India',
       },
       shippingAddress: comp.shippingAddress || {
-        addressLine1: this.currentBranch?.addressLine1 || 'Central Logistics Hub, Turbhe MIDC',
+        addressLine1: this.currentBranch?.addressLine1 || '',
         addressLine2: this.currentBranch?.addressLine2 || '',
-        city: this.currentBranch?.city || 'Navi Mumbai',
+        city: this.currentBranch?.city || '',
         state: this.currentBranch?.stateName || 'Maharashtra',
-        pincode: this.currentBranch?.pincode || '400705',
+        pincode: this.currentBranch?.pincode || '',
         country: 'India',
       },
       contactDetails: comp.contactDetails || {
-        contactPerson: 'Rajesh Sharma',
-        email: 'accounts@apextechnologies.com',
-        phone: '+91 98200 12345',
-        alternatePhone: '022-28493921',
-        website: 'https://apextechnologies.com',
+        contactPerson: '',
+        email: '',
+        phone: '',
+        alternatePhone: '',
+        website: '',
       },
       logoUrl: comp.logoUrl || '/zeno-books-logo.png',
       extraDetails: comp.extraDetails || {
-        tagline: 'Precision Engineering & Enterprise ERP',
-        invoiceHeaderNote: 'ISO 9001:2015 Certified Manufacturing Facility',
-        invoiceFooterNote: 'We declare that this invoice shows the actual price of goods described. Subject to local jurisdiction.',
+        tagline: 'Precision Accounting & Financial ERP',
+        invoiceHeaderNote: '',
+        invoiceFooterNote: '',
       },
     };
   }
@@ -5704,40 +6103,253 @@ export class SettingsComponent implements OnInit {
     setTimeout(() => (this.saveSuccess = false), 2000);
   }
 
-  setLogoPreset(preset: string) {
-    switch (preset) {
-      case 'zeno':
-        this.companyForm.logoUrl = '/zeno-books-logo.png';
-        break;
-      case 'tech':
-        this.companyForm.logoUrl = 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&auto=format&fit=crop&q=80';
-        break;
-      case 'corp':
-        this.companyForm.logoUrl = 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=200&auto=format&fit=crop&q=80';
-        break;
+  onLogoFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.processLogoFile(input.files[0]);
+    }
+  }
+
+  onLogoDrop(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+      this.processLogoFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  processLogoFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo file size exceeds 2MB limit. Please upload a smaller image.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      this.companyForm.logoUrl = (e.target?.result as string) || '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  onCompanyBillingStateChange() {
+    const found = this.indianStates.find(
+      (s) => s.name.toLowerCase() === (this.companyForm.billingAddress.state || '').trim().toLowerCase(),
+    );
+    if (found) {
+      if (!this.companyForm.shippingAddress.state) {
+        this.companyForm.shippingAddress.state = found.name;
+      }
+      this.companyForm.stateName = `${found.name} (${found.code})`;
     }
   }
 
   saveCompanyProfile() {
-    const compId = this.companyForm.id || this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
-    if (!compId) return;
+    const compId = this.companyForm.id || this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id') || this.tenant.companies()?.[0]?.id;
+    if (!compId) {
+      alert('Unable to identify current company record. Please refresh and try again.');
+      return;
+    }
+
+    // Sanitize dates for PostgreSQL date column
+    const payload = { ...this.companyForm };
+    if (!payload.financialYearEnd) {
+      payload.financialYearEnd = null;
+    }
+    if (!payload.financialYearStart) {
+      payload.financialYearStart = '2025-04-01';
+    }
+    if (!payload.booksBeginFrom) {
+      payload.booksBeginFrom = '2025-04-01';
+    }
+
+    payload.arnNumber = payload.tanNumber;
+    if (!payload.extraDetails) {
+      payload.extraDetails = {};
+    }
+    payload.extraDetails.tanNumber = payload.tanNumber;
+    payload.extraDetails.arnNumber = payload.arnNumber;
+    payload.extraDetails.stateName = payload.stateName;
+    payload.extraDetails.filingFrequency = payload.filingFrequency;
 
     this.savingCompany = true;
-    this.api.put(`/tenancy/companies/${compId}`, this.companyForm).subscribe({
+    this.api.put(`/tenancy/companies/${compId}`, payload).subscribe({
       next: (res: any) => {
         this.savingCompany = false;
         this.saveSuccess = true;
         this.saveMessage = 'Company profile and branding saved successfully!';
+        this.toast.success(this.saveMessage, 'Company Profile Saved');
         setTimeout(() => (this.saveSuccess = false), 3500);
+
+        if (res) {
+          this.tenant.setCompany(res);
+          this.initCompanyForm(res);
+        }
         this.tenant.loadHierarchy().subscribe({
-          next: () => {
-            if (res) this.initCompanyForm(res);
+          next: (companies) => {
+            const updated = (companies && companies.find((c: any) => c.id === compId)) || res;
+            if (updated) {
+              this.tenant.setCompany(updated);
+              this.initCompanyForm(updated);
+            }
           },
         });
       },
       error: (err) => {
         this.savingCompany = false;
         console.error('Failed to update company profile', err);
+        const msg = err?.error?.message || 'Failed to update company profile. Please check the network/console and try again.';
+        this.toast.error(msg, 'Save Failed');
+        alert(msg);
+      },
+    });
+  }
+
+  // BRANCH MASTER METHODS
+  loadBranches() {
+    this.api.get<any[]>('/tenancy/branches').subscribe({
+      next: (res) => {
+        this.branches = res || [];
+      },
+    });
+  }
+
+  get filteredBranches(): any[] {
+    let list = this.branches || [];
+    if (this.branchSearchQuery.trim()) {
+      const q = this.branchSearchQuery.toLowerCase().trim();
+      list = list.filter((b) =>
+        (b.branchName && b.branchName.toLowerCase().includes(q)) ||
+        (b.branchCode && b.branchCode.toLowerCase().includes(q)) ||
+        (b.stateName && b.stateName.toLowerCase().includes(q)) ||
+        (b.addressLine1 && b.addressLine1.toLowerCase().includes(q)) ||
+        (b.pincode && b.pincode.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  getHeadOfficeBranch(): any {
+    return this.branches.find((b) => b.isHeadOffice) || this.branches[0] || null;
+  }
+
+  getGodownsCountForBranch(branchId: string): number {
+    return this.warehouses.filter((w) => w.branchId === branchId).length;
+  }
+
+  onNewBranchStateChange() {
+    const s = this.indianStates.find((st) => st.name === this.newBranch.stateName);
+    if (s) {
+      this.newBranch.stateCode = s.code;
+    }
+  }
+
+  onEditBranchStateChange() {
+    if (!this.branchToEdit) return;
+    const s = this.indianStates.find((st) => st.name === this.branchToEdit.stateName);
+    if (s) {
+      this.branchToEdit.stateCode = s.code;
+    }
+  }
+
+  openCreateBranchModal() {
+    this.newBranch = {
+      branchName: '',
+      branchCode: `BR-0${this.branches.length + 1}`,
+      stateCode: '27',
+      stateName: 'Maharashtra',
+      addressLine1: '',
+      pincode: '',
+      isHeadOffice: this.branches.length === 0,
+    };
+    this.createBranchModalVisible = true;
+  }
+
+  submitCreateBranch() {
+    if (!this.newBranch.branchName.trim() || !this.newBranch.branchCode.trim()) return;
+
+    this.savingBranch = true;
+    const compId = this.companyForm?.id || this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+
+    this.api.post('/tenancy/branches', {
+      ...this.newBranch,
+      companyId: compId,
+    }).subscribe({
+      next: () => {
+        this.savingBranch = false;
+        this.createBranchModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Branch "${this.newBranch.branchName}" created successfully!`;
+        this.toast.success(this.saveMessage, 'Branch Created');
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadBranches();
+        this.tenant.loadHierarchy().subscribe();
+      },
+      error: (err) => {
+        this.savingBranch = false;
+        const msg = err?.error?.message || 'Failed to create branch. Please check inputs.';
+        this.toast.error(msg, 'Branch Creation Failed');
+        alert(msg);
+      },
+    });
+  }
+
+  openEditBranchModal(b: any) {
+    this.branchToEdit = { ...b };
+    this.editBranchModalVisible = true;
+  }
+
+  submitEditBranch() {
+    if (!this.branchToEdit || !this.branchToEdit.id) return;
+    if (!this.branchToEdit.branchName.trim() || !this.branchToEdit.branchCode.trim()) return;
+
+    this.savingBranch = true;
+    this.api.put(`/tenancy/branches/${this.branchToEdit.id}`, this.branchToEdit).subscribe({
+      next: () => {
+        this.savingBranch = false;
+        this.editBranchModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Branch "${this.branchToEdit.branchName}" updated successfully!`;
+        this.toast.success(this.saveMessage, 'Branch Updated');
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadBranches();
+        this.tenant.loadHierarchy().subscribe();
+      },
+      error: (err) => {
+        this.savingBranch = false;
+        const msg = err?.error?.message || 'Failed to update branch.';
+        this.toast.error(msg, 'Update Failed');
+        alert(msg);
+      },
+    });
+  }
+
+  openDeleteBranchModal(b: any) {
+    this.branchToDelete = b;
+    this.deleteBranchModalVisible = true;
+  }
+
+  confirmDeleteBranch() {
+    if (!this.branchToDelete || !this.branchToDelete.id) return;
+
+    this.savingBranch = true;
+    this.api.delete(`/tenancy/branches/${this.branchToDelete.id}`).subscribe({
+      next: () => {
+        this.savingBranch = false;
+        this.deleteBranchModalVisible = false;
+        this.saveSuccess = true;
+        this.saveMessage = `Branch "${this.branchToDelete.branchName}" deleted successfully.`;
+        this.toast.success(this.saveMessage, 'Branch Deleted');
+        setTimeout(() => (this.saveSuccess = false), 3500);
+        this.loadBranches();
+        this.tenant.loadHierarchy().subscribe();
+      },
+      error: (err) => {
+        this.savingBranch = false;
+        const msg = err?.error?.message || 'Failed to delete branch. Ensure linked godowns are reassigned first.';
+        this.toast.error(msg, 'Deletion Failed');
+        alert(msg);
       },
     });
   }
@@ -5808,6 +6420,7 @@ export class SettingsComponent implements OnInit {
         this.createWarehouseModalVisible = false;
         this.saveSuccess = true;
         this.saveMessage = `Warehouse "${this.newWarehouse.name}" created successfully!`;
+        this.toast.success(this.saveMessage, 'Warehouse Created');
         setTimeout(() => (this.saveSuccess = false), 3500);
         this.loadWarehouses();
         this.tenant.reloadGodowns();
@@ -5815,6 +6428,8 @@ export class SettingsComponent implements OnInit {
       error: (err) => {
         this.savingWarehouse = false;
         console.error('Failed to create warehouse', err);
+        const msg = err?.error?.message || 'Failed to create warehouse.';
+        this.toast.error(msg, 'Creation Failed');
       },
     });
   }
@@ -5834,6 +6449,7 @@ export class SettingsComponent implements OnInit {
         this.editWarehouseModalVisible = false;
         this.saveSuccess = true;
         this.saveMessage = `Warehouse "${this.warehouseToEdit.name}" updated successfully!`;
+        this.toast.success(this.saveMessage, 'Warehouse Updated');
         setTimeout(() => (this.saveSuccess = false), 3500);
         this.loadWarehouses();
         this.tenant.reloadGodowns();
@@ -5841,6 +6457,8 @@ export class SettingsComponent implements OnInit {
       error: (err) => {
         this.savingWarehouse = false;
         console.error('Failed to update warehouse', err);
+        const msg = err?.error?.message || 'Failed to update warehouse.';
+        this.toast.error(msg, 'Update Failed');
       },
     });
   }
@@ -5860,6 +6478,7 @@ export class SettingsComponent implements OnInit {
         this.deleteWarehouseModalVisible = false;
         this.saveSuccess = true;
         this.saveMessage = `Warehouse "${this.warehouseToDelete.name}" deleted successfully.`;
+        this.toast.success(this.saveMessage, 'Warehouse Deleted');
         setTimeout(() => (this.saveSuccess = false), 3500);
         this.loadWarehouses();
         this.tenant.reloadGodowns();
@@ -5867,6 +6486,8 @@ export class SettingsComponent implements OnInit {
       error: (err) => {
         this.savingWarehouse = false;
         console.error('Failed to delete warehouse', err);
+        const msg = err?.error?.message || 'Failed to delete warehouse.';
+        this.toast.error(msg, 'Delete Failed');
       },
     });
   }
@@ -5893,8 +6514,13 @@ export class SettingsComponent implements OnInit {
         this.showTaxModal = false;
         this.saveSuccess = true;
         this.saveMessage = `New tax slab "${this.newTax.taxName}" added successfully!`;
+        this.toast.success(this.saveMessage, 'Tax Slab Added');
         setTimeout(() => (this.saveSuccess = false), 3500);
         this.loadAll();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Failed to create tax slab.';
+        this.toast.error(msg, 'Creation Failed');
       },
     });
   }

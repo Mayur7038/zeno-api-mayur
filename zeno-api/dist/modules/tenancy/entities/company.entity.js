@@ -28,6 +28,10 @@ let Company = class Company {
     financialYearEnd;
     booksBeginFrom;
     gstRegistrationType;
+    stateName;
+    filingFrequency;
+    tanNumber;
+    arnNumber;
     billingAddress;
     shippingAddress;
     contactDetails;
@@ -96,6 +100,22 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'gst_registration_type', length: 50, nullable: true, default: 'Regular' }),
     __metadata("design:type", String)
 ], Company.prototype, "gstRegistrationType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'state_name', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "stateName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'filing_frequency', length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "filingFrequency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'tan_number', length: 20, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "tanNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'arn_number', length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "arnNumber", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'billing_address', type: 'jsonb', nullable: true }),
     __metadata("design:type", Object)

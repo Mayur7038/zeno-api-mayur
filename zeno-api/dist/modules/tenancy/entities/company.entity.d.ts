@@ -15,6 +15,10 @@ export declare class Company {
     financialYearEnd: string;
     booksBeginFrom: string;
     gstRegistrationType: string;
+    stateName: string;
+    filingFrequency: string;
+    tanNumber: string;
+    arnNumber: string;
     billingAddress: any;
     shippingAddress: any;
     contactDetails: any;

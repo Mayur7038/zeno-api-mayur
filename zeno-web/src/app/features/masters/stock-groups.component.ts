@@ -31,31 +31,6 @@ interface StockGroupItem {
         </div>
       </div>
 
-      <!-- KPI METRIC CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon blue"><i class="pi pi-folder"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Total Stock Groups</span>
-            <span class="kpi-value">{{ groups.length }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon green"><i class="pi pi-percentage"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Tax Registered Groups</span>
-            <span class="kpi-value">{{ taxedGroupsCount }}</span>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon purple"><i class="pi pi-tags"></i></div>
-          <div class="kpi-info">
-            <span class="kpi-label">Sub-Categories Attached</span>
-            <span class="kpi-value">{{ totalSubCategories }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- FILTER & TOOLBAR -->
       <div class="zeno-card">
         <div class="table-toolbar">

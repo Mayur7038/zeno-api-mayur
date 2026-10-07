@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../../core/services/inventory.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { TenantService } from '../../../core/services/tenant.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 interface PriceListLineItem {
   id?: string;
@@ -26,37 +27,11 @@ interface PriceListLineItem {
         <div class="page-header">
           <div>
             <h1>Price Lists & Rule Engine</h1>
-            <p class="subtitle">Maintain tiered selling prices and contract discounts: Stock Group Wise, Customer Wise, and Product Wise with effective dates</p>
           </div>
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreatePage()">
               <i class="pi pi-plus"></i> New Price List
             </button>
-          </div>
-        </div>
-
-        <!-- KPI METRICS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-percentage"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Price Lists</span>
-              <span class="kpi-value">{{ priceLists.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-folder"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Stock Group Rules</span>
-              <span class="kpi-value">{{ groupRulesCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-users"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Customer Contract Rules</span>
-              <span class="kpi-value">{{ customerRulesCount }}</span>
-            </div>
           </div>
         </div>
 
@@ -194,7 +169,6 @@ interface PriceListLineItem {
           <div class="zeno-card">
             <div class="simulator-header">
               <h3><i class="pi pi-calculator"></i> Real-time Effective Price Resolution Simulator</h3>
-              <p class="subtitle">Test how pricing rules resolve across Customer Specific -> Stock Group -> Product Tier -> Standard Sale Rate</p>
             </div>
 
             <div class="form-grid mb-4">
@@ -257,7 +231,6 @@ interface PriceListLineItem {
             </button>
             <div>
               <h1>{{ editId ? 'Edit Price List' : 'New Price List' }}</h1>
-              <p class="subtitle">Configure pricing rule with dimensional targeting and effective date validity</p>
             </div>
           </div>
           <div class="header-actions">
@@ -664,6 +637,7 @@ export class PriceListComponent implements OnInit {
     private inventoryService: InventoryService,
     private mastersService: MastersService,
     private tenantService: TenantService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit() {
@@ -891,12 +865,17 @@ export class PriceListComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.submitting = false;
+        this.toast.success(
+          `Price List "${this.formData.name}" ${this.editId ? 'updated' : 'created'} successfully!`,
+          'Price List Saved',
+        );
         this.viewMode = 'list';
         this.loadData();
       },
       error: (err) => {
         this.submitting = false;
         this.errorMessage = err.error?.message || 'Failed to save price list.';
+        this.toast.error(this.errorMessage, 'Save Failed');
       },
     });
   }
@@ -908,10 +887,13 @@ export class PriceListComponent implements OnInit {
 
     this.inventoryService.deletePriceList(pl.id).subscribe({
       next: () => {
+        this.toast.success(`Price list "${pl.name}" deleted successfully.`, 'Price List Deleted');
         this.loadData();
       },
       error: (err) => {
-        alert(err.error?.message || 'Failed to delete price list');
+        const msg = err.error?.message || 'Failed to delete price list';
+        this.toast.error(msg, 'Deletion Failed');
+        alert(msg);
       },
     });
   }

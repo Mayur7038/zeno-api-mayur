@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { P2pService } from '../../../core/services/p2p.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-purchase-invoices',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-receipt"></i> Create Purchase Invoice
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-receipt"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL INVOICES</span>
-              <span class="kpi-value">{{ invoices.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-clock"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">PENDING PAYMENT</span>
-              <span class="kpi-value">{{ unpaidInvoicesCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-check"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">PAID INVOICES</span>
-              <span class="kpi-value">{{ paidInvoicesCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-dollar"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">TOTAL BILL VALUE</span>
-              <span class="kpi-value">₹{{ totalInvoiceValue | number:'1.2-2' }}</span>
-            </div>
           </div>
         </div>
 
@@ -543,6 +512,7 @@ export class PurchaseInvoicesComponent implements OnInit {
     private p2p: P2pService,
     public tenant: TenantService,
     private masters: MastersService,
+    private toast: ToastService,
     private router: Router,
   ) {}
 
@@ -744,14 +714,19 @@ export class PurchaseInvoicesComponent implements OnInit {
     };
 
     this.p2p.createPurchaseInvoice(payload).subscribe({
-      next: () => {
+      next: (pi: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Purchase Invoice ${pi?.voucherNo || ''} recorded successfully! Total: ₹${Number(this.invGrandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+          'Purchase Invoice Recorded',
+        );
         this.viewMode = 'list';
         this.loadInvoices();
       },
       error: (err) => {
         this.submitting = false;
         this.createError = err.error?.message || 'Failed to record invoice';
+        this.toast.error(this.createError, 'Recording Failed');
       },
     });
   }

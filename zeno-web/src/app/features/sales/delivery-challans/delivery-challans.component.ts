@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { SalesService } from '../../../core/services/sales.service';
 import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-delivery-challans',
@@ -20,38 +21,6 @@ import { MastersService } from '../../../core/services/masters.service';
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-plus"></i> Create Delivery Challan
             </button>
-          </div>
-        </div>
-
-        <!-- KPI SUMMARY CARDS -->
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon blue"><i class="pi pi-truck"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Total Challans</span>
-              <span class="kpi-value">{{ challans.length }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon orange"><i class="pi pi-file-edit"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Pending Invoicing</span>
-              <span class="kpi-value">{{ pendingCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon green"><i class="pi pi-check"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Fully Invoiced</span>
-              <span class="kpi-value">{{ clearedCount }}</span>
-            </div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-icon purple"><i class="pi pi-compass"></i></div>
-            <div class="kpi-info">
-              <span class="kpi-label">Active Dispatches</span>
-              <span class="kpi-value">{{ challans.length }}</span>
-            </div>
           </div>
         </div>
 
@@ -482,6 +451,7 @@ export class DeliveryChallansComponent implements OnInit {
     private salesService: SalesService,
     private tenantService: TenantService,
     private mastersService: MastersService,
+    private toast: ToastService,
     private router: Router
   ) {}
 
@@ -659,14 +629,20 @@ export class DeliveryChallansComponent implements OnInit {
     };
 
     this.salesService.createDeliveryChallan(payload).subscribe({
-      next: () => {
+      next: (created: any) => {
         this.submitting = false;
+        this.toast.success(
+          `Delivery Challan ${created?.challanNo || ''} created successfully!`,
+          'Challan Created',
+        );
         this.viewMode = 'list';
         this.loadChallans();
       },
       error: (err) => {
         this.submitting = false;
-        alert(err?.error?.message || 'Failed to create delivery challan');
+        const msg = err?.error?.message || 'Failed to create delivery challan';
+        this.toast.error(msg, 'Creation Failed');
+        alert(msg);
       }
     });
   }
