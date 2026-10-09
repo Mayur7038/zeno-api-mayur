@@ -14,6 +14,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/signup.component').then((m) => m.SignupComponent),
   },
+  {
+    path: 'auth/forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
+  },
 
   // Protected App Shell Routes
   {
@@ -264,10 +271,52 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reports/profit-loss',
+        loadComponent: () =>
+          import('./features/reports/profit-loss.component').then(
+            (m) => m.ProfitLossComponent,
+          ),
+      },
+      {
+        path: 'reports/balance-sheet',
+        loadComponent: () =>
+          import('./features/reports/balance-sheet.component').then(
+            (m) => m.BalanceSheetComponent,
+          ),
+      },
+      {
+        path: 'reports/ledger-statement',
+        loadComponent: () =>
+          import('./features/reports/ledger-report.component').then(
+            (m) => m.LedgerReportComponent,
+          ),
+      },
+      {
+        path: 'reports/stock-item-statement',
+        loadComponent: () =>
+          import('./features/reports/stock-item-report.component').then(
+            (m) => m.StockItemReportComponent,
+          ),
+      },
+      {
         path: 'reports/stock-summary',
         loadComponent: () =>
           import('./features/reports/stock-summary.component').then(
             (m) => m.StockSummaryComponent,
+          ),
+      },
+      {
+        path: 'reports/gstr1-summary',
+        loadComponent: () =>
+          import('./features/reports/gstr1-report.component').then(
+            (m) => m.Gstr1ReportComponent,
+          ),
+      },
+      {
+        path: 'reports/gstr3b-summary',
+        loadComponent: () =>
+          import('./features/reports/gstr3b-report.component').then(
+            (m) => m.Gstr3bReportComponent,
           ),
       },
       // Settings & Administration

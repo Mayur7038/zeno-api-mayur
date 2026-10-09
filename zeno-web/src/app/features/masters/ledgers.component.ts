@@ -1216,7 +1216,13 @@ export class LedgersComponent implements OnInit {
       next: (res) => {
         this.loadingGroups = false;
         if (res && res.length > 0) {
-          this.groups = res;
+          const seen = new Set<string>();
+          this.groups = res.filter((g: any) => {
+            const key = (g.name || '').trim().toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
         } else if (this.groups.length === 0) {
           this.groups = [...STANDARD_LEDGER_GROUPS];
         }

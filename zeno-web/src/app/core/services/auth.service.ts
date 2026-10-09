@@ -50,14 +50,36 @@ export class AuthService {
     );
   }
 
+  forgotPassword(email: string): Observable<any> {
+    return this.api.post('/auth/forgot-password', { email });
+  }
+
+  resetPassword(data: { email: string; otp: string; newPassword: string }): Observable<any> {
+    return this.api.post('/auth/reset-password', data);
+  }
+
+  refreshSession(): Observable<any> {
+    const refreshToken = localStorage.getItem('zeno_refresh_token');
+    return this.api.post('/auth/refresh', { refreshToken }).pipe(
+      tap((res: any) => {
+        if (res.accessToken) {
+          localStorage.setItem('zeno_token', res.accessToken);
+          if (res.refreshToken) {
+            localStorage.setItem('zeno_refresh_token', res.refreshToken);
+          }
+        }
+      }),
+    );
+  }
+
   private setSession(res: any) {
     localStorage.setItem('zeno_token', res.accessToken);
     localStorage.setItem('zeno_refresh_token', res.refreshToken);
 
     const user = res.user || {};
     const tenantId = res.tenant?.id || user.tenantId;
-    const companyId = res.company?.id || (user.branches?.[0]?.companyId) || '';
-    const branchId = res.branch?.id || (user.branches?.[0]?.branchId) || '';
+    const companyId = res.company?.id || user.companyId || (user.branches?.[0]?.companyId) || '';
+    const branchId = res.branch?.id || user.branchId || (user.branches?.[0]?.branchId) || '';
 
     if (tenantId) localStorage.setItem('zeno_tenant_id', tenantId);
     if (companyId) localStorage.setItem('zeno_company_id', companyId);

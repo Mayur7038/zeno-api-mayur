@@ -7,17 +7,18 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
 
 @Component({
   selector: 'app-vendor-payments',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent],
   template: `
     <div class="p2p-page">
       @if (viewMode === 'list') {
         <!-- HEADER -->
         <div class="page-header">
-          <h1>Vendor Payments & Disbursements</h1>
+          <h1>Vendor Payments</h1>
           <div class="header-actions">
             <button class="btn-primary" (click)="openCreateModal()">
               <i class="pi pi-credit-card"></i> Make Payment
@@ -124,21 +125,26 @@ import { exportToCsv } from '../../../core/utils/export.util';
 
             <div class="form-group">
               <label>Vendor *</label>
-              <select [(ngModel)]="form.vendorLedgerId" (change)="onVendorChange()" required>
-                <option value="">-- Select Vendor --</option>
-                @for (v of vendors; track v.id) {
-                  <option [value]="v.id">{{ v.name }}</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="vendors"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="-- Select Vendor --"
+                [(ngModel)]="form.vendorLedgerId"
+                (selectChange)="onVendorChange()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
               <label>Payment Mode (Cash/Bank) *</label>
-              <select [(ngModel)]="form.paymentModeLedgerId" required>
-                @for (m of paymentModes; track m.id) {
-                  <option [value]="m.id">{{ m.name }}</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="paymentModes"
+                labelKey="name"
+                valueKey="id"
+                placeholder="Select Payment Mode..."
+                [(ngModel)]="form.paymentModeLedgerId"
+              ></zeno-searchable-select>
             </div>
           </div>
 
@@ -161,51 +167,54 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
 
             @if (pendingBills.length === 0) {
-              <div style="padding: 24px; text-align: center; color: var(--surface-500); background: #ffffff; border-radius: 4px;">
+              <div style="padding: 32px 16px; text-align: center; color: var(--surface-500); background: #ffffff; border-radius: 4px; border: 1px solid var(--surface-200);">
+                <i class="pi pi-check-circle" style="font-size: 1.5rem; color: #10b981; display: block; margin-bottom: 8px;"></i>
                 No unpaid bills found for this vendor.
               </div>
             } @else {
-              <table class="zeno-table line-table">
-                <thead>
-                  <tr>
-                    <th>Invoice No</th>
-                    <th>Date</th>
-                    <th>Bill Amount</th>
-                    <th>Balance Due</th>
-                    <th>Pay Amount (₹)</th>
-                    <th>Discount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (b of pendingBills; track b.id) {
+              <div class="table-responsive">
+                <table class="zeno-table line-table">
+                  <thead>
                     <tr>
-                      <td class="font-mono font-bold">{{ b.voucherNo }}</td>
-                      <td>{{ b.invoiceDate }}</td>
-                      <td class="font-mono">₹{{ b.grandTotal }}</td>
-                      <td class="font-mono font-bold" style="color: #b91c1c;">₹{{ b.pendingBalance }}</td>
-                      <td>
-                        <input
-                          type="number"
-                          [(ngModel)]="b.allocatedAmount"
-                          (input)="recalculateAllocations()"
-                          min="0"
-                          [max]="b.pendingBalance"
-                          style="width: 140px;"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          [(ngModel)]="b.discountAmount"
-                          (input)="recalculateAllocations()"
-                          min="0"
-                          style="width: 110px;"
-                        />
-                      </td>
+                      <th>Invoice No</th>
+                      <th>Date</th>
+                      <th>Bill Amount</th>
+                      <th>Balance Due</th>
+                      <th>Pay Amount (₹)</th>
+                      <th>Discount (₹)</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    @for (b of pendingBills; track b.id) {
+                      <tr>
+                        <td class="font-mono font-bold">{{ b.voucherNo }}</td>
+                        <td>{{ b.invoiceDate }}</td>
+                        <td class="font-mono">₹{{ b.grandTotal }}</td>
+                        <td class="font-mono font-bold" style="color: #b91c1c;">₹{{ b.pendingBalance }}</td>
+                        <td>
+                          <input
+                            type="number"
+                            [(ngModel)]="b.allocatedAmount"
+                            (input)="recalculateAllocations()"
+                            min="0"
+                            [max]="b.pendingBalance"
+                            style="width: 140px;"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            [(ngModel)]="b.discountAmount"
+                            (input)="recalculateAllocations()"
+                            min="0"
+                            style="width: 110px;"
+                          />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             }
           </div>
 
@@ -257,8 +266,71 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-page-card { padding: 24px; }
     .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; label { font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); } input, select { border: 1px solid var(--surface-300); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; } }
-    .allocation-section { margin: 20px 0; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; background: var(--surface-50); .section-title { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; font-weight: 700; margin-bottom: 12px; } .outstanding-total { color: #b91c1c; font-weight: 700; font-size: 0.875rem; } .line-table { background: #ffffff; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); input { border: 1px solid var(--surface-200); padding: 6px 8px; border-radius: 4px; } } }
+    .allocation-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: var(--shadow-subtle);
+
+      .section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+
+      .outstanding-total {
+        color: #b91c1c;
+        font-weight: 700;
+        font-size: 0.8125rem;
+        background: #fef2f2;
+        padding: 3px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid #fecaca;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-200);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+      }
+
+      .line-table {
+        background: #ffffff;
+        width: 100%;
+        border-collapse: collapse;
+
+        th {
+          background-color: var(--surface-50);
+          color: var(--surface-600);
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          padding: 11px 14px;
+          border-bottom: 1px solid var(--surface-200);
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-100);
+          vertical-align: middle;
+        }
+
+        tr:last-child td {
+          border-bottom: none;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
+        }
+      }
+    }
     .totals-summary-box { background: #f8fafc; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-around; align-items: center; }
     .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
     .text-emerald { color: #059669; font-weight: 600; }

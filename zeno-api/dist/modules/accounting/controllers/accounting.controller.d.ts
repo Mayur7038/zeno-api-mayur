@@ -29,4 +29,19 @@ export declare class AccountingController {
             balance: number;
         }[];
     }>;
+    getProfitLoss(tenantId: string, companyId: string, startDate?: string, endDate?: string): Promise<{
+        incomeRows: any[];
+        expenseRows: any[];
+        totalIncome: number;
+        totalExpense: number;
+        netProfit: number;
+        isProfit: boolean;
+    }>;
+    getBalanceSheet(tenantId: string, companyId: string, asOfDate?: string): Promise<{
+        assetRows: any[];
+        liabilityRows: any[];
+        totalAssets: number;
+        totalLiabilities: number;
+        isBalanced: boolean;
+    }>;
 }

@@ -7,11 +7,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-delivery-challans',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="sales-page">
       @if (viewMode === 'list') {
@@ -56,8 +58,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <!-- CHALLANS TABLE -->
-          <table class="zeno-table">
-            <thead>
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
               <tr>
                 <th>Challan No</th>
                 <th>Date</th>
@@ -108,6 +111,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </tbody>
           </table>
         </div>
+      </div>
       } @else if (viewMode === 'create') {
         <!-- CREATE DELIVERY CHALLAN FULL PAGE VIEW -->
         <div class="page-header">
@@ -127,17 +131,20 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
         </div>
 
-        <div class="zeno-card form-page-card">
-          <!-- TOP SECTION -->
+        <div class="form-page-no-card">
+          <!-- TOP SECTION: CUSTOMER & METADATA (MAX 4 FIELDS) -->
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Customer</label>
-              <select [(ngModel)]="newDc.customerLedgerId" (change)="onCustomerSelected()">
-                <option value="">Select Customer...</option>
-                @for (cust of customers; track cust.id) {
-                  <option [value]="cust.id">{{ cust.name }} ({{ cust.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="customers"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Select Customer..."
+                [(ngModel)]="newDc.customerLedgerId"
+                (selectChange)="onCustomerSelected()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
@@ -157,24 +164,12 @@ import { exportToCsv } from '../../../core/utils/export.util';
 
             <div class="form-group">
               <label>Vehicle No</label>
-              <input type="text" [(ngModel)]="newDc.vehicleNo" />
+              <input type="text" [(ngModel)]="newDc.vehicleNo" placeholder="Vehicle no..." />
             </div>
           </div>
 
-          <div class="form-grid" style="margin-top: 14px;">
-            <div class="form-group">
-              <label>Driver Contact / Details</label>
-              <input type="text" [(ngModel)]="newDc.driverContact" />
-            </div>
-            <div class="form-group">
-              <label>Dispatch Destination</label>
-              <input type="text" [(ngModel)]="newDc.dispatchAddress" />
-            </div>
-          </div>
-
-          <!-- PULL PENDING ORDERS TRIGGER -->
           @if (newDc.customerLedgerId) {
-            <div class="pull-orders-box">
+            <div class="pull-orders-box" style="margin-bottom: 16px;">
               <div class="pull-orders-info">
                 <i class="pi pi-link"></i>
                 <span>Pull pending dispatch items from approved Sales Orders</span>
@@ -189,89 +184,97 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           }
 
-          <!-- ITEMS SECTION -->
-          <div class="items-section">
-            <div class="section-title-row">
-              <h3>Dispatched Goods (Stock Deduction)</h3>
-              <button class="btn-sm btn-outline" type="button" (click)="addItemRow()">
-                <i class="pi pi-plus"></i> Add Item
-              </button>
-            </div>
+          <!-- LINE ITEMS EDITOR -->
+          <div class="line-items-section">
+            <zeno-item-fast-entry
+              [itemsList]="itemsList"
+              [showDiscount]="false"
+              [showGst]="false"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
 
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th style="width: 35%">Product / Item</th>
-                  <th style="width: 15%">Dispatch Qty</th>
-                  <th style="width: 15%">Unit Rate (₹)</th>
-                  <th style="width: 20%">Remarks / SO Ref</th>
-                  <th style="width: 15%">Total</th>
-                  <th style="width: 4%"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of newDc.items; track $index; let i = $index) {
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td>
-                      <select [(ngModel)]="row.itemId" (change)="onItemSelect(row)">
-                        <option value="">Select Item...</option>
-                        @for (it of itemsList; track it.id) {
-                          <option [value]="it.id">{{ it.name }} (Stock: {{ it.currentStock || 0 }})</option>
-                        }
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        [(ngModel)]="row.dispatchedQty"
-                        (input)="recalculateTotals()"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="any"
-                        [(ngModel)]="row.rate"
-                        (input)="recalculateTotals()"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        [(ngModel)]="row.remarks"
-                      />
-                    </td>
-                    <td class="font-bold">
-                      ₹{{ (row.dispatchedQty * row.rate) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-right">
-                      @if (newDc.items.length > 1) {
-                        <button class="btn-icon text-danger" (click)="removeItemRow(i)">
-                          <i class="pi pi-trash"></i>
-                        </button>
-                      }
-                    </td>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Product / Item</th>
+                    <th style="width: 100px;" class="text-center">Dispatch Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;" class="text-right">Unit Rate (₹)</th>
+                    <th style="min-width: 150px;">Remarks / SO Ref</th>
+                    <th style="width: 120px;" class="text-right">Total (₹)</th>
+                    <th style="width: 70px;" class="text-center">Action</th>
                   </tr>
-                }
-              </tbody>
-            </table>
-
-            <div class="stock-alert-note">
-              <i class="pi pi-info-circle"></i>
-              <span>Saving this Delivery Challan creates an immediate <strong>StockLedger OUT</strong> movement and decrements item on-hand inventory.</span>
+                </thead>
+                <tbody>
+                  @if (newDc.items.length === 0 || (newDc.items.length === 1 && !newDc.items[0].itemId)) {
+                    <tr>
+                      <td colspan="8" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added yet. Use the Fast Item Entry Bar above to add items to this delivery challan.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of newDc.items; track $index; let i = $index) {
+                      @if (row.itemId) {
+                        <tr>
+                          <td class="excel-row-num text-center">{{ i + 1 }}</td>
+                          <td>
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ getItemName(row.itemId) }}</span>
+                          </td>
+                          <td class="text-center font-mono font-bold">
+                            {{ row.dispatchedQty }}
+                          </td>
+                          <td class="text-center">
+                            <span class="unit-badge">{{ getUnitCode(row) }}</span>
+                          </td>
+                          <td class="text-right font-mono">
+                            ₹{{ row.rate | number:'1.2-2' }}
+                          </td>
+                          <td>
+                            <span style="padding: 2px 6px; font-size: 0.8125rem;">{{ row.remarks || '-' }}</span>
+                          </td>
+                          <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: var(--surface-900);">
+                            ₹{{ (row.dispatchedQty * row.rate) | number:'1.2-2' }}
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn-icon text-primary" (click)="editItemRow(i)" title="Edit line item">
+                              <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn-icon text-danger" (click)="removeItemRow(i)" title="Delete line item">
+                              <i class="pi pi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitChallan()" [disabled]="submitting || !isValidChallan()">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Dispatching Stock...
-              } @else {
-                <i class="pi pi-check"></i> Post Dispatch &amp; Deduct Stock
-              }
-            </button>
+          <!-- SUMMARY & TOTALS FOOTER SECTION -->
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Delivery / Dispatch Notes</label>
+              <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter driver details or dispatch notes..."
+                [(ngModel)]="newDc.remarks"
+              ></textarea>
+            </div>
+
+            <div class="totals-summary-card">
+              <div class="summary-line grand-total">
+                <span>Total Dispatched Value:</span>
+                <strong>₹{{ getChallanTotal() | number:'1.2-2' }}</strong>
+              </div>
+            </div>
           </div>
         </div>
       } @else if (viewMode === 'view' && selectedChallan) {
@@ -312,35 +315,37 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <h4 style="margin: 20px 0 10px; font-size: 0.95rem; color: var(--surface-700)">Dispatched Line Items</h4>
-          <table class="zeno-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Dispatched Qty</th>
-                <th>Invoiced Qty</th>
-                <th>Pending to Invoice</th>
-                <th>Rate</th>
-                <th class="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of selectedChallan.items; track item.id) {
+          <div class="table-responsive">
+            <table class="zeno-table line-table">
+              <thead>
                 <tr>
-                  <td>
-                    <strong>{{ item.item?.name }}</strong>
-                    <div style="font-size: 0.75rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
-                  </td>
-                  <td class="font-bold">{{ item.dispatchedQty }} {{ item.unit?.code || 'NOS' }}</td>
-                  <td class="text-success font-bold">{{ item.invoicedQty }}</td>
-                  <td class="font-bold" [class.text-orange]="(item.dispatchedQty - item.invoicedQty) > 0">
-                    {{ item.dispatchedQty - item.invoicedQty }}
-                  </td>
-                  <td>₹{{ item.rate | number:'1.2-2' }}</td>
-                  <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  <th>Item</th>
+                  <th>Dispatched Qty</th>
+                  <th>Invoiced Qty</th>
+                  <th>Pending to Invoice</th>
+                  <th>Rate</th>
+                  <th class="text-right">Total</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (item of selectedChallan.items; track item.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.item?.name }}</strong>
+                      <div style="font-size: 0.75rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
+                    </td>
+                    <td class="font-bold">{{ item.dispatchedQty }} {{ item.unit?.code || 'NOS' }}</td>
+                    <td class="text-success font-bold">{{ item.invoicedQty }}</td>
+                    <td class="font-bold" [class.text-orange]="(item.dispatchedQty - item.invoicedQty) > 0">
+                      {{ item.dispatchedQty - item.invoicedQty }}
+                    </td>
+                    <td>₹{{ item.rate | number:'1.2-2' }}</td>
+                    <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       }
     </div>
@@ -370,6 +375,24 @@ import { exportToCsv } from '../../../core/utils/export.util';
       &:hover { background: var(--surface-200); color: var(--surface-900); }
     }
     .form-page-card { padding: 24px; }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
     
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
     .kpi-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
@@ -382,7 +405,50 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
 
-    .zeno-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; }
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+    .zeno-table {
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      text-align: left;
+      font-size: 0.875rem;
+
+      th {
+        background-color: var(--surface-100) !important;
+        padding: 12px 16px;
+        color: var(--surface-700) !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--surface-300) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--surface-200) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        color: var(--surface-800);
+        vertical-align: middle;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      tr:last-child td { border-bottom: none !important; }
+      tr:hover td { background: rgba(248, 250, 252, 0.7); }
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--surface-300) !important;
+      border-radius: var(--radius-md) !important;
+      background: #ffffff;
+    }
+
     .filter-card { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
     .filter-group { position: relative; width: 320px; }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); }
@@ -411,12 +477,81 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .pull-orders-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .pull-orders-info { display: flex; align-items: center; gap: 8px; color: #1E40AF; font-size: 0.85rem; }
 
-    .items-section { margin-top: 16px; }
-    .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .items-table { width: 100%; border-collapse: collapse; border: 1px solid var(--surface-200); border-radius: 8px; overflow: hidden; }
-    .items-table th { background: var(--surface-100); padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; color: var(--surface-600); }
-    .items-table td { padding: 8px 10px; border-bottom: 1px solid var(--surface-200); }
-    .items-table select, .items-table input { width: 100%; padding: 6px 8px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.85rem; }
+    .line-items-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+
+        .section-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
+        background: #ffffff;
+      }
+
+      .line-table {
+        background: #ffffff;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+
+        th {
+          background-color: var(--surface-100) !important;
+          color: var(--surface-700) !important;
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--surface-300) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          &:last-child { border-right: none !important; }
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-200) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          vertical-align: middle;
+          &:last-child { border-right: none !important; }
+
+          input, select {
+            width: 100%;
+            height: 36px;
+            padding: 6px 10px;
+            border: 1px solid var(--surface-300) !important;
+            border-radius: 6px !important;
+          }
+        }
+
+        tr:last-child td {
+          border-bottom: none !important;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
+        }
+      }
+    }
 
     .stock-alert-note { margin-top: 16px; background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; padding: 10px 14px; border-radius: 8px; font-size: 0.825rem; display: flex; align-items: center; gap: 8px; }
 
@@ -499,6 +634,16 @@ export class DeliveryChallansComponent implements OnInit {
     });
   }
 
+  getChallanTotal(): number {
+    return (this.newDc?.items || []).reduce((sum: number, r: any) => sum + (Number(r.dispatchedQty || 0) * Number(r.rate || 0)), 0);
+  }
+
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
   loadMasters() {
     if (!this.companyId) return;
     this.mastersService.getLedgers(this.companyId, false, true).subscribe((data) => {
@@ -561,8 +706,73 @@ export class DeliveryChallansComponent implements OnInit {
     });
   }
 
+  editingItemData: { item: any, index: number } | null = null;
+
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  getUnitCode(row: any): string {
+    if (row.unitCode) return row.unitCode;
+    if (row.itemId) {
+      const it = this.itemsList.find(i => i.id === row.itemId);
+      const uVal = it?.unitCode || it?.unit;
+      return typeof uVal === 'object' ? (uVal.code || uVal.name || 'Pcs') : (uVal || 'Pcs');
+    }
+    return 'Pcs';
+  }
+
+  onFastItemAdded(itemData: any) {
+    if (this.newDc.items.length === 1 && !this.newDc.items[0].itemId) {
+      this.newDc.items = [];
+    }
+    this.newDc.items.push({
+      itemId: itemData.itemId,
+      dispatchedQty: itemData.qty,
+      rate: itemData.rate,
+      remarks: '',
+      soItemId: null
+    });
+    this.recalculateTotals();
+  }
+
+  editItemRow(index: number) {
+    const row = this.newDc.items[index];
+    if (row) {
+      this.editingItemData = {
+        item: {
+          itemId: row.itemId,
+          qty: row.dispatchedQty,
+          rate: row.rate,
+          discount: 0,
+          gstRate: 0
+        },
+        index
+      };
+    }
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (this.editingItemData !== null && this.editingItemData.index >= 0) {
+      const idx = this.editingItemData.index;
+      if (this.newDc.items[idx]) {
+        this.newDc.items[idx].itemId = itemData.itemId;
+        this.newDc.items[idx].dispatchedQty = itemData.qty;
+        this.newDc.items[idx].rate = itemData.rate;
+      }
+      this.editingItemData = null;
+      this.recalculateTotals();
+    }
+  }
+
   removeItemRow(index: number) {
+    if (this.editingItemData?.index === index) {
+      this.editingItemData = null;
+    }
     this.newDc.items.splice(index, 1);
+    this.recalculateTotals();
   }
 
   onItemSelect(row: any) {

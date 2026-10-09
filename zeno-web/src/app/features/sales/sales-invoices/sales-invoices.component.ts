@@ -7,11 +7,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-sales-invoices',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="sales-page">
       @if (viewMode === 'list') {
@@ -56,8 +58,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <!-- INVOICES TABLE -->
-          <table class="zeno-table">
-            <thead>
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
               <tr>
                 <th>Invoice No</th>
                 <th>Date</th>
@@ -120,6 +123,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </tbody>
           </table>
         </div>
+      </div>
       } @else if (viewMode === 'create') {
         <!-- CREATE SALES INVOICE FULL PAGE VIEW -->
         <div class="page-header">
@@ -143,12 +147,15 @@ import { exportToCsv } from '../../../core/utils/export.util';
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Customer / Debtor</label>
-              <select [(ngModel)]="newInv.customerLedgerId" (change)="onCustomerSelected()">
-                <option value="">Select Customer...</option>
-                @for (cust of customers; track cust.id) {
-                  <option [value]="cust.id">{{ cust.name }} ({{ cust.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="customers"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Search Customer (Name or GSTIN)..."
+                [(ngModel)]="newInv.customerLedgerId"
+                (selectChange)="onCustomerSelected()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
@@ -196,126 +203,133 @@ import { exportToCsv } from '../../../core/utils/export.util';
           }
 
           <!-- ITEMS SECTION -->
-          <div class="items-section">
-            <div class="section-title-row">
-              <h3>Billed Line Items</h3>
-              <button class="btn-sm btn-outline" type="button" (click)="addItemRow()">
-                <i class="pi pi-plus"></i> Add Item Line
+          <div class="line-items-section">
+            <div class="section-title-wrap">
+              <div class="section-title">
+                <i class="pi pi-receipt"></i> Billed Line Items
+              </div>
+              <button class="add-line-btn" type="button" (click)="addItemRow()">
+                <i class="pi pi-plus"></i> Add Blank Line
               </button>
             </div>
 
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th style="width: 32%">Product / Item</th>
-                  <th style="width: 12%">Billed Qty</th>
-                  <th style="width: 15%">Unit Rate (₹)</th>
-                  <th style="width: 13%">Discount (₹)</th>
-                  <th style="width: 10%">GST Rate</th>
-                  <th style="width: 14%">Taxable Line</th>
-                  <th style="width: 4%"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of newInv.items; track $index; let i = $index) {
+            <!-- FAST ITEM ENTRY BAR -->
+            <zeno-item-fast-entry
+              [itemsList]="itemsList"
+              [showDiscount]="true"
+              [showGst]="true"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
+
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td>
-                      <select [(ngModel)]="row.itemId" (change)="onItemSelect(i)">
-                        <option value="">Select Item...</option>
-                        @for (it of itemsList; track it.id) {
-                          <option [value]="it.id">{{ it.name }} ({{ it.sku || 'N/A' }})</option>
-                        }
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        [(ngModel)]="row.billedQty"
-                        (input)="recalculateTotals()"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="any"
-                        [(ngModel)]="row.unitPrice"
-                        (input)="recalculateTotals()"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="any"
-                        [(ngModel)]="row.discountAmount"
-                        (input)="recalculateTotals()"
-                      />
-                    </td>
-                    <td>
-                      <select [(ngModel)]="row.taxRate" (change)="recalculateTotals()">
-                        <option [value]="0">0%</option>
-                        <option [value]="5">5%</option>
-                        <option [value]="12">12%</option>
-                        <option [value]="18">18%</option>
-                        <option [value]="28">28%</option>
-                      </select>
-                    </td>
-                    <td class="font-bold">
-                      ₹{{ (Math.max(0, (row.billedQty * row.unitPrice) - row.discountAmount)) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-right">
-                      @if (newInv.items.length > 1) {
-                        <button class="btn-icon text-danger" (click)="removeItemRow(i)">
-                          <i class="pi pi-trash"></i>
-                        </button>
-                      }
-                    </td>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Product / Item</th>
+                    <th style="width: 80px;" class="text-center">Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;">Rate (₹)</th>
+                    <th style="width: 100px;">Discount (₹)</th>
+                    <th style="width: 85px;">GST %</th>
+                    <th class="text-right" style="width: 120px;">Amount (₹)</th>
+                    <th class="text-center" style="width: 70px;">Action</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @if (newInv.items.length === 0 || (newInv.items.length === 1 && !newInv.items[0].itemId)) {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added yet. Use the Fast Item Entry Bar above to add items to this invoice.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of newInv.items; track $index; let i = $index) {
+                      @if (row.itemId) {
+                        <tr>
+                          <td class="excel-row-num text-center">{{ i + 1 }}</td>
+                          <td>
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ getItemName(row.itemId) }}</span>
+                          </td>
+                          <td class="text-center font-mono font-bold">
+                            {{ row.billedQty }}
+                          </td>
+                          <td class="text-center">
+                            <span class="unit-badge">{{ getUnitCode(row) }}</span>
+                          </td>
+                          <td class="text-right font-mono">
+                            ₹{{ row.unitPrice | number:'1.2-2' }}
+                          </td>
+                          <td class="text-right font-mono">
+                            ₹{{ row.discountAmount | number:'1.2-2' }}
+                          </td>
+                          <td class="text-center font-mono">
+                            {{ row.taxRate }}%
+                          </td>
+                          <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: var(--surface-900);">
+                            ₹{{ (Math.max(0, (row.billedQty * row.unitPrice) - row.discountAmount)) | number:'1.2-2' }}
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn-icon text-primary" (click)="editItemRow(i)" title="Edit line item">
+                              <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn-icon text-danger" (click)="removeItemRow(i)" title="Delete line item">
+                              <i class="pi pi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- SUMMARY & TOTALS -->
-          <div class="totals-summary-card">
-            <div class="summary-line">
-              <span>Taxable Subtotal:</span>
-              <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Narration / Remarks</label>
+              <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter transaction narration or invoice notes..."
+                [(ngModel)]="newInv.narration"
+              ></textarea>
             </div>
-            @if (modalTotals.igstTotal > 0) {
-              <div class="summary-line">
-                <span>Integrated GST (IGST):</span>
-                <span>₹{{ modalTotals.igstTotal | number:'1.2-2' }}</span>
-              </div>
-            } @else {
-              <div class="summary-line">
-                <span>Central GST (CGST):</span>
-                <span>₹{{ modalTotals.cgstTotal | number:'1.2-2' }}</span>
-              </div>
-              <div class="summary-line">
-                <span>State GST (SGST):</span>
-                <span>₹{{ modalTotals.sgstTotal | number:'1.2-2' }}</span>
-              </div>
-            }
-            <div class="summary-line">
-              <span>Round Off:</span>
-              <span>₹{{ modalTotals.roundOff | number:'1.2-2' }}</span>
-            </div>
-            <div class="summary-line grand-total">
-              <span>Grand Total:</span>
-              <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
-            </div>
-          </div>
 
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitInvoice()" [disabled]="submitting || !isValidInvoice()">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Posting Ledger Entries...
+            <div class="totals-summary-card">
+              <div class="summary-line">
+                <span>Taxable Subtotal:</span>
+                <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
+              </div>
+              @if (modalTotals.igstTotal > 0) {
+                <div class="summary-line">
+                  <span>Integrated GST (IGST):</span>
+                  <span>₹{{ modalTotals.igstTotal | number:'1.2-2' }}</span>
+                </div>
               } @else {
-                <i class="pi pi-check"></i> Post Tax Invoice
+                <div class="summary-line">
+                  <span>Central GST (CGST):</span>
+                  <span>₹{{ modalTotals.cgstTotal | number:'1.2-2' }}</span>
+                </div>
+                <div class="summary-line">
+                  <span>State GST (SGST):</span>
+                  <span>₹{{ modalTotals.sgstTotal | number:'1.2-2' }}</span>
+                </div>
               }
-            </button>
+              <div class="summary-line">
+                <span>Round Off:</span>
+                <span>₹{{ modalTotals.roundOff | number:'1.2-2' }}</span>
+              </div>
+              <div class="summary-line grand-total">
+                <span>Grand Total:</span>
+                <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
+              </div>
+            </div>
           </div>
         </div>
       } @else if (viewMode === 'view' && selectedInvoice) {
@@ -361,39 +375,41 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <h4 style="margin: 20px 0 10px; font-size: 0.95rem; color: var(--surface-700)">Itemized Goods &amp; Services</h4>
-          <table class="zeno-table">
-            <thead>
-              <tr>
-                <th>Item &amp; HSN</th>
-                <th>Qty</th>
-                <th>Rate</th>
-                <th>Taxable</th>
-                <th>GST</th>
-                <th class="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of selectedInvoice.items; track item.id) {
+          <div class="table-responsive">
+            <table class="zeno-table line-table">
+              <thead>
                 <tr>
-                  <td>
-                    <strong>{{ item.item?.name }}</strong>
-                    <div style="font-size: 0.72rem; color: var(--surface-500)">HSN/SAC: {{ item.item?.hsnSac || '8517' }}</div>
-                  </td>
-                  <td>{{ item.billedQty }} {{ item.unit?.code || 'NOS' }}</td>
-                  <td>₹{{ item.rate | number:'1.2-2' }}</td>
-                  <td>₹{{ item.taxableAmount | number:'1.2-2' }}</td>
-                  <td>
-                    @if (item.igstAmount > 0) {
-                      <span>IGST: ₹{{ item.igstAmount | number:'1.2-2' }} ({{ item.gstRate }}%)</span>
-                    } @else {
-                      <span>CGST: ₹{{ item.cgstAmount | number:'1.2-2' }} + SGST: ₹{{ item.sgstAmount | number:'1.2-2' }}</span>
-                    }
-                  </td>
-                  <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  <th>Item &amp; HSN</th>
+                  <th>Qty</th>
+                  <th>Rate</th>
+                  <th>Taxable</th>
+                  <th>GST</th>
+                  <th class="text-right">Total</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (item of selectedInvoice.items; track item.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.item?.name }}</strong>
+                      <div style="font-size: 0.72rem; color: var(--surface-500)">HSN/SAC: {{ item.item?.hsnSac || '8517' }}</div>
+                    </td>
+                    <td>{{ item.billedQty }} {{ item.unit?.code || 'NOS' }}</td>
+                    <td>₹{{ item.rate | number:'1.2-2' }}</td>
+                    <td>₹{{ item.taxableAmount | number:'1.2-2' }}</td>
+                    <td>
+                      @if (item.igstAmount > 0) {
+                        <span>IGST: ₹{{ item.igstAmount | number:'1.2-2' }} ({{ item.gstRate }}%)</span>
+                      } @else {
+                        <span>CGST: ₹{{ item.cgstAmount | number:'1.2-2' }} + SGST: ₹{{ item.sgstAmount | number:'1.2-2' }}</span>
+                      }
+                    </td>
+                    <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
 
           <div class="totals-summary-card" style="margin-top: 20px;">
             <div class="summary-line">
@@ -458,6 +474,24 @@ import { exportToCsv } from '../../../core/utils/export.util';
       &:hover { background: var(--surface-200); color: var(--surface-900); }
     }
     .form-page-card { padding: 24px; }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
     
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
     .kpi-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
@@ -470,7 +504,50 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
 
-    .zeno-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; }
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+    .zeno-table {
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      text-align: left;
+      font-size: 0.875rem;
+
+      th {
+        background-color: var(--surface-100) !important;
+        padding: 12px 16px;
+        color: var(--surface-700) !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--surface-300) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--surface-200) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        color: var(--surface-800);
+        vertical-align: middle;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      tr:last-child td { border-bottom: none !important; }
+      tr:hover td { background: rgba(248, 250, 252, 0.7); }
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--surface-300) !important;
+      border-radius: var(--radius-md) !important;
+      background: #ffffff;
+    }
+
     .filter-card { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
     .filter-group { position: relative; width: 320px; }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); }
@@ -499,14 +576,82 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .pull-orders-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .pull-orders-info { display: flex; align-items: center; gap: 8px; color: #1E40AF; font-size: 0.85rem; }
 
-    .items-section { margin-top: 16px; }
-    .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .items-table { width: 100%; border-collapse: collapse; border: 1px solid var(--surface-200); border-radius: 8px; overflow: hidden; }
-    .items-table th { background: var(--surface-100); padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; color: var(--surface-600); }
-    .items-table td { padding: 8px 10px; border-bottom: 1px solid var(--surface-200); }
-    .items-table select, .items-table input { width: 100%; padding: 6px 8px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.85rem; }
+    .line-items-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 
-    .totals-summary-card { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 8px; padding: 16px; width: 340px; margin-left: auto; margin-top: 16px; }
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+
+        .section-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
+        background: #ffffff;
+      }
+    }
+
+    .form-footer-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .narration-box {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .narration-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--surface-700);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .narration-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--surface-300);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-family: inherit;
+        resize: vertical;
+        background: #ffffff;
+        min-height: 80px;
+
+        &:focus {
+          outline: none;
+          border-color: var(--primary-600);
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+      }
+    }
+
+    .totals-summary-card { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 8px; padding: 16px; width: 340px; margin-top: 0; margin-left: 0; }
     .summary-line { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 8px; color: var(--surface-700); }
     .summary-line.grand-total { border-top: 2px solid var(--surface-300); padding-top: 10px; font-size: 1.1rem; color: var(--primary-700); }
 
@@ -534,6 +679,20 @@ export class SalesInvoicesComponent implements OnInit {
   Number = Number;
   Math = Math;
 
+  createDefaultGridRows(count = 1): any[] {
+    const compState = this.tenantService.currentCompany()?.stateCode || '27';
+    const isInter = compState !== (this.newInv?.placeOfSupplyStateCode || '27');
+    return Array.from({ length: count }, () => ({
+      itemId: '',
+      billedQty: 1,
+      unitPrice: 0,
+      discountAmount: 0,
+      taxRate: 18,
+      unitCode: 'Pcs',
+      isInterstate: isInter
+    }));
+  }
+
   newInv: any = {
     customerLedgerId: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -541,9 +700,10 @@ export class SalesInvoicesComponent implements OnInit {
     placeOfSupplyStateCode: '27',
     billingAddress: '',
     shippingAddress: '',
+    narration: '',
     dcIds: [] as string[],
     items: [
-      { itemId: '', billedQty: 1, unitPrice: 0, discountAmount: 0, taxRate: 18, isInterstate: false }
+      { itemId: '', billedQty: 1, unitPrice: 0, discountAmount: 0, taxRate: 18, unitCode: 'Pcs', isInterstate: false }
     ]
   };
 
@@ -620,6 +780,21 @@ export class SalesInvoicesComponent implements OnInit {
     this.loadInvoices();
   }
 
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  getUnitCode(row: any): string {
+    if (!row) return 'Pcs';
+    const val = row.unitCode || row.unit;
+    if (!val) return 'Pcs';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return val.code || val.name || val.unitCode || 'Pcs';
+    return String(val);
+  }
+
   openCreateModal() {
     this.newInv = {
       customerLedgerId: '',
@@ -628,10 +803,9 @@ export class SalesInvoicesComponent implements OnInit {
       placeOfSupplyStateCode: this.tenantService.currentCompany()?.stateCode || '27',
       billingAddress: '',
       shippingAddress: '',
+      narration: '',
       dcIds: [],
-      items: [
-        { itemId: '', billedQty: 1, unitPrice: 0, discountAmount: 0, taxRate: 18, isInterstate: false }
-      ]
+      items: []
     };
     this.recalculateTotals();
     this.viewMode = 'create';
@@ -665,12 +839,69 @@ export class SalesInvoicesComponent implements OnInit {
       unitPrice: 0,
       discountAmount: 0,
       taxRate: 18,
+      unitCode: 'Pcs',
       isInterstate: isInter
     });
   }
 
+  onFastItemAdded(itemData: any) {
+    const compState = this.tenantService.currentCompany()?.stateCode || '27';
+    const isInter = compState !== (this.newInv.placeOfSupplyStateCode || '27');
+    const item = this.itemsList.find(i => i.id === itemData.itemId);
+    
+    let emptyRow = this.newInv.items.find((r: any) => !r.itemId);
+    if (emptyRow) {
+      emptyRow.itemId = itemData.itemId;
+      emptyRow.billedQty = itemData.qty;
+      emptyRow.unitPrice = itemData.rate;
+      emptyRow.discountAmount = itemData.discount;
+      emptyRow.taxRate = itemData.gstRate;
+      emptyRow.unitCode = item?.unitCode || item?.unit || 'Pcs';
+      emptyRow.isInterstate = isInter;
+    } else {
+      this.newInv.items.push({
+        itemId: itemData.itemId,
+        billedQty: itemData.qty,
+        unitPrice: itemData.rate,
+        discountAmount: itemData.discount,
+        taxRate: itemData.gstRate,
+        unitCode: item?.unitCode || item?.unit || 'Pcs',
+        isInterstate: isInter
+      });
+    }
+    this.recalculateTotals();
+  }
+
+  editingItemData: any = null;
+
+  editItemRow(index: number) {
+    this.editingItemData = { item: this.newInv.items[index], index };
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (itemData.index !== null && itemData.index !== undefined) {
+      const compState = this.tenantService.currentCompany()?.stateCode || '27';
+      const isInter = compState !== (this.newInv.placeOfSupplyStateCode || '27');
+      const item = this.itemsList.find(i => i.id === itemData.itemId);
+      this.newInv.items[itemData.index] = {
+        itemId: itemData.itemId,
+        billedQty: itemData.qty,
+        unitPrice: itemData.rate,
+        discountAmount: itemData.discount,
+        taxRate: itemData.gstRate,
+        unitCode: item?.unitCode || item?.unit || 'Pcs',
+        isInterstate: isInter
+      };
+      this.editingItemData = null;
+      this.recalculateTotals();
+    }
+  }
+
   removeItemRow(index: number) {
     this.newInv.items.splice(index, 1);
+    if (this.newInv.items.length === 0) {
+      this.newInv.items = this.createDefaultGridRows(1);
+    }
     this.recalculateTotals();
   }
 
@@ -680,6 +911,7 @@ export class SalesInvoicesComponent implements OnInit {
     if (item) {
       row.unitPrice = Number(item.salesPrice || item.purchasePrice || 0);
       row.taxRate = Number(item.taxRate || 18);
+      row.unitCode = item.unitCode || item.unit || 'Pcs';
       this.recalculateTotals();
     }
   }
@@ -737,6 +969,7 @@ export class SalesInvoicesComponent implements OnInit {
     let igst = 0;
 
     for (const r of this.newInv.items) {
+      if (!r.itemId) continue;
       const qty = Number(r.billedQty || 0);
       const rate = Number(r.unitPrice || 0);
       const disc = Number(r.discountAmount || 0);
@@ -767,20 +1000,22 @@ export class SalesInvoicesComponent implements OnInit {
   }
 
   isValidInvoice(): boolean {
+    const validItems = this.newInv.items.filter((i: any) => !!i.itemId && Number(i.billedQty) > 0);
     return (
       !!this.newInv.customerLedgerId &&
-      this.newInv.items.length > 0 &&
-      this.newInv.items.every((i: any) => !!i.itemId && Number(i.billedQty) > 0)
+      validItems.length > 0
     );
   }
 
   submitInvoice() {
     if (!this.isValidInvoice()) return;
     this.submitting = true;
+    const validItems = this.newInv.items.filter((i: any) => !!i.itemId && Number(i.billedQty) > 0);
     const payload = {
       companyId: this.companyId,
       branchId: this.branchId,
-      ...this.newInv
+      ...this.newInv,
+      items: validItems
     };
 
     this.salesService.createSalesInvoice(payload).subscribe({

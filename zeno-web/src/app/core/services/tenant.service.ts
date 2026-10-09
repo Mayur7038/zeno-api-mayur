@@ -16,7 +16,12 @@ export class TenantService {
   companySettings = signal<any>(null);
   taxMasters = signal<any[]>([]);
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService) {
+    const savedCompId = localStorage.getItem('zeno_company_id');
+    if (savedCompId) {
+      this.currentCompany.set({ id: savedCompId });
+    }
+  }
 
   loadHierarchy(): Observable<any> {
     return this.api.get<any[]>('/tenancy/companies').pipe(

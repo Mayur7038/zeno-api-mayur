@@ -21,6 +21,7 @@ let Company = class Company {
     tradeName;
     code;
     businessType;
+    industryType;
     gstin;
     pan;
     currencyCode;
@@ -72,6 +73,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'business_type', length: 100, nullable: true, default: 'Private Limited Company' }),
     __metadata("design:type", String)
 ], Company.prototype, "businessType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'industry_type', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Company.prototype, "industryType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 15, nullable: true }),
     __metadata("design:type", String)

@@ -40,7 +40,10 @@ import { AuthService } from '../../core/services/auth.service';
             </div>
 
             <div class="form-group">
-              <label>Password</label>
+              <div class="label-row">
+                <label>Password</label>
+                <a routerLink="/auth/forgot-password" class="forgot-link">Forgot password?</a>
+              </div>
               <input
                 type="password"
                 [(ngModel)]="password"
@@ -125,6 +128,31 @@ import { AuthService } from '../../core/services/auth.service';
         font-size: 0.8125rem;
         color: var(--surface-500);
         margin-bottom: 20px;
+      }
+
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+
+        label {
+          margin-bottom: 0;
+          font-weight: 500;
+          font-size: 0.875rem;
+          color: var(--surface-700);
+        }
+
+        .forgot-link {
+          font-size: 0.8125rem;
+          color: var(--primary-600);
+          text-decoration: none;
+          font-weight: 600;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
       }
     }
 

@@ -7,11 +7,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-purchase-invoices',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="p2p-page">
       @if (viewMode === 'list') {
@@ -121,7 +123,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
         <div class="page-header">
           <div class="header-back-title">
             <button class="btn-back" (click)="backToList()"><i class="pi pi-arrow-left"></i></button>
-            <h1>Record Purchase Invoice</h1>
+            <h1>Purchase Invoice</h1>
           </div>
           <div class="header-actions">
             <button class="btn-secondary" (click)="backToList()">Cancel</button>
@@ -135,7 +137,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
         </div>
 
-        <div class="zeno-card form-page-card">
+        <div class="form-page-no-card">
           @if (createError) {
             <div class="alert alert-error" style="margin-bottom: 16px;">
               <i class="pi pi-exclamation-circle"></i>
@@ -143,25 +145,29 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           }
 
-          <div class="form-grid-4">
+          <!-- TOP SECTION: VENDOR & METADATA (MAX 4 FIELDS) -->
+          <div class="form-grid">
             <div class="form-group">
-              <label>Invoice Date *</label>
+              <label class="required">Vendor (Creditor)</label>
+              <zeno-searchable-select
+                [options]="vendors"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Search Vendor (Name or GSTIN)..."
+                [(ngModel)]="form.vendorLedgerId"
+                (selectChange)="onVendorChange()"
+              ></zeno-searchable-select>
+            </div>
+
+            <div class="form-group">
+              <label class="required">Invoice Date</label>
               <input type="date" [(ngModel)]="form.invoiceDate" required />
             </div>
 
             <div class="form-group">
-              <label>Vendor (Creditor) *</label>
-              <select [(ngModel)]="form.vendorLedgerId" (change)="onVendorChange()" required>
-                <option value="">-- Select Vendor --</option>
-                @for (v of vendors; track v.id) {
-                  <option [value]="v.id">{{ v.name }} (State: {{ v.stateCode || '27' }})</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Vendor Bill # *</label>
-              <input type="text" [(ngModel)]="form.vendorBillNo" required />
+              <label class="required">Vendor Bill #</label>
+              <input type="text" [(ngModel)]="form.vendorBillNo" required placeholder="Enter supplier invoice no..." />
             </div>
 
             <div class="form-group">
@@ -170,9 +176,8 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           </div>
 
-          <!-- PENDING GRN PULL BAR -->
-          @if (form.vendorLedgerId) {
-            <div class="po-pull-bar">
+          @if (form.vendorLedgerId && pendingGrns.length > 0) {
+            <div class="po-pull-bar" style="margin-bottom: 16px;">
               <div class="po-pull-text">
                 <i class="pi pi-box"></i> Pull line items from received Goods Receipt Notes (GRN)
               </div>
@@ -182,114 +187,113 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           }
 
-          <!-- INVOICE ITEMS -->
+          <!-- LINE ITEMS EDITOR -->
           <div class="line-items-section">
-            <div class="section-title">Invoice Bill Items</div>
-            <table class="zeno-table line-table">
-              <thead>
-                <tr>
-                  <th>Item Description</th>
-                  <th>Qty *</th>
-                  <th>Rate (₹) *</th>
-                  <th>Discount (₹)</th>
-                  <th>GST %</th>
-                  <th class="text-right">Total (₹)</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (form.items.length === 0) {
+            <zeno-item-fast-entry
+              [itemsList]="itemsList"
+              [showDiscount]="true"
+              [showGst]="true"
+              [isPurchase]="true"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
+
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td colspan="7" class="text-center" style="padding: 24px; color: var(--surface-500);">
-                      No items added. Click "Select Pending GRNs" or add direct item line.
-                    </td>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Item Description</th>
+                    <th style="width: 80px;" class="text-center">Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;" class="text-right">Rate (₹)</th>
+                    <th style="width: 100px;" class="text-right">Discount (₹)</th>
+                    <th style="width: 85px;" class="text-center">GST %</th>
+                    <th style="width: 120px;" class="text-right">Amount (₹)</th>
+                    <th style="width: 70px;" class="text-center">Action</th>
                   </tr>
-                }
-                @for (line of form.items; track $index) {
-                  <tr>
-                    <td class="font-bold">{{ line.itemName || 'Selected Item' }}</td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.receivedQty"
-                        (input)="calculateLine(line)"
-                        min="1"
-                        style="width: 80px;"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.rate"
-                        (input)="calculateLine(line)"
-                        style="width: 100px;"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.discountAmount"
-                        (input)="calculateLine(line)"
-                        style="width: 80px;"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.gstRate"
-                        (input)="calculateLine(line)"
-                        style="width: 70px;"
-                      />
-                    </td>
-                    <td class="text-right font-mono font-bold">₹{{ line.totalAmount }}</td>
-                    <td class="text-right">
-                      <button class="remove-line-btn" (click)="removeLine($index)">
-                        <i class="pi pi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-
-            <button type="button" class="btn-secondary add-line-btn" (click)="addDirectItem()">
-              <i class="pi pi-plus"></i> Add Direct Item Line
-            </button>
-          </div>
-
-          <!-- TOTALS & GST BREAKDOWN -->
-          <div class="totals-grid">
-            <div class="gst-summary-panel">
-              <div class="font-bold" style="margin-bottom: 8px; font-size: 0.875rem;">
-                Tax Place of Supply: {{ isInterstate ? 'Inter-State (IGST 100%)' : 'Intra-State (CGST 50% + SGST 50%)' }}
-              </div>
-              <div class="font-mono text-sm" style="color: var(--surface-600);">
-                <div>Taxable Total: ₹{{ invTaxableTotal.toFixed(2) }}</div>
-                @if (!isInterstate) {
-                  <div>CGST: ₹{{ (invTaxTotal / 2).toFixed(2) }}</div>
-                  <div>SGST: ₹{{ (invTaxTotal / 2).toFixed(2) }}</div>
-                } @else {
-                  <div>IGST: ₹{{ invTaxTotal.toFixed(2) }}</div>
-                }
-              </div>
-            </div>
-
-            <div class="totals-panel font-mono">
-              <div class="total-row"><span>Subtotal:</span><span>₹{{ invSubtotal.toFixed(2) }}</span></div>
-              <div class="total-row"><span>GST Tax Total:</span><span>₹{{ invTaxTotal.toFixed(2) }}</span></div>
-              <div class="total-row grand-total"><span>Grand Total:</span><span>₹{{ invGrandTotal.toFixed(2) }}</span></div>
+                </thead>
+                <tbody>
+                  @if (form.items.length === 0) {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added. Use the Fast Item Entry Bar above to add items to this purchase invoice.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (line of form.items; track $index) {
+                      <tr>
+                        <td class="excel-row-num text-center">{{ $index + 1 }}</td>
+                        <td>
+                          <div class="line-item-desc">
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ line.itemName || 'Selected Item' }}</span>
+                            @if (line.grnItemId) {
+                              <span class="badge-source-grn" style="margin-left: 6px;"><i class="pi pi-box"></i> GRN Line</span>
+                            }
+                          </div>
+                        </td>
+                        <td class="text-center font-mono">
+                          {{ line.receivedQty }}
+                        </td>
+                        <td class="text-center">
+                          <span class="unit-badge">{{ line.unitCode || 'NOS' }}</span>
+                        </td>
+                        <td class="text-right font-mono">
+                          ₹{{ line.rate | number:'1.2-2' }}
+                        </td>
+                        <td class="text-right font-mono">
+                          ₹{{ line.discountAmount | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center font-mono">
+                          {{ line.gstRate }}%
+                        </td>
+                        <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: var(--surface-900);">
+                          ₹{{ line.totalAmount | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center">
+                          <button type="button" class="btn-icon text-primary" (click)="editItemRow($index)" title="Edit line item">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn-icon text-danger" (click)="removeLine($index)" title="Delete line item">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitCreateInvoice()" [disabled]="submitting || form.items.length === 0">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Posting Double-Entry...
-              } @else {
-                <i class="pi pi-check"></i> Post Purchase Invoice
-              }
-            </button>
+          <!-- SUMMARY & TOTALS FOOTER SECTION -->
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Narration / Remarks</label>
+              <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter invoice narration or remarks..."
+                [(ngModel)]="form.notes"
+              ></textarea>
+            </div>
+
+            <div class="totals-summary-card">
+              <div class="summary-line">
+                <span>Taxable Subtotal:</span>
+                <strong>₹{{ invSubtotal | number:'1.2-2' }}</strong>
+              </div>
+              <div class="summary-line">
+                <span>GST Tax Total:</span>
+                <span>₹{{ invTaxTotal | number:'1.2-2' }}</span>
+              </div>
+              <div class="summary-line grand-total">
+                <span>Grand Total:</span>
+                <strong>₹{{ invGrandTotal | number:'1.2-2' }}</strong>
+              </div>
+            </div>
           </div>
         </div>
       } @else if (viewMode === 'view' && viewingPi) {
@@ -446,6 +450,24 @@ import { exportToCsv } from '../../../core/utils/export.util';
       &:hover { background: var(--surface-200); color: var(--surface-900); }
     }
     .form-page-card { padding: 24px; }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
     .filter-card { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; .filter-group { position: relative; flex: 1; max-width: 360px; .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); } input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); font-size: 0.875rem; outline: none; } } .status-tabs { display: flex; gap: 6px; button { background: none; border: 1px solid transparent; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8125rem; font-weight: 600; color: var(--surface-600); cursor: pointer; &.active { background-color: var(--primary-50); color: var(--primary-700); border-color: var(--primary-200); } } } }
     .action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
     .btn-pay-action { background: #059669; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; &:hover { background: #047857; } }
@@ -453,7 +475,97 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; label { font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); } input, select, textarea { border: 1px solid var(--surface-300); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; } }
     .po-pull-bar { display: flex; align-items: center; justify-content: space-between; background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: var(--radius-sm); padding: 12px 16px; margin: 16px 0; .po-pull-text { font-size: 0.875rem; font-weight: 600; color: var(--primary-800); display: flex; align-items: center; gap: 8px; } }
-    .line-items-section { margin: 16px 0; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; background: var(--surface-50); .section-title { font-size: 0.875rem; font-weight: 700; margin-bottom: 12px; } .line-table { background: #ffffff; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); } .add-line-btn { margin-top: 12px; font-size: 0.8125rem; padding: 6px 12px; } .remove-line-btn { background: none; border: none; color: var(--danger); cursor: pointer; } }
+    .line-items-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: var(--shadow-subtle);
+
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+
+        .section-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .item-count-badge {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--primary-700);
+          background: var(--primary-50);
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--primary-200);
+        }
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-200);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
+      }
+
+      .line-table {
+        background: #ffffff;
+        width: 100%;
+        border-collapse: collapse;
+
+        th {
+          background-color: var(--surface-50);
+          color: var(--surface-600);
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          padding: 11px 14px;
+          border-bottom: 1px solid var(--surface-200);
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-100);
+          vertical-align: middle;
+        }
+
+        tr:last-child td {
+          border-bottom: none;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
+        }
+      }
+
+      .line-item-desc {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge-source-grn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #0369a1;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    }
     .totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .gst-summary-panel { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
     .totals-panel { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 8px; .total-row { display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--surface-700); &.grand-total { font-size: 1.125rem; font-weight: 800; color: var(--surface-900); border-top: 2px solid var(--surface-300); padding-top: 8px; margin-top: 4px; } } }
@@ -524,7 +636,7 @@ export class PurchaseInvoicesComponent implements OnInit {
     private masters: MastersService,
     private toast: ToastService,
     private router: Router,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.tenant.loadHierarchy().subscribe({
@@ -639,7 +751,7 @@ export class PurchaseInvoicesComponent implements OnInit {
       unitId: first?.unitId || '',
       unitCode: first?.unit?.code || 'NOS',
       receivedQty: 1,
-      rate: Number(first?.purchaseRate || 0),
+      rate: Number(first?.purchaseRate || first?.standardCost || 0),
       discountAmount: 0,
       gstRate: Number(first?.gstRate || 18),
       taxableAmount: 0,
@@ -649,7 +761,80 @@ export class PurchaseInvoicesComponent implements OnInit {
     this.calculateLine(line);
   }
 
+  editingItemData: { item: any, index: number } | null = null;
+
+  onFastItemAdded(itemData: any) {
+    const line = {
+      itemId: itemData.itemId,
+      itemName: itemData.itemName,
+      unitId: itemData.itemObj?.unitId || '',
+      unitCode: itemData.unit || 'NOS',
+      receivedQty: itemData.qty,
+      rate: itemData.rate,
+      discountAmount: itemData.discount,
+      gstRate: itemData.gstRate,
+      taxableAmount: 0,
+      totalAmount: 0
+    };
+    this.form.items.push(line);
+    this.calculateLine(line);
+  }
+
+  editItemRow(index: number) {
+    const row = this.form.items[index];
+    if (row) {
+      this.editingItemData = {
+        item: {
+          itemId: row.itemId,
+          qty: row.receivedQty,
+          rate: row.rate,
+          discount: row.discountAmount,
+          gstRate: row.gstRate
+        },
+        index
+      };
+    }
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (this.editingItemData !== null && this.editingItemData.index >= 0) {
+      const idx = this.editingItemData.index;
+      const line = this.form.items[idx];
+      if (line) {
+        line.itemId = itemData.itemId;
+        line.itemName = itemData.itemName;
+        line.receivedQty = itemData.qty;
+        line.rate = itemData.rate;
+        line.discountAmount = itemData.discount;
+        line.gstRate = itemData.gstRate;
+        this.calculateLine(line);
+      }
+      this.editingItemData = null;
+    }
+  }
+
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  onDirectItemSelect(line: any) {
+    const selected = this.itemsList.find((it) => it.id === line.itemId);
+    if (selected) {
+      line.itemName = selected.name;
+      line.unitId = selected.unitId;
+      line.unitCode = selected.unit?.code || 'NOS';
+      line.rate = Number(selected.purchaseRate || selected.standardCost || 0);
+      line.gstRate = Number(selected.gstRate || 18);
+      this.calculateLine(line);
+    }
+  }
+
   removeLine(index: number) {
+    if (this.editingItemData?.index === index) {
+      this.editingItemData = null;
+    }
     this.form.items.splice(index, 1);
     this.recalculateTotals();
   }

@@ -43,12 +43,28 @@ export declare class AuthController {
         refreshToken: string;
         expiresIn: number;
         success: boolean;
+        tenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        company: {
+            id: string;
+            legalName: string;
+        };
+        branch: {
+            id: string;
+            branchName: string;
+            stateCode: string;
+        };
         user: {
             id: string;
             email: string;
             fullName: string;
             tenantId: string;
             tenantName: string;
+            companyId: string;
+            branchId: string;
             role: string;
             permissions: import("../../rbac/entities/role-permission.entity").RolePermission[];
             branches: import("../../rbac/entities/user-branch-access.entity").UserBranchAccess[];
@@ -68,6 +84,14 @@ export declare class AuthController {
     resetPassword(dto: ResetPasswordDto): Promise<{
         success: boolean;
         message: string;
+    }>;
+    refresh(body: {
+        refreshToken: string;
+    }): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        expiresIn: number;
+        success: boolean;
     }>;
     getProfile(user: User): {
         id: string;

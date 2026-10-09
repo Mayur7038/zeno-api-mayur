@@ -84,6 +84,59 @@ let InventoryController = class InventoryController {
             currentBalance: balance,
         };
     }
+    async getItemStatement(tenantId, companyId, itemId, startDate, endDate) {
+        const qb = this.stockRepo.createQueryBuilder('s')
+            .leftJoinAndSelect('s.godown', 'godown')
+            .leftJoinAndSelect('s.variant', 'variant')
+            .where('s.tenant_id = :tenantId', { tenantId })
+            .andWhere('s.company_id = :companyId', { companyId })
+            .andWhere('s.item_id = :itemId', { itemId })
+            .orderBy('s.entry_date', 'ASC')
+            .addOrderBy('s.created_at', 'ASC');
+        if (startDate)
+            qb.andWhere('s.entry_date >= :startDate', { startDate });
+        if (endDate)
+            qb.andWhere('s.entry_date <= :endDate', { endDate });
+        const entries = await qb.getMany();
+        let runningQty = 0;
+        let runningVal = 0;
+        let totalInQty = 0;
+        let totalOutQty = 0;
+        const processedEntries = entries.map(e => {
+            const qIn = Number(e.qtyIn || 0);
+            const qOut = Number(e.qtyOut || 0);
+            const v = Number(e.totalValue || 0);
+            runningQty += (qIn - qOut);
+            if (qIn > 0) {
+                runningVal += v;
+                totalInQty += qIn;
+            }
+            else if (qOut > 0) {
+                runningVal -= v;
+                totalOutQty += qOut;
+            }
+            return {
+                id: e.id,
+                entryDate: e.entryDate,
+                voucherType: e.voucherType,
+                voucherNo: e.voucherNo,
+                qtyIn: qIn,
+                qtyOut: qOut,
+                unitRate: Number(e.unitRate || 0),
+                totalValue: v,
+                runningQty: Number(runningQty.toFixed(3)),
+                godownName: e.godown ? e.godown.name : '',
+            };
+        });
+        return {
+            itemId,
+            entries: processedEntries,
+            totalInQty: Number(totalInQty.toFixed(3)),
+            totalOutQty: Number(totalOutQty.toFixed(3)),
+            closingQty: Number(runningQty.toFixed(3)),
+            closingValue: Number(runningVal.toFixed(2)),
+        };
+    }
     async getOpeningBalances(tenantId, companyId, godownId) {
         if (!godownId)
             throw new common_1.BadRequestException('Warehouse ID is required');
@@ -163,6 +216,18 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], InventoryController.prototype, "getItemBalance", null);
+__decorate([
+    (0, common_1.Get)('item-statement'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get chronological stock ledger entries for a specific item' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Query)('companyId')),
+    __param(2, (0, common_1.Query)('itemId')),
+    __param(3, (0, common_1.Query)('startDate')),
+    __param(4, (0, common_1.Query)('endDate')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], InventoryController.prototype, "getItemStatement", null);
 __decorate([
     (0, common_1.Get)('opening-balance'),
     (0, swagger_1.ApiOperation)({ summary: 'Get opening stock balances for items in a warehouse' }),

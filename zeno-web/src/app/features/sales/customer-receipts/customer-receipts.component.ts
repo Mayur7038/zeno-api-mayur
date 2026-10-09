@@ -7,11 +7,12 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
 
 @Component({
   selector: 'app-customer-receipts',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent],
   template: `
     <div class="sales-page">
       @if (viewMode === 'list') {
@@ -54,60 +55,62 @@ import { exportToCsv } from '../../../core/utils/export.util';
 
         <!-- TABLE CARD -->
         <div class="zeno-card">
-          <table class="zeno-table">
-            <thead>
-              <tr>
-                <th>Receipt No</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Deposit Account (Bank / Cash)</th>
-                <th>Mode</th>
-                <th>Ref / Cheque #</th>
-                <th>Amount Collected</th>
-                <th>Invoices Allocated</th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @if (loading) {
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
                 <tr>
-                  <td colspan="9" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                    <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem; margin-bottom: 8px; display:block;"></i>
-                    Loading customer receipts...
-                  </td>
+                  <th>Receipt No</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Deposit Account (Bank / Cash)</th>
+                  <th>Mode</th>
+                  <th>Ref / Cheque #</th>
+                  <th>Amount Collected</th>
+                  <th>Invoices Allocated</th>
+                  <th class="text-right">Actions</th>
                 </tr>
-              } @else if (filteredReceipts.length === 0) {
-                <tr>
-                  <td colspan="9" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                    No customer receipts found.
-                  </td>
-                </tr>
-              }
-              @for (rec of filteredReceipts; track rec.id) {
-                <tr (click)="viewReceipt(rec)" style="cursor: pointer;">
-                  <td class="font-mono font-bold" style="color: #16A34A">{{ rec.voucherNo }}</td>
-                  <td>{{ rec.receiptDate }}</td>
-                  <td>
-                    <strong>{{ rec.customerLedger?.name || 'Customer' }}</strong>
-                  </td>
-                  <td>
-                    <strong>{{ rec.paymentLedger?.name || 'Bank Account' }}</strong>
-                  </td>
-                  <td><span class="mode-badge">{{ rec.paymentMode }}</span></td>
-                  <td class="font-mono">{{ rec.referenceNo || '-' }}</td>
-                  <td class="font-bold text-success">₹{{ rec.amount | number:'1.2-2' }}</td>
-                  <td>
-                    <span class="badge badge-cleared">{{ rec.allocations?.length || 0 }} bills</span>
-                  </td>
-                  <td class="text-right" (click)="$event.stopPropagation()">
-                    <button class="btn-icon" title="View Receipt Voucher" (click)="viewReceipt(rec)">
-                      <i class="pi pi-eye"></i>
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @if (loading) {
+                  <tr>
+                    <td colspan="9" class="text-center" style="padding: 40px; color: var(--surface-500);">
+                      <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem; margin-bottom: 8px; display:block;"></i>
+                      Loading customer receipts...
+                    </td>
+                  </tr>
+                } @else if (filteredReceipts.length === 0) {
+                  <tr>
+                    <td colspan="9" class="text-center" style="padding: 40px; color: var(--surface-500);">
+                      No customer receipts found.
+                    </td>
+                  </tr>
+                }
+                @for (rec of filteredReceipts; track rec.id) {
+                  <tr (click)="viewReceipt(rec)" style="cursor: pointer;">
+                    <td class="font-mono font-bold" style="color: #16A34A">{{ rec.voucherNo }}</td>
+                    <td>{{ rec.receiptDate }}</td>
+                    <td>
+                      <strong>{{ rec.customerLedger?.name || 'Customer' }}</strong>
+                    </td>
+                    <td>
+                      <strong>{{ rec.paymentLedger?.name || 'Bank Account' }}</strong>
+                    </td>
+                    <td><span class="mode-badge">{{ rec.paymentMode }}</span></td>
+                    <td class="font-mono">{{ rec.referenceNo || '-' }}</td>
+                    <td class="font-bold text-success">₹{{ rec.amount | number:'1.2-2' }}</td>
+                    <td>
+                      <span class="badge badge-cleared">{{ rec.allocations?.length || 0 }} bills</span>
+                    </td>
+                    <td class="text-right" (click)="$event.stopPropagation()">
+                      <button class="btn-icon" title="View Receipt Voucher" (click)="viewReceipt(rec)">
+                        <i class="pi pi-eye"></i>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       } @else if (viewMode === 'create') {
         <!-- FULL PAGE CREATE CUSTOMER RECEIPT -->
@@ -128,22 +131,26 @@ import { exportToCsv } from '../../../core/utils/export.util';
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Customer (From)</label>
-              <select [(ngModel)]="newRec.customerLedgerId" (change)="onCustomerSelected()">
-                <option value="">Select Customer...</option>
-                @for (cust of customers; track cust.id) {
-                  <option [value]="cust.id">{{ cust.name }} ({{ cust.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="customers"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Select Customer..."
+                [(ngModel)]="newRec.customerLedgerId"
+                (selectChange)="onCustomerSelected()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
               <label class="required">Deposit Into (Bank / Cash Account)</label>
-              <select [(ngModel)]="newRec.paymentLedgerId">
-                <option value="">Select Bank / Cash Account...</option>
-                @for (acc of bankLedgers; track acc.id) {
-                  <option [value]="acc.id">{{ acc.name }}</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="bankLedgers"
+                labelKey="name"
+                valueKey="id"
+                placeholder="Select Bank / Cash Account..."
+                [(ngModel)]="newRec.paymentLedgerId"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
@@ -181,8 +188,8 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <!-- INVOICE ALLOCATION SECTION -->
-          <div class="items-section">
-            <div class="section-title-row">
+          <div class="line-items-section">
+            <div class="section-title-wrap">
               <div>
                 <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Bill-by-Bill Invoice Allocations</h3>
                 <p style="font-size: 0.78rem; color: var(--surface-500); margin: 2px 0 0 0;">Allocate payment against open invoices</p>
@@ -200,39 +207,41 @@ import { exportToCsv } from '../../../core/utils/export.util';
                 <span>{{ newRec.customerLedgerId ? 'No open/unpaid invoices found for this customer. Receipt will be recorded as on-account payment.' : 'Please select a customer to view open invoices.' }}</span>
               </div>
             } @else {
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th>Invoice No</th>
-                    <th>Date</th>
-                    <th>Total Value</th>
-                    <th>Already Paid</th>
-                    <th>Balance Due</th>
-                    <th style="width: 25%;">Allocate Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (inv of unpaidInvoices; track inv.id; let idx = $index) {
+              <div class="table-responsive">
+                <table class="zeno-table line-table">
+                  <thead>
                     <tr>
-                      <td class="font-mono font-bold">{{ inv.voucherNo }}</td>
-                      <td>{{ inv.invoiceDate }}</td>
-                      <td>₹{{ inv.grandTotal | number:'1.2-2' }}</td>
-                      <td class="text-success">₹{{ (inv.paidAmount || 0) | number:'1.2-2' }}</td>
-                      <td class="font-bold text-danger">
-                        ₹{{ (inv.grandTotal - (inv.paidAmount || 0)) | number:'1.2-2' }}
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          step="0.01"
-                          [(ngModel)]="inv.allocatedNow"
-                          (input)="recalculateAllocations()"
-                        />
-                      </td>
+                      <th>Invoice No</th>
+                      <th>Date</th>
+                      <th>Total Value</th>
+                      <th>Already Paid</th>
+                      <th>Balance Due</th>
+                      <th style="width: 25%;">Allocate Amount (₹)</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    @for (inv of unpaidInvoices; track inv.id; let idx = $index) {
+                      <tr>
+                        <td class="font-mono font-bold">{{ inv.voucherNo }}</td>
+                        <td>{{ inv.invoiceDate }}</td>
+                        <td>₹{{ inv.grandTotal | number:'1.2-2' }}</td>
+                        <td class="text-success">₹{{ (inv.paidAmount || 0) | number:'1.2-2' }}</td>
+                        <td class="font-bold text-danger">
+                          ₹{{ (inv.grandTotal - (inv.paidAmount || 0)) | number:'1.2-2' }}
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            [(ngModel)]="inv.allocatedNow"
+                            (input)="recalculateAllocations()"
+                          />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             }
           </div>
 
@@ -283,26 +292,28 @@ import { exportToCsv } from '../../../core/utils/export.util';
           @if (!selectedReceipt.allocations || selectedReceipt.allocations.length === 0) {
             <p style="color: var(--surface-500); font-size: 0.85rem;">Payment received on-account (not allocated to specific invoices).</p>
           } @else {
-            <table class="zeno-table" style="border: 1px solid var(--surface-200); border-radius: 8px;">
-              <thead>
-                <tr>
-                  <th>Invoice No</th>
-                  <th>Invoice Date</th>
-                  <th>Invoice Total</th>
-                  <th class="text-right">Allocated Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (alloc of selectedReceipt.allocations; track alloc.id) {
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td class="font-mono font-bold">{{ alloc.salesInvoice?.voucherNo }}</td>
-                    <td>{{ alloc.salesInvoice?.invoiceDate }}</td>
-                    <td>₹{{ alloc.salesInvoice?.grandTotal | number:'1.2-2' }}</td>
-                    <td class="text-right font-bold text-success">₹{{ alloc.allocatedAmount | number:'1.2-2' }}</td>
+                    <th>Invoice No</th>
+                    <th>Invoice Date</th>
+                    <th>Invoice Total</th>
+                    <th class="text-right">Allocated Amount</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (alloc of selectedReceipt.allocations; track alloc.id) {
+                    <tr>
+                      <td class="font-mono font-bold">{{ alloc.salesInvoice?.voucherNo }}</td>
+                      <td>{{ alloc.salesInvoice?.invoiceDate }}</td>
+                      <td>₹{{ alloc.salesInvoice?.grandTotal | number:'1.2-2' }}</td>
+                      <td class="text-right font-bold text-success">₹{{ alloc.allocatedAmount | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
         </div>
       }
@@ -328,12 +339,51 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
 
-    .zeno-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; overflow-x: auto; overflow-y: hidden; max-width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; }
-    .zeno-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; white-space: nowrap !important; }
-    .zeno-table th { background: var(--surface-50); padding: 12px 18px; color: var(--surface-600); font-weight: 600; border-bottom: 1px solid var(--surface-200); white-space: nowrap !important; }
-    .zeno-table td { padding: 13px 18px; border-bottom: 1px solid var(--surface-100); color: var(--surface-800); white-space: nowrap !important; }
-    .zeno-table tr:hover td { background: var(--surface-50); }
-    .zeno-table th *, .zeno-table td * { white-space: nowrap !important; }
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+    .zeno-table {
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      text-align: left;
+      font-size: 0.875rem;
+      white-space: nowrap !important;
+
+      th {
+        background-color: var(--surface-100) !important;
+        padding: 12px 18px;
+        color: var(--surface-700) !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--surface-300) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      td {
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--surface-200) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        color: var(--surface-800);
+        vertical-align: middle;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      tr:last-child td { border-bottom: none !important; }
+      tr:hover td { background: rgba(248, 250, 252, 0.7); }
+      th *, td * { white-space: nowrap !important; }
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--surface-300) !important;
+      border-radius: var(--radius-md) !important;
+      background: #ffffff;
+    }
 
     .mode-badge { background: #E0E7FF; color: #3730A3; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
     .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
@@ -355,13 +405,121 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-group label.required::after { content: ' *'; color: #EF4444; }
     .form-group select, .form-group input { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 8px; font-size: 0.875rem; }
 
-    .items-section { margin-top: 20px; }
-    .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .empty-invoices-notice { background: #F8FAFC; border: 1px dashed var(--surface-300); padding: 16px; border-radius: 8px; color: var(--surface-500); font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-    .items-table { width: 100%; border-collapse: collapse; border: 1px solid var(--surface-200); border-radius: 8px; overflow: hidden; }
-    .items-table th { background: var(--surface-100); padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; color: var(--surface-600); }
-    .items-table td { padding: 8px 10px; border-bottom: 1px solid var(--surface-200); }
-    .items-table input { width: 100%; padding: 6px 8px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.85rem; }
+    .line-items-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+
+      .empty-invoices-notice {
+        background: #F8FAFC;
+        border: 1px dashed var(--surface-300);
+        padding: 16px;
+        border-radius: 8px;
+        color: var(--surface-500);
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
+        background: #ffffff;
+      }
+
+      .line-table {
+        background: #ffffff;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+
+        th {
+          background-color: var(--surface-100) !important;
+          color: var(--surface-700) !important;
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--surface-300) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          &:last-child { border-right: none !important; }
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-200) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          vertical-align: middle;
+          &:last-child { border-right: none !important; }
+        }
+
+        tr:last-child td {
+          border-bottom: none !important;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
+        }
+
+        input {
+          width: 100%;
+          padding: 6px 10px;
+          border: 1px solid var(--surface-300) !important;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-family: var(--font-mono, monospace);
+        }
+      }
+    }
+
+    .line-table {
+      background: #ffffff;
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+
+      th {
+        background-color: var(--surface-100) !important;
+        color: var(--surface-700) !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--surface-300) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--surface-200) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        vertical-align: middle;
+        &:last-child { border-right: none !important; }
+      }
+
+      tr:last-child td {
+        border-bottom: none !important;
+      }
+
+      tr:hover td {
+        background-color: rgba(248, 250, 252, 0.7);
+      }
+    }
 
     .totals-summary-card { width: 340px; margin-left: auto; margin-top: 16px; background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 10px; padding: 14px 16px; }
     .summary-line { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; color: var(--surface-600); }

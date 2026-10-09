@@ -50,12 +50,20 @@ let MastersService = class MastersService {
             .leftJoinAndSelect('group.parent', 'parent')
             .leftJoinAndSelect('group.children', 'children');
         if (tenantId) {
-            qb.where('(group.tenant_id = :tenantId OR group.tenant_id IS NULL OR group.is_predefined = true)', { tenantId });
+            qb.where('(group.tenant_id = :tenantId OR group.tenant_id IS NULL)', { tenantId });
         }
         if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
-            qb.andWhere('(group.company_id = :companyId OR group.company_id IS NULL OR group.is_predefined = true)', { companyId });
+            qb.andWhere('(group.company_id = :companyId OR group.company_id IS NULL)', { companyId });
         }
         let groups = await qb.orderBy('group.name', 'ASC').getMany();
+        const deduplicatedMap = new Map();
+        for (const g of groups) {
+            const key = (g.name || '').trim().toLowerCase();
+            if (!deduplicatedMap.has(key)) {
+                deduplicatedMap.set(key, g);
+            }
+        }
+        groups = Array.from(deduplicatedMap.values());
         if (groups.length === 0 && tenantId) {
             const defaultGroupDefs = [
                 { name: 'Capital Account', nature: enums_1.LedgerGroupNature.LIABILITY, isPredefined: true },
@@ -86,21 +94,34 @@ let MastersService = class MastersService {
             ];
             for (const def of defaultGroupDefs) {
                 try {
-                    const g = this.groupRepo.create({
-                        tenantId,
-                        companyId: companyId && companyId !== 'undefined' && companyId !== 'null' ? companyId : undefined,
-                        name: def.name,
-                        nature: def.nature,
-                        isCreditorVendor: def.isCreditorVendor || false,
-                        isDebtorCustomer: def.isDebtorCustomer || false,
-                        isPredefined: true,
+                    const existing = await this.groupRepo.findOne({
+                        where: { tenantId, name: def.name },
                     });
-                    await this.groupRepo.save(g);
+                    if (!existing) {
+                        const g = this.groupRepo.create({
+                            tenantId,
+                            companyId: companyId && companyId !== 'undefined' && companyId !== 'null' ? companyId : undefined,
+                            name: def.name,
+                            nature: def.nature,
+                            isCreditorVendor: def.isCreditorVendor || false,
+                            isDebtorCustomer: def.isDebtorCustomer || false,
+                            isPredefined: true,
+                        });
+                        await this.groupRepo.save(g);
+                    }
                 }
                 catch {
                 }
             }
-            groups = await qb.orderBy('group.name', 'ASC').getMany();
+            const freshGroups = await qb.orderBy('group.name', 'ASC').getMany();
+            const freshMap = new Map();
+            for (const g of freshGroups) {
+                const key = (g.name || '').trim().toLowerCase();
+                if (!freshMap.has(key)) {
+                    freshMap.set(key, g);
+                }
+            }
+            groups = Array.from(freshMap.values());
         }
         return groups;
     }

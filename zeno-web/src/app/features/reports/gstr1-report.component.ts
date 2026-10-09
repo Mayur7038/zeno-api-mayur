@@ -1,0 +1,215 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { ApiService } from '../../core/services/api.service';
+import { TenantService } from '../../core/services/tenant.service';
+
+@Component({
+  selector: 'app-gstr1-report',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
+  template: `
+    <div class="rpt-page">
+      <div class="page-header">
+        <div class="header-back-title">
+          <button class="btn-back" routerLink="/reports"><i class="pi pi-arrow-left"></i></button>
+          <div>
+            <h1>GSTR-1 Report</h1>
+            <p class="sub">Details of outward supplies of goods or services</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="date-filter-bar">
+            <div class="date-group"><label>From</label><input type="date" [(ngModel)]="startDate" (change)="load()" /></div>
+            <div class="date-group"><label>To</label><input type="date" [(ngModel)]="endDate" (change)="load()" /></div>
+          </div>
+          <button class="btn-secondary" onclick="window.print()"><i class="pi pi-print"></i> Print</button>
+        </div>
+      </div>
+
+      @if (loading) {
+        <div class="loading-state"><i class="pi pi-spin pi-spinner"></i>&nbsp;Calculating GSTR-1...</div>
+      }
+
+      @if (!loading && data) {
+        <div class="zeno-card summary-cards" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding: 20px;">
+          <div class="summary-box">
+            <div class="title">Total Invoices</div>
+            <div class="val">{{ data.totalInvoices }}</div>
+          </div>
+          <div class="summary-box">
+            <div class="title">Taxable Value (&#8377;)</div>
+            <div class="val">{{ data.taxableValue.toFixed(2) }}</div>
+          </div>
+          <div class="summary-box">
+            <div class="title">CGST (&#8377;)</div>
+            <div class="val">{{ data.cgst.toFixed(2) }}</div>
+          </div>
+          <div class="summary-box">
+            <div class="title">SGST (&#8377;)</div>
+            <div class="val">{{ data.sgst.toFixed(2) }}</div>
+          </div>
+          <div class="summary-box">
+            <div class="title">IGST (&#8377;)</div>
+            <div class="val">{{ data.igst.toFixed(2) }}</div>
+          </div>
+        </div>
+
+        <div class="zeno-card">
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>GSTIN</th>
+                  <th class="text-right">Taxable Val</th>
+                  <th class="text-right">CGST</th>
+                  <th class="text-right">SGST</th>
+                  <th class="text-right">IGST</th>
+                  <th class="text-right">Invoice Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (data.invoices.length === 0) {
+                  <tr><td colspan="9" class="text-center empty-cell">No outward supplies found for this period.</td></tr>
+                }
+                @for (inv of data.invoices; track inv.id) {
+                  <tr>
+                    <td class="font-bold">{{ inv.voucherNo }}</td>
+                    <td>{{ inv.invoiceDate | date:'dd MMM yyyy' }}</td>
+                    <td>{{ inv.customerName }}</td>
+                    <td class="font-mono">{{ inv.customerGstin || 'URD' }}</td>
+                    <td class="text-right font-mono">{{ inv.taxableTotal.toFixed(2) }}</td>
+                    <td class="text-right font-mono text-muted">{{ inv.cgstTotal.toFixed(2) }}</td>
+                    <td class="text-right font-mono text-muted">{{ inv.sgstTotal.toFixed(2) }}</td>
+                    <td class="text-right font-mono text-muted">{{ inv.igstTotal.toFixed(2) }}</td>
+                    <td class="text-right font-bold font-mono">&#8377;{{ inv.grandTotal.toFixed(2) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .rpt-page { display: flex; flex-direction: column; gap: 20px; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 1.25rem; font-weight: 700; color: var(--surface-900); margin: 0; }
+    .sub { font-size: 0.78rem; color: var(--surface-500); margin: 2px 0 0 0; }
+    .header-back-title { display: flex; align-items: center; gap: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: 6px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
+    .btn-secondary { background: var(--surface-100); color: var(--surface-700); border: 1px solid var(--surface-300); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .date-filter-bar { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--surface-200); border-radius: 10px; padding: 10px 14px; }
+    .date-group { display: flex; flex-direction: column; gap: 3px; }
+    .date-group label { font-size: 0.7rem; font-weight: 600; color: var(--surface-500); text-transform: uppercase; }
+    .date-group input { border: 1px solid var(--surface-300); border-radius: 6px; padding: 5px 8px; font-size: 0.85rem; }
+    .loading-state { padding: 60px; text-align: center; color: var(--surface-500); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    
+    .summary-box { background: var(--surface-50); border: 1px solid var(--surface-200); padding: 16px; border-radius: 8px; }
+    .summary-box .title { font-size: 0.75rem; font-weight: 700; color: var(--surface-500); text-transform: uppercase; margin-bottom: 8px; }
+    .summary-box .val { font-size: 1.3rem; font-weight: 800; color: var(--surface-900); }
+    
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: 12px; margin-bottom: 0;}
+    .table-responsive { overflow-x: auto; }
+    .zeno-table { width: 100%; border-collapse: separate !important; border-spacing: 0 !important; font-size: 0.875rem; }
+    .zeno-table th { background: var(--surface-100); padding: 10px 16px; color: var(--surface-700); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--surface-300); }
+    .zeno-table td { padding: 11px 16px; border-bottom: 1px solid var(--surface-200); color: var(--surface-800); }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .text-muted { color: var(--surface-500); }
+    .font-mono { font-family: monospace; }
+    .font-bold { font-weight: 700; }
+    .empty-cell { padding: 32px !important; color: var(--surface-400); font-style: italic; }
+  `]
+})
+export class Gstr1ReportComponent implements OnInit {
+  loading = false;
+  startDate = '';
+  endDate = '';
+  data: any = null;
+
+  constructor(private api: ApiService, public tenant: TenantService) {}
+
+  ngOnInit() {
+    const now = new Date();
+    const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    this.startDate = `${fy}-04-01`;
+    this.endDate = `${fy + 1}-03-31`;
+
+    this.tenant.loadHierarchy().subscribe({
+      next: () => this.load()
+    });
+  }
+
+  load() {
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
+    if (!compId) return;
+    this.loading = true;
+    
+    this.api.get<any[]>(`/sales/sales-invoices?companyId=${compId}`).subscribe({
+      next: (res) => {
+        // Filter by date
+        const start = new Date(this.startDate).getTime();
+        const end = new Date(this.endDate).getTime();
+        
+        let filtered = res.filter(inv => {
+          if (inv.status === 'CANCELLED') return false;
+          const invDate = new Date(inv.invoiceDate).getTime();
+          return invDate >= start && invDate <= end;
+        });
+        
+        // Sort by date ascending
+        filtered.sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
+
+        let taxable = 0;
+        let cgst = 0;
+        let sgst = 0;
+        let igst = 0;
+        
+        const invoices = filtered.map(inv => {
+          const t = Number(inv.taxableTotal || 0);
+          const c = Number(inv.cgstTotal || 0);
+          const s = Number(inv.sgstTotal || 0);
+          const i = Number(inv.igstTotal || 0);
+          
+          taxable += t;
+          cgst += c;
+          sgst += s;
+          igst += i;
+          
+          return {
+            id: inv.id,
+            voucherNo: inv.voucherNo,
+            invoiceDate: inv.invoiceDate,
+            customerName: inv.customerLedger?.name || 'Cash',
+            customerGstin: inv.customerLedger?.gstin || '',
+            taxableTotal: t,
+            cgstTotal: c,
+            sgstTotal: s,
+            igstTotal: i,
+            grandTotal: Number(inv.grandTotal || 0)
+          };
+        });
+
+        this.data = {
+          totalInvoices: invoices.length,
+          taxableValue: taxable,
+          cgst: cgst,
+          sgst: sgst,
+          igst: igst,
+          invoices
+        };
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
+  }
+}

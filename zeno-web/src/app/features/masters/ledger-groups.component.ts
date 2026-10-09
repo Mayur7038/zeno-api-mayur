@@ -377,7 +377,14 @@ export class LedgerGroupsComponent implements OnInit {
 
     this.mastersService.getLedgerGroups(companyId || undefined).subscribe({
       next: (res) => {
-        this.groups = res || [];
+        const raw = res || [];
+        const seen = new Set<string>();
+        this.groups = raw.filter((g: any) => {
+          const key = (g.name || '').trim().toLowerCase();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
         this.filterGroups();
         this.loading = false;
       },

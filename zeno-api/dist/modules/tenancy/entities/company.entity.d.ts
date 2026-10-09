@@ -8,6 +8,7 @@ export declare class Company {
     tradeName: string;
     code: string;
     businessType: string;
+    industryType: string;
     gstin: string;
     pan: string;
     currencyCode: string;

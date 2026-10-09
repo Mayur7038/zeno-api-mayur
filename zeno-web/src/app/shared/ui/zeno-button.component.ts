@@ -31,6 +31,7 @@ import { CommonModule } from '@angular/common';
   styles: [`
     :host {
       display: inline-block;
+      vertical-align: middle;
     }
     :host(.block), :host([block]) {
       display: block;
@@ -49,7 +50,7 @@ import { CommonModule } from '@angular/common';
       border: 1px solid transparent;
       white-space: nowrap;
       user-select: none;
-      line-height: 1.25;
+      line-height: 1;
 
       &:disabled {
         opacity: 0.6;
@@ -65,17 +66,20 @@ import { CommonModule } from '@angular/common';
 
     /* Sizes */
     .zeno-btn-sm {
-      padding: 6px 12px;
+      height: 32px;
+      padding: 0 12px;
       font-size: 0.75rem;
       gap: 6px;
     }
     .zeno-btn-md {
-      padding: 8px 16px;
+      height: 38px;
+      padding: 0 16px;
       font-size: 0.875rem;
       gap: 8px;
     }
     .zeno-btn-lg {
-      padding: 10px 20px;
+      height: 44px;
+      padding: 0 20px;
       font-size: 1rem;
       gap: 10px;
     }
@@ -98,11 +102,15 @@ import { CommonModule } from '@angular/common';
     .zeno-btn-secondary {
       background-color: var(--surface-0, #ffffff);
       color: var(--surface-700, #334155);
-      border-color: var(--surface-200, #e2e8f0);
+      border-color: var(--surface-300, #cbd5e1);
+
+      i.pi-download {
+        color: #10b981;
+      }
 
       &:hover:not(:disabled) {
         background-color: var(--surface-50, #f8fafc);
-        border-color: var(--surface-300, #cbd5e1);
+        border-color: var(--surface-400, #94a3b8);
         color: var(--surface-900, #0f172a);
       }
     }

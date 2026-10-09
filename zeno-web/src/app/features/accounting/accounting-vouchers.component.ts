@@ -10,6 +10,7 @@ import { TenantService } from '../../core/services/tenant.service';
 import { MastersService } from '../../core/services/masters.service';
 import { ToastService } from '../../core/services/toast.service';
 import { exportToCsv } from '../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../shared/ui/zeno-searchable-select.component';
 
 interface JournalLine {
   type: 'DR' | 'CR';
@@ -28,7 +29,7 @@ interface StandardLine {
 @Component({
   selector: 'app-accounting-vouchers',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent],
   template: `
     <div class="accounting-page">
       @if (viewMode === 'list') {
@@ -199,30 +200,26 @@ interface StandardLine {
             @if (voucherType !== 'JOURNAL') {
               <div class="form-group">
                 <label>{{ config.primaryAccountLabel }} <span class="required">*</span></label>
-                <select [(ngModel)]="createForm.sourceAccountLedgerId">
-                  <option value="" disabled>-- Choose Account --</option>
-                  @for (leg of getAvailablePrimaryLedgers(); track leg.id) {
-                    <option [value]="leg.id">
-                      {{ leg.name }} ({{ leg.ledgerGroup?.name || 'General' }})
-                    </option>
-                  }
-                </select>
+                <zeno-searchable-select
+                  [options]="getAvailablePrimaryLedgers()"
+                  labelKey="name"
+                  valueKey="id"
+                  placeholder="-- Choose Account --"
+                  [(ngModel)]="createForm.sourceAccountLedgerId"
+                ></zeno-searchable-select>
               </div>
             }
 
             @if (voucherType === 'CONTRA') {
               <div class="form-group">
                 <label>Transfer To (Destination Bank / Cash) <span class="required">*</span></label>
-                <select [(ngModel)]="createForm.destinationLedgerId">
-                  <option value="" disabled>-- Choose Destination Account --</option>
-                  @for (leg of cashBankLedgers; track leg.id) {
-                    @if (leg.id !== createForm.sourceAccountLedgerId) {
-                      <option [value]="leg.id">
-                        {{ leg.name }} ({{ leg.ledgerGroup?.name || 'Cash/Bank' }})
-                      </option>
-                    }
-                  }
-                </select>
+                <zeno-searchable-select
+                  [options]="cashBankLedgers"
+                  labelKey="name"
+                  valueKey="id"
+                  placeholder="-- Choose Destination Account --"
+                  [(ngModel)]="createForm.destinationLedgerId"
+                ></zeno-searchable-select>
               </div>
             }
 
@@ -303,14 +300,13 @@ interface StandardLine {
                         </select>
                       </td>
                       <td>
-                        <select [(ngModel)]="jLine.ledgerId">
-                          <option value="" disabled>-- Select Ledger Account --</option>
-                          @for (leg of allLedgers; track leg.id) {
-                            <option [value]="leg.id">
-                              {{ leg.name }} ({{ leg.ledgerGroup?.name || 'General' }})
-                            </option>
-                          }
-                        </select>
+                        <zeno-searchable-select
+                          [options]="allLedgers"
+                          labelKey="name"
+                          valueKey="id"
+                          placeholder="-- Select Ledger Account --"
+                          [(ngModel)]="jLine.ledgerId"
+                        ></zeno-searchable-select>
                       </td>
                       <td>
                         <input
@@ -405,14 +401,13 @@ interface StandardLine {
                     <tr>
                       <td class="text-muted">{{ $index + 1 }}</td>
                       <td>
-                        <select [(ngModel)]="line.ledgerId">
-                          <option value="" disabled>-- Select Particulars / Account --</option>
-                          @for (leg of getAvailableLineLedgers(); track leg.id) {
-                            <option [value]="leg.id">
-                              {{ leg.name }} ({{ leg.ledgerGroup?.name || 'General' }})
-                            </option>
-                          }
-                        </select>
+                        <zeno-searchable-select
+                          [options]="getAvailableLineLedgers()"
+                          labelKey="name"
+                          valueKey="id"
+                          placeholder="-- Select Particulars / Account --"
+                          [(ngModel)]="line.ledgerId"
+                        ></zeno-searchable-select>
                       </td>
                       <td>
                         <input

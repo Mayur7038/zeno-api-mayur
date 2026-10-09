@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -235,6 +235,10 @@ import { TenantService } from '../core/services/tenant.service';
                   <i class="pi pi-file-import"></i>
                   <span>Credit Note</span>
                 </a>
+                <a routerLink="/reports/ledger-statement" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-list"></i>
+                  <span>Ledger Report</span>
+                </a>
               </div>
             }
           </div>
@@ -274,6 +278,10 @@ import { TenantService } from '../core/services/tenant.service';
                 <a routerLink="/inventory/price-list" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-percentage"></i>
                   <span>Update Price List</span>
+                </a>
+                <a routerLink="/reports/stock-item-statement" routerLinkActive="active" class="nav-subitem">
+                  <i class="pi pi-box"></i>
+                  <span>Stock Item Report</span>
                 </a>
               </div>
             }
@@ -490,6 +498,125 @@ import { TenantService } from '../core/services/tenant.service';
           </div>
 
           <div class="topbar-right">
+            <!-- GLOBAL QUICK ACTION BUTTON & DROPDOWN -->
+            <div class="topbar-qa-wrapper">
+              <button
+                type="button"
+                class="topbar-qa-btn"
+                [class.active]="isQuickActionOpen"
+                (click)="toggleQuickActionMenu($event)"
+                title="Quick Actions & Important Masters"
+              >
+                <i class="pi pi-bolt"></i>
+                <span>Quick Action</span>
+                <i class="pi pi-chevron-down qa-caret" [class.rotated]="isQuickActionOpen"></i>
+              </button>
+
+              @if (isQuickActionOpen) {
+                <div class="topbar-qa-dropdown" (click)="$event.stopPropagation()">
+                  <div class="qa-dropdown-header">
+                    <div class="qa-dropdown-title">
+                      <i class="pi pi-bolt"></i>
+                      <span>Quick Actions</span>
+                    </div>
+                    <span class="qa-dropdown-hint">Workflows & Masters</span>
+                  </div>
+
+                  <div class="qa-dropdown-columns">
+                    <!-- Procure-to-Pay Section -->
+                    <div class="qa-column">
+                      <div class="qa-column-title">
+                        <i class="pi pi-shopping-cart"></i>
+                        <span>Procure-to-Pay</span>
+                      </div>
+                      <div class="qa-items">
+                        <a routerLink="/procure-to-pay/purchase-orders" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge p2p-badge">1</span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Purchase Order</span>
+                            <span class="qa-item-desc">Order intent & pricing</span>
+                          </div>
+                        </a>
+                        <a routerLink="/procure-to-pay/goods-receipt-notes" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge p2p-badge">2</span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Goods Receipt (GRN)</span>
+                            <span class="qa-item-desc">Stock In & verification</span>
+                          </div>
+                        </a>
+                        <a routerLink="/procure-to-pay/purchase-invoices" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge p2p-badge">3</span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Purchase Invoice</span>
+                            <span class="qa-item-desc">Tax & ledger entry</span>
+                          </div>
+                        </a>
+                        <a routerLink="/procure-to-pay/vendor-payments" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge p2p-badge">4</span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Vendor Payment</span>
+                            <span class="qa-item-desc">Bill allocation & clearing</span>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Important Masters Section -->
+                    <div class="qa-column">
+                      <div class="qa-column-title">
+                        <i class="pi pi-database"></i>
+                        <span>Important Masters</span>
+                      </div>
+                      <div class="qa-items">
+                        <a routerLink="/masters/items" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-box"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Product Master</span>
+                            <span class="qa-item-desc">Item catalog & pricing</span>
+                          </div>
+                        </a>
+                        <a routerLink="/masters/ledgers" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-book"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Ledger Account</span>
+                            <span class="qa-item-desc">Chart of accounts & parties</span>
+                          </div>
+                        </a>
+                        <a routerLink="/masters/ledger-groups" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-folder"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Ledger Group</span>
+                            <span class="qa-item-desc">Hierarchical account groups</span>
+                          </div>
+                        </a>
+                        <a routerLink="/masters/stock-groups" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-tags"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Stock Group</span>
+                            <span class="qa-item-desc">Category classification</span>
+                          </div>
+                        </a>
+                        <a routerLink="/masters/units" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-sliders-h"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Unit of Measure</span>
+                            <span class="qa-item-desc">Measurement units & symbols</span>
+                          </div>
+                        </a>
+                        <a routerLink="/masters/variants" (click)="closeQuickAction()" class="qa-item">
+                          <span class="qa-badge master-badge"><i class="pi pi-clone"></i></span>
+                          <div class="qa-item-info">
+                            <span class="qa-item-title">Variant Master</span>
+                            <span class="qa-item-desc">Product attributes & options</span>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
             <!-- SHIFTED SETTINGS BUTTON ON TOP -->
             <button
               type="button"
@@ -651,6 +778,197 @@ import { TenantService } from '../core/services/tenant.service';
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 4px;
+    }
+
+    /* Topbar Quick Action Button & Dropdown */
+    .topbar-qa-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .topbar-qa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--primary-600);
+      background: var(--primary-600);
+      color: #ffffff;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.2);
+
+      i {
+        font-size: 0.95rem;
+        color: #ffffff;
+        transition: transform 0.2s ease;
+      }
+
+      .qa-caret {
+        font-size: 0.75rem;
+
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
+
+      &:hover {
+        background: var(--primary-700);
+        border-color: var(--primary-700);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+      }
+
+      &.active {
+        background: var(--primary-700);
+      }
+    }
+
+    .topbar-qa-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: var(--surface-0, #ffffff);
+      border: 1px solid var(--surface-200);
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+      z-index: 1050;
+      width: 540px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: qaFadeInTop 0.15s ease-out;
+
+      .qa-dropdown-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--surface-200);
+
+        .qa-dropdown-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+
+          i {
+            color: var(--primary-600);
+          }
+        }
+
+        .qa-dropdown-hint {
+          font-size: 0.75rem;
+          color: var(--surface-500);
+        }
+      }
+
+      .qa-dropdown-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .qa-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .qa-column-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--surface-500);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 4px;
+
+          i {
+            color: var(--primary-600);
+          }
+        }
+      }
+
+      .qa-items {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .qa-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        text-decoration: none;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: var(--surface-50);
+          border-color: var(--surface-200);
+          transform: translateX(2px);
+        }
+
+        .qa-badge {
+          width: 24px;
+          height: 24px;
+          border-radius: var(--radius-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: 700;
+          flex-shrink: 0;
+
+          &.p2p-badge {
+            background-color: var(--primary-50);
+            color: var(--primary-600);
+          }
+
+          &.master-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-size: 0.75rem;
+          }
+        }
+
+        .qa-item-info {
+          display: flex;
+          flex-direction: column;
+
+          .qa-item-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--surface-900);
+          }
+
+          .qa-item-desc {
+            font-size: 0.6875rem;
+            color: var(--surface-500);
+          }
+        }
+      }
+    }
+
+    @keyframes qaFadeInTop {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Topbar Settings Button */
@@ -1026,6 +1344,7 @@ import { TenantService } from '../core/services/tenant.service';
   `],
 })
 export class ShellComponent implements OnInit {
+  isQuickActionOpen = false;
   purchaseOpen = true;
   salesOpen = false;
   accountingOpen = false;
@@ -1036,6 +1355,20 @@ export class ShellComponent implements OnInit {
 
   isSettingsMode = false;
   currentSettingsTab = 'company';
+
+  toggleQuickActionMenu(event: MouseEvent) {
+    event.stopPropagation();
+    this.isQuickActionOpen = !this.isQuickActionOpen;
+  }
+
+  closeQuickAction() {
+    this.isQuickActionOpen = false;
+  }
+
+  @HostListener('document:click')
+  onGlobalClick() {
+    this.isQuickActionOpen = false;
+  }
 
   constructor(
     public auth: AuthService,
@@ -1066,6 +1399,7 @@ export class ShellComponent implements OnInit {
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe((event: any) => {
         this.updateSettingsModeFromUrl(event.urlAfterRedirects || event.url);
+        this.isQuickActionOpen = false;
       });
   }
 

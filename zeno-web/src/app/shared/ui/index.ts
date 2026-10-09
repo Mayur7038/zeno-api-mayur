@@ -6,6 +6,8 @@ import { ZenoModalComponent } from './zeno-modal.component';
 import { ZenoFormGroupComponent } from './zeno-form-group.component';
 import { ZenoInputComponent } from './zeno-input.component';
 import { ZenoSelectComponent } from './zeno-select.component';
+import { ZenoSearchableSelectComponent } from './zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from './zeno-item-fast-entry.component';
 import { ZenoCheckboxComponent } from './zeno-checkbox.component';
 import { ZenoRadioComponent } from './zeno-radio.component';
 import { ZenoTabsComponent } from './zeno-tabs.component';
@@ -20,6 +22,8 @@ export * from './zeno-modal.component';
 export * from './zeno-form-group.component';
 export * from './zeno-input.component';
 export * from './zeno-select.component';
+export * from './zeno-searchable-select.component';
+export * from './zeno-item-fast-entry.component';
 export * from './zeno-checkbox.component';
 export * from './zeno-radio.component';
 export * from './zeno-tabs.component';
@@ -39,9 +43,13 @@ export const ZENO_UI_COMPONENTS = [
   ZenoFormGroupComponent,
   ZenoInputComponent,
   ZenoSelectComponent,
+  ZenoSearchableSelectComponent,
+  ZenoItemFastEntryComponent,
   ZenoCheckboxComponent,
   ZenoRadioComponent,
   ZenoTabsComponent,
   ZenoTableComponent,
   ZenoBadgeComponent,
 ] as const;
+
+

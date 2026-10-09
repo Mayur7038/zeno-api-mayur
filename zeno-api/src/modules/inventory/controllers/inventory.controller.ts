@@ -113,6 +113,72 @@ export class InventoryController {
     };
   }
 
+  @Get('item-statement')
+  @ApiOperation({ summary: 'Get chronological stock ledger entries for a specific item' })
+  async getItemStatement(
+    @CurrentTenant() tenantId: string,
+    @Query('companyId') companyId: string,
+    @Query('itemId') itemId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const qb = this.stockRepo.createQueryBuilder('s')
+      .leftJoinAndSelect('s.godown', 'godown')
+      .leftJoinAndSelect('s.variant', 'variant')
+      .where('s.tenant_id = :tenantId', { tenantId })
+      .andWhere('s.company_id = :companyId', { companyId })
+      .andWhere('s.item_id = :itemId', { itemId })
+      .orderBy('s.entry_date', 'ASC')
+      .addOrderBy('s.created_at', 'ASC');
+
+    if (startDate) qb.andWhere('s.entry_date >= :startDate', { startDate });
+    if (endDate) qb.andWhere('s.entry_date <= :endDate', { endDate });
+
+    const entries = await qb.getMany();
+
+    let runningQty = 0;
+    let runningVal = 0;
+    let totalInQty = 0;
+    let totalOutQty = 0;
+    
+    const processedEntries = entries.map(e => {
+      const qIn = Number(e.qtyIn || 0);
+      const qOut = Number(e.qtyOut || 0);
+      const v = Number(e.totalValue || 0);
+      
+      runningQty += (qIn - qOut);
+      if (qIn > 0) {
+        runningVal += v;
+        totalInQty += qIn;
+      } else if (qOut > 0) {
+        runningVal -= v;
+        totalOutQty += qOut;
+      }
+
+      return {
+        id: e.id,
+        entryDate: e.entryDate,
+        voucherType: e.voucherType,
+        voucherNo: e.voucherNo,
+        qtyIn: qIn,
+        qtyOut: qOut,
+        unitRate: Number(e.unitRate || 0),
+        totalValue: v,
+        runningQty: Number(runningQty.toFixed(3)),
+        godownName: e.godown ? e.godown.name : '',
+      };
+    });
+
+    return {
+      itemId,
+      entries: processedEntries,
+      totalInQty: Number(totalInQty.toFixed(3)),
+      totalOutQty: Number(totalOutQty.toFixed(3)),
+      closingQty: Number(runningQty.toFixed(3)),
+      closingValue: Number(runningVal.toFixed(2)),
+    };
+  }
+
   // =========================================================================
   // 2. OPENING BALANCE MANAGEMENT
   // =========================================================================

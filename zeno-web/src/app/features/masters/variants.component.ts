@@ -45,7 +45,7 @@ export interface VariantDefinition {
             (searchChange)="filterVariants()"
           ></zeno-search>
         </div>
-        <div toolbar-right>
+        <div toolbar-right class="toolbar-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <div style="min-width: 140px;">
             <zeno-select
               [(ngModel)]="typeFilter"

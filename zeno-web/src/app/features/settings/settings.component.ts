@@ -1500,6 +1500,21 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
                 </div>
 
                 <div class="form-group">
+                  <label>Industry Type</label>
+                  <select [(ngModel)]="companyForm.industryType">
+                    <option value="">-- Select Industry --</option>
+                    <option value="pharmacy">Pharmacy</option>
+                    <option value="garments">Garments</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="General store">General store</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Stationary">Stationary</option>
+                    <option value="Jwellery shop">Jwellery shop</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
                   <label>Financial Year Starts From <span class="required">*</span></label>
                   <input 
                     type="date" 

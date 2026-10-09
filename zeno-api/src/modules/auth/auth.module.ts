@@ -23,7 +23,9 @@ import { TenancyModule } from '../tenancy/tenancy.module';
           'JWT_SECRET',
           'zeno_super_secret_jwt_key_2026_enterprise_books',
         ),
-        signOptions: { expiresIn: '15m' },
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '30d') as any,
+        },
       }),
       inject: [ConfigService],
     }),

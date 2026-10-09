@@ -85,6 +85,18 @@ import { CommonModule } from '@angular/common';
       gap: 10px;
       flex-wrap: wrap;
     }
+    :host ::ng-deep [toolbar-left] {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    :host ::ng-deep [toolbar-right] {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     .zeno-table-scroll-wrap {
       width: 100%;
       overflow-x: auto;

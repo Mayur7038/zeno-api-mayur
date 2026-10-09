@@ -37,6 +37,9 @@ export class Company {
   @Column({ name: 'business_type', length: 100, nullable: true, default: 'Private Limited Company' })
   businessType: string;
 
+  @Column({ name: 'industry_type', length: 100, nullable: true })
+  industryType: string;
+
   @Column({ length: 15, nullable: true })
   gstin: string;
 

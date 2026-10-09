@@ -7,11 +7,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-sales-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="sales-page">
       @if (viewMode === 'list') {
@@ -57,8 +59,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <!-- ORDERS TABLE -->
-          <table class="zeno-table">
-            <thead>
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
               <tr>
                 <th>Voucher No</th>
                 <th>Order Date</th>
@@ -105,6 +108,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
                         <i class="pi pi-eye"></i>
                       </button>
                       @if (so.status === 'PENDING' || so.status === 'PARTIALLY_DISPATCHED') {
+                        <button class="btn-icon text-primary" title="Edit Order" (click)="editOrder(so.id)">
+                          <i class="pi pi-pencil"></i>
+                        </button>
                         <button class="btn-icon text-danger" title="Cancel Order" (click)="cancelOrder(so.id)">
                           <i class="pi pi-times-circle"></i>
                         </button>
@@ -116,6 +122,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </tbody>
           </table>
         </div>
+      </div>
       } @else if (viewMode === 'create') {
         <!-- CREATE SALES ORDER FULL PAGE VIEW -->
         <div class="page-header">
@@ -135,17 +142,20 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
         </div>
 
-        <div class="zeno-card form-page-card">
+        <div class="form-page-no-card">
           <!-- TOP SECTION: CUSTOMER & METADATA -->
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Customer / Debtor</label>
-              <select [(ngModel)]="newOrder.customerLedgerId" (change)="onCustomerSelected()">
-                <option value="">Select Customer...</option>
-                @for (cust of customers; track cust.id) {
-                  <option [value]="cust.id">{{ cust.name }} ({{ cust.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="customers"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Search Customer (Name or GSTIN)..."
+                [(ngModel)]="newOrder.customerLedgerId"
+                (selectChange)="onCustomerSelected()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
@@ -169,137 +179,169 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           </div>
 
-          <div class="form-grid" style="margin-top: 14px;">
-            <div class="form-group">
-              <label>Billing Address</label>
-              <input type="text" [(ngModel)]="newOrder.billingAddress" />
-            </div>
-            <div class="form-group">
-              <label>Shipping / Consignee Address</label>
-              <input type="text" [(ngModel)]="newOrder.shippingAddress" />
-            </div>
-          </div>
-
           <!-- LINE ITEMS TABLE -->
-          <div class="items-section">
-            <div class="section-title-row">
-              <h3>Order Line Items</h3>
-              <button class="btn-sm btn-outline" type="button" (click)="addItemRow()">
-                <i class="pi pi-plus"></i> Add Item
-              </button>
-            </div>
+          <div class="line-items-section">
+            <!-- FAST ITEM ENTRY BAR -->
+            <zeno-item-fast-entry
+              [itemsList]="items"
+              [showDiscount]="true"
+              [showGst]="true"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
 
-            <table class="zeno-table line-items-table">
-              <thead>
-                <tr>
-                  <th style="width: 32%">Product / Item</th>
-                  <th style="width: 12%">Order Qty</th>
-                  <th style="width: 15%">Unit Rate (₹)</th>
-                  <th style="width: 13%">Discount (₹)</th>
-                  <th style="width: 10%">GST Rate</th>
-                  <th style="width: 14%">Taxable Line</th>
-                  <th style="width: 4%"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of newOrder.items; track $index; let i = $index) {
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td>
-                      <select [(ngModel)]="row.itemId" (change)="onItemSelect(row)" class="item-select">
-                        <option value="">Select Item...</option>
-                        @for (it of items; track it.id) {
-                          <option [value]="it.id">{{ it.name }} ({{ it.sku || 'N/A' }})</option>
-                        }
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        [(ngModel)]="row.orderedQty"
-                        (input)="recalculateTotals()"
-                        class="qty-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="any"
-                        [(ngModel)]="row.unitPrice"
-                        (input)="recalculateTotals()"
-                        class="rate-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="any"
-                        [(ngModel)]="row.discountAmount"
-                        (input)="recalculateTotals()"
-                        class="rate-input"
-                      />
-                    </td>
-                    <td>
-                      <select [(ngModel)]="row.taxRate" (change)="recalculateTotals()">
-                        <option [value]="0">0%</option>
-                        <option [value]="5">5%</option>
-                        <option [value]="12">12%</option>
-                        <option [value]="18">18%</option>
-                        <option [value]="28">28%</option>
-                      </select>
-                    </td>
-                    <td class="font-bold">
-                      ₹{{ (Math.max(0, (row.orderedQty * row.unitPrice) - row.discountAmount)) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-right">
-                      @if (newOrder.items.length > 1) {
-                        <button class="btn-icon text-danger" (click)="removeItemRow(i)">
-                          <i class="pi pi-trash"></i>
-                        </button>
-                      }
-                    </td>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Product / Item</th>
+                    <th style="width: 80px;" class="text-center">Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;">Rate (₹)</th>
+                    <th style="width: 100px;">Discount (₹)</th>
+                    <th style="width: 85px;">GST %</th>
+                    <th class="text-right" style="width: 120px;">Amount (₹)</th>
+                    <th class="text-center" style="width: 70px;">Action</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @if (newOrder.items.length === 0) {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added yet. Use the Fast Item Entry Bar above to add items to this order.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of newOrder.items; track $index; let i = $index) {
+                      <tr>
+                        <td class="excel-row-num">{{ i + 1 }}</td>
+                        <td>
+                          @if (row.itemId) {
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ getItemName(row.itemId) }}</span>
+                          } @else {
+                            <zeno-searchable-select
+                              [options]="items"
+                              labelKey="name"
+                              valueKey="id"
+                              secondaryKey="sku"
+                              placeholder="Select Product..."
+                              [(ngModel)]="row.itemId"
+                              (selectChange)="onItemSelect(row)"
+                            ></zeno-searchable-select>
+                          }
+                        </td>
+                        <td class="text-center">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">{{ row.orderedQty }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              min="1"
+                              [(ngModel)]="row.orderedQty"
+                              (input)="recalculateTotals()"
+                              class="text-center"
+                            />
+                          }
+                        </td>
+                        <td class="text-center">
+                          <span class="unit-badge">{{ getUnitCode(row) }}</span>
+                        </td>
+                        <td class="text-right">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">₹{{ row.unitPrice | number:'1.2-2' }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              step="any"
+                              [(ngModel)]="row.unitPrice"
+                              (input)="recalculateTotals()"
+                            />
+                          }
+                        </td>
+                        <td class="text-right">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">₹{{ row.discountAmount | number:'1.2-2' }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              step="any"
+                              [(ngModel)]="row.discountAmount"
+                              (input)="recalculateTotals()"
+                            />
+                          }
+                        </td>
+                        <td class="text-center">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">{{ row.taxRate }}%</span>
+                          } @else {
+                            <select [(ngModel)]="row.taxRate" (change)="recalculateTotals()">
+                              <option [value]="0">0%</option>
+                              <option [value]="5">5%</option>
+                              <option [value]="12">12%</option>
+                              <option [value]="18">18%</option>
+                              <option [value]="28">28%</option>
+                            </select>
+                          }
+                        </td>
+                        <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: var(--surface-900);">
+                          ₹{{ (Math.max(0, (row.orderedQty * row.unitPrice) - row.discountAmount)) | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center">
+                          <button type="button" class="btn-icon text-primary" (click)="editItemRow(i)" title="Edit line item">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn-icon text-danger" (click)="removeItemRow(i)" title="Delete line item">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- SUMMARY & TOTALS -->
-          <div class="totals-summary-card">
-            <div class="summary-line">
-              <span>Taxable Subtotal:</span>
-              <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Narration / Remarks</label>
+              <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter transaction narration or order notes..."
+                [(ngModel)]="newOrder.narration"
+              ></textarea>
             </div>
-            @if (modalTotals.igstTotal > 0) {
-              <div class="summary-line">
-                <span>Integrated GST (IGST):</span>
-                <span>₹{{ modalTotals.igstTotal | number:'1.2-2' }}</span>
-              </div>
-            } @else {
-              <div class="summary-line">
-                <span>Central GST (CGST):</span>
-                <span>₹{{ modalTotals.cgstTotal | number:'1.2-2' }}</span>
-              </div>
-              <div class="summary-line">
-                <span>State GST (SGST):</span>
-                <span>₹{{ modalTotals.sgstTotal | number:'1.2-2' }}</span>
-              </div>
-            }
-            <div class="summary-line grand-total">
-              <span>Grand Total:</span>
-              <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
-            </div>
-          </div>
 
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitOrder()" [disabled]="submitting || !isValidOrder()">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Generating Order...
+            <div class="totals-summary-card">
+              <div class="summary-line">
+                <span>Taxable Subtotal:</span>
+                <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
+              </div>
+              @if (modalTotals.igstTotal > 0) {
+                <div class="summary-line">
+                  <span>Integrated GST (IGST):</span>
+                  <span>₹{{ modalTotals.igstTotal | number:'1.2-2' }}</span>
+                </div>
               } @else {
-                <i class="pi pi-check"></i> Save Sales Order
+                <div class="summary-line">
+                  <span>Central GST (CGST):</span>
+                  <span>₹{{ modalTotals.cgstTotal | number:'1.2-2' }}</span>
+                </div>
+                <div class="summary-line">
+                  <span>State GST (SGST):</span>
+                  <span>₹{{ modalTotals.sgstTotal | number:'1.2-2' }}</span>
+                </div>
               }
-            </button>
+              <div class="summary-line grand-total">
+                <span>Grand Total:</span>
+                <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
+              </div>
+            </div>
           </div>
         </div>
       } @else if (viewMode === 'view' && selectedOrder) {
@@ -314,6 +356,14 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
           <div class="header-actions">
             <button class="btn-secondary" (click)="backToList()">Back to List</button>
+            @if (selectedOrder.status === 'PENDING' || selectedOrder.status === 'PARTIALLY_DISPATCHED') {
+              <button class="btn-secondary" (click)="editOrder(selectedOrder.id)">
+                <i class="pi pi-pencil"></i> Edit Order
+              </button>
+              <button class="btn-danger" style="background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 600;" (click)="cancelOrder(selectedOrder.id)">
+                <i class="pi pi-times-circle"></i> Cancel Order
+              </button>
+            }
             <button class="btn-primary" onclick="window.print()">
               <i class="pi pi-print"></i> Print Voucher
             </button>
@@ -342,39 +392,41 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <h4 style="margin: 20px 0 10px; font-size: 0.95rem; color: var(--surface-700)">Item Fulfillment Status</h4>
-          <table class="zeno-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Ordered Qty</th>
-                <th>Dispatched Qty</th>
-                <th>Pending Qty</th>
-                <th>Unit Rate</th>
-                <th class="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of selectedOrder.items; track item.id) {
+          <div class="table-responsive">
+            <table class="zeno-table line-table">
+              <thead>
                 <tr>
-                  <td>
-                    <strong>{{ item.item?.name }}</strong>
-                    <div style="font-size: 0.75rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
-                  </td>
-                  <td>{{ item.orderedQty }} {{ item.unit?.code || 'NOS' }}</td>
-                  <td>
-                    <span class="text-success font-bold">{{ item.dispatchedQty }}</span>
-                  </td>
-                  <td>
-                    <span [class.text-danger]="(item.orderedQty - item.dispatchedQty) > 0" class="font-bold">
-                      {{ item.orderedQty - item.dispatchedQty }}
-                    </span>
-                  </td>
-                  <td>₹{{ item.rate | number:'1.2-2' }}</td>
-                  <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  <th>Item</th>
+                  <th>Ordered Qty</th>
+                  <th>Dispatched Qty</th>
+                  <th>Pending Qty</th>
+                  <th>Unit Rate</th>
+                  <th class="text-right">Total</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (item of selectedOrder.items; track item.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.item?.name }}</strong>
+                      <div style="font-size: 0.75rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
+                    </td>
+                    <td>{{ item.orderedQty }} {{ item.unit?.code || 'NOS' }}</td>
+                    <td>
+                      <span class="text-success font-bold">{{ item.dispatchedQty }}</span>
+                    </td>
+                    <td>
+                      <span [class.text-danger]="(item.orderedQty - item.dispatchedQty) > 0" class="font-bold">
+                        {{ item.orderedQty - item.dispatchedQty }}
+                      </span>
+                    </td>
+                    <td>₹{{ item.rate | number:'1.2-2' }}</td>
+                    <td class="text-right font-bold">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
 
           <div class="totals-summary-card" style="margin-top: 20px;">
             <div class="summary-line">
@@ -419,6 +471,25 @@ import { exportToCsv } from '../../../core/utils/export.util';
       &:hover { background: var(--surface-200); color: var(--surface-900); }
     }
     .form-page-card { padding: 24px; }
+    .form-page-no-card { margin-bottom: 24px; }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
     
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
     .kpi-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
@@ -431,7 +502,16 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
 
-    .zeno-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; }
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--surface-300) !important;
+      border-radius: var(--radius-md) !important;
+      background: #ffffff;
+    }
+
     .filter-card { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
     .filter-group { position: relative; width: 320px; }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); }
@@ -458,14 +538,81 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-group label.required::after { content: ' *'; color: #EF4444; }
     .form-group select, .form-group input { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 8px; font-size: 0.875rem; }
 
-    .items-section { margin-top: 24px; }
-    .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .section-title-row h3 { font-size: 0.95rem; font-weight: 700; color: var(--surface-800); margin: 0; }
-    .line-items-table { border: 1px solid var(--surface-200); border-radius: 8px; }
-    .item-select { width: 100%; border: 1px solid var(--surface-200); border-radius: 6px; padding: 6px; }
-    .qty-input, .rate-input { width: 90%; border: 1px solid var(--surface-200); border-radius: 6px; padding: 6px; }
+    .line-items-section {
+      margin: 24px 0;
+      border: none;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
 
-    .totals-summary-card { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 8px; padding: 16px; width: 340px; margin-left: auto; margin-top: 16px; }
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+
+        .section-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
+        background: #ffffff;
+      }
+    }
+
+    .form-footer-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .narration-box {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .narration-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--surface-700);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .narration-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--surface-300);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-family: inherit;
+        resize: vertical;
+        background: #ffffff;
+        min-height: 80px;
+
+        &:focus {
+          outline: none;
+          border-color: var(--primary-600);
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+      }
+    }
+
+    .totals-summary-card { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 8px; padding: 16px; width: 340px; margin-top: 0; margin-left: 0; }
     .summary-line { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 8px; color: var(--surface-700); }
     .summary-line.grand-total { border-top: 2px solid var(--surface-300); padding-top: 10px; font-size: 1.1rem; color: var(--primary-700); }
 
@@ -492,6 +639,36 @@ export class SalesOrdersComponent implements OnInit {
   Number = Number;
   Math = Math;
 
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.items.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  getUnitCode(row: any): string {
+    if (!row) return 'Pcs';
+    const val = row.unitCode || row.unit;
+    if (!val) return 'Pcs';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return val.code || val.name || val.unitCode || 'Pcs';
+    return String(val);
+  }
+
+  createDefaultGridRows(count = 1): any[] {
+    const compState = this.tenantService.currentCompany()?.stateCode || '27';
+    const cust = this.customers.find(c => c.id === this.newOrder?.customerLedgerId);
+    const isInter = cust && (compState !== (cust.stateCode || '27'));
+    return Array.from({ length: count }, () => ({
+      itemId: '',
+      orderedQty: 1,
+      unitPrice: 0,
+      discountAmount: 0,
+      taxRate: 18,
+      unitCode: 'Pcs',
+      isInterstate: !!isInter
+    }));
+  }
+
   // New order form model
   newOrder: any = {
     customerLedgerId: '',
@@ -500,9 +677,8 @@ export class SalesOrdersComponent implements OnInit {
     paymentTerms: 'Net 30 Days',
     billingAddress: '',
     shippingAddress: '',
-    items: [
-      { itemId: '', orderedQty: 1, unitPrice: 0, discountAmount: 0, taxRate: 18, isInterstate: false }
-    ]
+    narration: '',
+    items: []
   };
 
   modalTotals = {
@@ -583,9 +759,8 @@ export class SalesOrdersComponent implements OnInit {
       paymentTerms: 'Net 30 Days',
       billingAddress: '',
       shippingAddress: '',
-      items: [
-        { itemId: '', orderedQty: 1, unitPrice: 0, discountAmount: 0, taxRate: 18, isInterstate: false }
-      ]
+      narration: '',
+      items: []
     };
     this.recalculateTotals();
     this.viewMode = 'create';
@@ -620,11 +795,79 @@ export class SalesOrdersComponent implements OnInit {
       unitPrice: 0,
       discountAmount: 0,
       taxRate: 18,
+      unitCode: 'Pcs',
       isInterstate: !!isInter
     });
   }
 
+  editingItemData: { item: any, index: number } | null = null;
+
+  onFastItemAdded(itemData: any) {
+    const compState = this.tenantService.currentCompany()?.stateCode || '27';
+    const cust = this.customers.find(c => c.id === this.newOrder.customerLedgerId);
+    const isInter = cust && (compState !== (cust.stateCode || '27'));
+    const it = this.items.find(i => i.id === itemData.itemId);
+    const uVal = it?.unitCode || it?.unit;
+    const uStr = typeof uVal === 'object' ? (uVal.code || uVal.name || 'Pcs') : (uVal || 'Pcs');
+    
+    let emptyRow = this.newOrder.items.find((r: any) => !r.itemId);
+    if (emptyRow) {
+      emptyRow.itemId = itemData.itemId;
+      emptyRow.orderedQty = itemData.qty;
+      emptyRow.unitPrice = itemData.rate;
+      emptyRow.discountAmount = itemData.discount;
+      emptyRow.taxRate = itemData.gstRate;
+      emptyRow.unitCode = uStr;
+      emptyRow.isInterstate = !!isInter;
+    } else {
+      this.newOrder.items.push({
+        itemId: itemData.itemId,
+        orderedQty: itemData.qty,
+        unitPrice: itemData.rate,
+        discountAmount: itemData.discount,
+        taxRate: itemData.gstRate,
+        unitCode: uStr,
+        isInterstate: !!isInter
+      });
+    }
+    this.recalculateTotals();
+  }
+
+  editItemRow(index: number) {
+    const row = this.newOrder.items[index];
+    if (row) {
+      this.editingItemData = {
+        item: {
+          itemId: row.itemId,
+          qty: row.orderedQty,
+          rate: row.unitPrice,
+          discount: row.discountAmount,
+          gstRate: row.taxRate
+        },
+        index
+      };
+    }
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (this.editingItemData !== null && this.editingItemData.index >= 0) {
+      const idx = this.editingItemData.index;
+      if (this.newOrder.items[idx]) {
+        this.newOrder.items[idx].itemId = itemData.itemId;
+        this.newOrder.items[idx].orderedQty = itemData.qty;
+        this.newOrder.items[idx].unitPrice = itemData.rate;
+        this.newOrder.items[idx].discountAmount = itemData.discount;
+        this.newOrder.items[idx].taxRate = itemData.gstRate;
+      }
+      this.editingItemData = null;
+      this.recalculateTotals();
+    }
+  }
+
   removeItemRow(index: number) {
+    if (this.editingItemData?.index === index) {
+      this.editingItemData = null;
+    }
     this.newOrder.items.splice(index, 1);
     this.recalculateTotals();
   }
@@ -634,6 +877,8 @@ export class SalesOrdersComponent implements OnInit {
     if (it) {
       row.unitPrice = Number(it.saleRate || 0);
       row.taxRate = Number(it.gstRate || 18);
+      const uVal = it?.unitCode || it?.unit;
+      row.unitCode = typeof uVal === 'object' ? (uVal.code || uVal.name || 'Pcs') : (uVal || 'Pcs');
       this.recalculateTotals();
     }
   }
@@ -645,6 +890,7 @@ export class SalesOrdersComponent implements OnInit {
     let igst = 0;
 
     for (const r of this.newOrder.items) {
+      if (!r.itemId) continue;
       const qty = Number(r.orderedQty || 0);
       const rate = Number(r.unitPrice || 0);
       const disc = Number(r.discountAmount || 0);
@@ -669,20 +915,22 @@ export class SalesOrdersComponent implements OnInit {
   }
 
   isValidOrder(): boolean {
+    const validItems = this.newOrder.items.filter((i: any) => !!i.itemId && Number(i.orderedQty) > 0);
     return (
       !!this.newOrder.customerLedgerId &&
-      this.newOrder.items.length > 0 &&
-      this.newOrder.items.every((i: any) => !!i.itemId && Number(i.orderedQty) > 0)
+      validItems.length > 0
     );
   }
 
   submitOrder() {
     if (!this.isValidOrder()) return;
     this.submitting = true;
+    const validItems = this.newOrder.items.filter((i: any) => !!i.itemId && Number(i.orderedQty) > 0);
     const payload = {
       companyId: this.companyId,
       branchId: this.branchId,
-      ...this.newOrder
+      ...this.newOrder,
+      items: validItems
     };
 
     this.salesService.createSalesOrder(payload).subscribe({
@@ -709,6 +957,34 @@ export class SalesOrdersComponent implements OnInit {
       next: (order) => {
         this.selectedOrder = order;
         this.viewMode = 'view';
+      }
+    });
+  }
+
+  editOrder(id: string) {
+    this.salesService.getSalesOrderById(id).subscribe({
+      next: (order) => {
+        if (!order) return;
+        this.selectedOrder = order;
+        this.newOrder = {
+          customerLedgerId: order.customerLedgerId,
+          orderDate: order.orderDate,
+          deliveryDueDate: order.deliveryDueDate || '',
+          paymentTerms: order.paymentTerms || 'Net 30 Days',
+          billingAddress: order.billingAddress || '',
+          shippingAddress: order.shippingAddress || '',
+          narration: order.narration || '',
+          items: (order.items || []).map((it: any) => ({
+            itemId: it.itemId,
+            orderedQty: it.orderedQty || it.qty || 1,
+            unitPrice: it.rate || it.unitPrice || 0,
+            discountAmount: it.discountAmount || 0,
+            taxRate: it.taxRate || 18,
+            unitCode: this.getUnitCode(it)
+          }))
+        };
+        this.recalculateTotals();
+        this.viewMode = 'create';
       }
     });
   }

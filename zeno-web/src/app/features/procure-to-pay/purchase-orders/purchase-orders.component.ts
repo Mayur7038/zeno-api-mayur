@@ -6,11 +6,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-purchase-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="p2p-page">
       @if (viewMode === 'list') {
@@ -109,6 +111,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
                         <i class="pi pi-print"></i>
                       </button>
                       @if (po.status === 'PENDING') {
+                        <button class="action-btn" title="Edit Order" (click)="editOrder(po.id)">
+                          <i class="pi pi-pencil"></i>
+                        </button>
                         <button class="action-btn btn-danger-action" title="Cancel Order" (click)="cancelOrder(po.id)">
                           <i class="pi pi-times"></i>
                         </button>
@@ -129,9 +134,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
           <div class="header-actions">
             <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitCreatePO()" [disabled]="submitting">
+            <button class="btn-primary" (click)="submitCreatePO()" [disabled]="submitting || !isValidOrder()">
               @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Posting...
+                <i class="pi pi-spin pi-spinner"></i> Generating Order...
               } @else {
                 <i class="pi pi-check"></i> Save Purchase Order
               }
@@ -139,7 +144,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
         </div>
 
-        <div class="zeno-card form-page-card">
+        <div class="form-page-no-card">
           @if (createError) {
             <div class="alert alert-error" style="margin-bottom: 16px;">
               <i class="pi pi-exclamation-circle"></i>
@@ -147,143 +152,202 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           }
 
-          <div class="form-grid-3">
+          <!-- TOP SECTION: VENDOR & METADATA (MAX 4 FIELDS) -->
+          <div class="form-grid">
             <div class="form-group">
-              <label>Order Date *</label>
+              <label class="required">Order Date</label>
               <input type="date" [(ngModel)]="form.orderDate" name="orderDate" required />
             </div>
 
             <div class="form-group">
-              <label>Vendor (Sundry Creditor) *</label>
-              <select [(ngModel)]="form.vendorLedgerId" name="vendorLedgerId" required>
-                <option value="">-- Select Vendor --</option>
-                @for (v of vendors; track v.id) {
-                  <option [value]="v.id">{{ v.name }} ({{ v.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <label class="required">Vendor (Sundry Creditor)</label>
+              <zeno-searchable-select
+                [options]="vendors"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Search Vendor (Name or GSTIN)..."
+                [(ngModel)]="form.vendorLedgerId"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
-              <label>Branch *</label>
+              <label class="required">Branch</label>
               <select [(ngModel)]="form.branchId" name="branchId" required>
                 @for (b of tenant.branches(); track b.id) {
                   <option [value]="b.id">{{ b.branchName }}</option>
                 }
               </select>
             </div>
+
+            <div class="form-group">
+              <label>Expected Delivery Date</label>
+              <input type="date" [(ngModel)]="form.expectedDeliveryDate" name="expectedDeliveryDate" />
+            </div>
           </div>
 
-          <!-- LINE ITEMS EDITOR -->
+          <!-- LINE ITEMS SECTION -->
           <div class="line-items-section">
-            <div class="section-title">Order Line Items</div>
-            <table class="zeno-table line-table">
-              <thead>
-                <tr>
-                  <th style="width: 35%;">Item / Product *</th>
-                  <th style="width: 15%;">Unit</th>
-                  <th style="width: 15%;">Qty *</th>
-                  <th style="width: 15%;">Rate (₹) *</th>
-                  <th style="width: 10%;">GST %</th>
-                  <th style="width: 15%;">Amount (₹)</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (line of form.items; track $index) {
-                  <tr>
-                    <td>
-                      <select [(ngModel)]="line.itemId" (change)="onItemSelect(line)" style="width: 100%;">
-                        <option value="">-- Select Item --</option>
-                        @for (it of itemsList; track it.id) {
-                          <option [value]="it.id">{{ it.name }} ({{ it.sku || 'SKU' }})</option>
-                        }
-                      </select>
-                    </td>
-                    <td>
-                      <span class="unit-badge">{{ line.unitCode || 'NOS' }}</span>
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.orderedQty"
-                        (input)="calculateLine(line)"
-                        min="1"
-                        style="width: 100%;"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.rate"
-                        (input)="calculateLine(line)"
-                        min="0"
-                        style="width: 100%;"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        [(ngModel)]="line.gstRate"
-                        (input)="calculateLine(line)"
-                        style="width: 100%;"
-                      />
-                    </td>
-                    <td class="font-mono font-bold">
-                      ₹{{ line.totalAmount || 0 }}
-                    </td>
-                    <td class="text-right">
-                      @if (form.items.length > 1) {
-                        <button class="remove-line-btn" (click)="removeLine($index)">
-                          <i class="pi pi-trash"></i>
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+            <div class="section-title-wrap">
+              <div class="section-title">
+                <i class="pi pi-receipt"></i> Order Line Items
+              </div>
+              <button class="add-line-btn" type="button" (click)="addItemRow()">
+                <i class="pi pi-plus"></i> Add Blank Line
+              </button>
+            </div>
 
-            <button class="btn-secondary add-line-btn" (click)="addLine()">
-              <i class="pi pi-plus"></i> Add Item Line
-            </button>
+            <!-- FAST ITEM ENTRY BAR -->
+            <zeno-item-fast-entry
+              [itemsList]="itemsList"
+              [showDiscount]="true"
+              [showGst]="false"
+              [isPurchase]="true"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
+
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
+                  <tr>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Product / Item</th>
+                    <th style="width: 80px;" class="text-center">Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;">Rate (₹)</th>
+                    <th style="width: 100px;">Discount (₹)</th>
+                    <th style="width: 85px;">GST %</th>
+                    <th class="text-right" style="width: 120px;">Amount (₹)</th>
+                    <th class="text-center" style="width: 70px;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (form.items.length === 0) {
+                    <tr>
+                      <td colspan="9" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added yet. Use the Fast Item Entry Bar above to add items to this purchase order.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of form.items; track $index; let i = $index) {
+                      <tr>
+                        <td class="excel-row-num text-center">{{ i + 1 }}</td>
+                        <td>
+                          @if (row.itemId) {
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ getItemName(row.itemId) }}</span>
+                          } @else {
+                            <zeno-searchable-select
+                              [options]="itemsList"
+                              labelKey="name"
+                              valueKey="id"
+                              secondaryKey="sku"
+                              placeholder="Select Product..."
+                              [(ngModel)]="row.itemId"
+                              (selectChange)="onItemSelect(row)"
+                            ></zeno-searchable-select>
+                          }
+                        </td>
+                        <td class="text-center">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">{{ row.orderedQty }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              min="1"
+                              [(ngModel)]="row.orderedQty"
+                              (input)="recalculateTotals()"
+                              class="text-center"
+                            />
+                          }
+                        </td>
+                        <td class="text-center">
+                          <span class="unit-badge">{{ getUnitCode(row) }}</span>
+                        </td>
+                        <td class="text-right">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">₹{{ row.rate | number:'1.2-2' }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              step="any"
+                              [(ngModel)]="row.rate"
+                              (input)="recalculateTotals()"
+                            />
+                          }
+                        </td>
+                        <td class="text-right">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">₹{{ (row.discount || 0) | number:'1.2-2' }}</span>
+                          } @else {
+                            <input
+                              type="number"
+                              step="any"
+                              [(ngModel)]="row.discount"
+                              (input)="recalculateTotals()"
+                            />
+                          }
+                        </td>
+                        <td class="text-center">
+                          @if (row.itemId) {
+                            <span class="font-mono" style="padding: 2px 6px; display: inline-block;">{{ row.gstRate }}%</span>
+                          } @else {
+                            <select [(ngModel)]="row.gstRate" (change)="recalculateTotals()">
+                              <option [value]="0">0%</option>
+                              <option [value]="5">5%</option>
+                              <option [value]="12">12%</option>
+                              <option [value]="18">18%</option>
+                              <option [value]="28">28%</option>
+                            </select>
+                          }
+                        </td>
+                        <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: var(--surface-900);">
+                          ₹{{ (Math.max(0, (row.orderedQty * row.rate) - (row.discount || 0))) | number:'1.2-2' }}
+                        </td>
+                        <td class="text-center">
+                          <button type="button" class="btn-icon text-primary" (click)="editItemRow(i)" title="Edit line item">
+                            <i class="pi pi-pencil"></i>
+                          </button>
+                          <button type="button" class="btn-icon text-danger" (click)="removeLine(i)" title="Delete line item">
+                            <i class="pi pi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <!-- TOTALS & NOTES -->
-          <div class="totals-grid">
-            <div class="notes-panel">
-              <label>Order Notes / Terms</label>
+          <!-- SUMMARY & TOTALS FOOTER SECTION -->
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Narration / Remarks</label>
               <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter transaction narration or purchase order notes..."
                 [(ngModel)]="form.notes"
-                name="notes"
-                rows="4"
               ></textarea>
             </div>
 
-            <div class="totals-panel">
-              <div class="total-row">
+            <div class="totals-summary-card">
+              <div class="summary-line">
                 <span>Taxable Subtotal:</span>
-                <span class="font-mono">₹{{ orderSubtotal }}</span>
+                <strong>₹{{ orderSubtotal | number:'1.2-2' }}</strong>
               </div>
-              <div class="total-row">
+              <div class="summary-line">
                 <span>GST Total:</span>
-                <span class="font-mono">₹{{ orderTaxTotal }}</span>
+                <span>₹{{ orderTaxTotal | number:'1.2-2' }}</span>
               </div>
-              <div class="total-row grand-total">
+              <div class="summary-line grand-total">
                 <span>Grand Total:</span>
-                <span class="font-mono">₹{{ orderGrandTotal }}</span>
+                <strong>₹{{ orderGrandTotal | number:'1.2-2' }}</strong>
               </div>
             </div>
-          </div>
-
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitCreatePO()" [disabled]="submitting">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Posting...
-              } @else {
-                <i class="pi pi-check"></i> Save Purchase Order
-              }
-            </button>
           </div>
         </div>
       } @else if (viewMode === 'view' && viewingPo) {
@@ -487,6 +551,24 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-page-card {
       padding: 24px;
     }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
 
     .filter-card {
       padding: 16px;
@@ -642,40 +724,64 @@ import { exportToCsv } from '../../../core/utils/export.util';
       border: 1px solid var(--surface-200);
       border-radius: var(--radius-sm);
       padding: 16px;
-      background: var(--surface-50);
+      background: var(--surface-0);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-subtle);
 
       .section-title {
-        font-size: 0.875rem;
+        font-size: 0.9375rem;
         font-weight: 700;
-        margin-bottom: 12px;
-        color: var(--surface-800);
+        margin-bottom: 14px;
+        color: var(--surface-900);
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-200);
+        border-radius: var(--radius-sm);
+        background: #ffffff;
       }
 
       .line-table {
         background: #ffffff;
-        border: 1px solid var(--surface-200);
-        border-radius: var(--radius-sm);
+        width: 100%;
+        border-collapse: collapse;
 
-        input, select {
-          border: 1px solid var(--surface-200);
-          padding: 6px 8px;
-          border-radius: 4px;
+        th {
+          background-color: var(--surface-50);
+          color: var(--surface-600);
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          padding: 11px 14px;
+          border-bottom: 1px solid var(--surface-200);
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-100);
+          vertical-align: middle;
+        }
+
+        tr:last-child td {
+          border-bottom: none;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
         }
 
         .unit-badge {
           display: inline-block;
-          padding: 4px 8px;
+          padding: 3px 8px;
           background: var(--surface-100);
           border-radius: 4px;
           font-size: 0.75rem;
           font-weight: 600;
+          color: var(--surface-700);
         }
-      }
-
-      .add-line-btn {
-        margin-top: 12px;
-        font-size: 0.8125rem;
-        padding: 6px 12px;
       }
 
       .remove-line-btn {
@@ -854,6 +960,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
   `],
 })
 export class PurchaseOrdersComponent implements OnInit {
+  Math = Math;
   viewMode: 'list' | 'create' | 'view' = 'list';
   orders: any[] = [];
   vendors: any[] = [];
@@ -879,20 +986,12 @@ export class PurchaseOrdersComponent implements OnInit {
 
   form: any = {
     orderDate: new Date().toISOString().split('T')[0],
+    expectedDeliveryDate: '',
+    paymentTerms: 'Net 30 Days',
     vendorLedgerId: '',
     branchId: '',
     notes: '',
-    items: [
-      {
-        itemId: '',
-        unitId: '',
-        unitCode: 'NOS',
-        orderedQty: 10,
-        rate: 0,
-        gstRate: 18,
-        totalAmount: 0,
-      },
-    ],
+    items: [],
   };
 
   orderSubtotal = 0;
@@ -944,22 +1043,14 @@ export class PurchaseOrdersComponent implements OnInit {
   openCreateModal() {
     this.form = {
       orderDate: new Date().toISOString().split('T')[0],
-      vendorLedgerId: this.vendors[0]?.id || '',
+      expectedDeliveryDate: '',
+      paymentTerms: 'Net 30 Days',
+      vendorLedgerId: '',
       branchId: this.tenant.currentBranch()?.id || '',
       notes: '',
-      items: [
-        {
-          itemId: this.itemsList[0]?.id || '',
-          unitId: this.itemsList[0]?.unitId || '',
-          unitCode: this.itemsList[0]?.unit?.code || 'NOS',
-          orderedQty: 10,
-          rate: Number(this.itemsList[0]?.purchaseRate || 100),
-          gstRate: Number(this.itemsList[0]?.gstRate || 18),
-          totalAmount: 0,
-        },
-      ],
+      items: [],
     };
-    this.calculateLine(this.form.items[0]);
+    this.recalculateTotals();
     this.createError = '';
     this.viewMode = 'create';
   }
@@ -971,19 +1062,108 @@ export class PurchaseOrdersComponent implements OnInit {
     this.loadOrders();
   }
 
-  addLine() {
+  addItemRow() {
     this.form.items.push({
       itemId: '',
       unitId: '',
       unitCode: 'NOS',
       orderedQty: 1,
       rate: 0,
+      discount: 0,
       gstRate: 18,
       totalAmount: 0,
     });
   }
 
+  editingItemData: { item: any, index: number } | null = null;
+
+  onFastItemAdded(itemData: any) {
+    const item = this.itemsList.find(i => i.id === itemData.itemId);
+    const uVal = item?.unitCode || item?.unit;
+    const uStr = typeof uVal === 'object' ? (uVal.code || uVal.name || 'NOS') : (uVal || 'NOS');
+
+    let emptyRow = this.form.items.find((r: any) => !r.itemId);
+    if (emptyRow) {
+      emptyRow.itemId = itemData.itemId;
+      emptyRow.unitId = itemData.itemObj?.unitId || item?.unitId || '';
+      emptyRow.unitCode = uStr;
+      emptyRow.orderedQty = itemData.qty;
+      emptyRow.rate = itemData.rate;
+      emptyRow.discount = itemData.discount || 0;
+      emptyRow.gstRate = itemData.gstRate;
+    } else {
+      this.form.items.push({
+        itemId: itemData.itemId,
+        unitId: itemData.itemObj?.unitId || item?.unitId || '',
+        unitCode: uStr,
+        orderedQty: itemData.qty,
+        rate: itemData.rate,
+        discount: itemData.discount || 0,
+        gstRate: itemData.gstRate,
+        totalAmount: itemData.amount
+      });
+    }
+    this.recalculateTotals();
+  }
+
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  getUnitCode(row: any): string {
+    if (row.unitCode) return row.unitCode;
+    if (row.itemId) {
+      const it = this.itemsList.find(i => i.id === row.itemId);
+      const uVal = it?.unitCode || it?.unit;
+      return typeof uVal === 'object' ? (uVal.code || uVal.name || 'NOS') : (uVal || 'NOS');
+    }
+    return 'NOS';
+  }
+
+  isValidOrder(): boolean {
+    return !!this.form.vendorLedgerId && this.form.items.some((i: any) => i.itemId && i.orderedQty > 0);
+  }
+
+  editItemRow(index: number) {
+    const row = this.form.items[index];
+    if (row) {
+      this.editingItemData = {
+        item: {
+          itemId: row.itemId,
+          qty: row.orderedQty,
+          rate: row.rate,
+          discount: row.discount || 0,
+          gstRate: row.gstRate
+        },
+        index
+      };
+    }
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (this.editingItemData !== null && this.editingItemData.index >= 0) {
+      const idx = this.editingItemData.index;
+      const line = this.form.items[idx];
+      if (line) {
+        line.itemId = itemData.itemId;
+        line.unitId = itemData.itemObj?.unitId || line.unitId || '';
+        line.unitCode = itemData.unit || line.unitCode || 'NOS';
+        line.orderedQty = itemData.qty;
+        line.rate = itemData.rate;
+        line.discount = itemData.discount || 0;
+        line.gstRate = itemData.gstRate;
+        this.calculateLine(line);
+      }
+      this.editingItemData = null;
+    }
+  }
+
   removeLine(index: number) {
+    if (this.editingItemData?.index === index) {
+      this.editingItemData = null;
+    }
     this.form.items.splice(index, 1);
     this.recalculateTotals();
   }
@@ -1002,9 +1182,10 @@ export class PurchaseOrdersComponent implements OnInit {
   calculateLine(line: any) {
     const qty = Number(line.orderedQty || 0);
     const rate = Number(line.rate || 0);
+    const discount = Number(line.discount || 0);
     const gstRate = Number(line.gstRate || 0);
 
-    const taxable = qty * rate;
+    const taxable = Math.max(0, qty * rate - discount);
     const tax = (taxable * gstRate) / 100;
     line.totalAmount = Number((taxable + tax).toFixed(2));
     this.recalculateTotals();
@@ -1016,8 +1197,9 @@ export class PurchaseOrdersComponent implements OnInit {
     for (const l of this.form.items) {
       const q = Number(l.orderedQty || 0);
       const r = Number(l.rate || 0);
+      const d = Number(l.discount || 0);
       const g = Number(l.gstRate || 0);
-      const taxable = q * r;
+      const taxable = Math.max(0, q * r - d);
       sub += taxable;
       tax += (taxable * g) / 100;
     }
@@ -1092,6 +1274,32 @@ export class PurchaseOrdersComponent implements OnInit {
       next: (po) => {
         this.viewingPo = po;
         this.viewMode = 'view';
+      },
+    });
+  }
+
+  editOrder(id: string) {
+    this.p2p.getPurchaseOrderById(id).subscribe({
+      next: (po) => {
+        if (!po) return;
+        this.viewingPo = po;
+        this.form = {
+          vendorId: po.vendorId,
+          orderDate: po.orderDate,
+          expectedDeliveryDate: po.expectedDeliveryDate || '',
+          paymentTerms: po.paymentTerms || 'Net 30 Days',
+          shippingAddress: po.shippingAddress || '',
+          notes: po.notes || '',
+          items: (po.items || []).map((it: any) => ({
+            itemId: it.itemId,
+            orderedQty: it.orderedQty || it.qty || 1,
+            unitPrice: it.rate || it.unitPrice || 0,
+            discountAmount: it.discountAmount || 0,
+            taxRate: it.taxRate || 18,
+            unitCode: it.unitCode || 'Pcs'
+          }))
+        };
+        this.viewMode = 'create';
       },
     });
   }

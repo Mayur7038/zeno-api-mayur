@@ -24,6 +24,7 @@ const crypto = require("crypto");
 const user_entity_1 = require("../entities/user.entity");
 const otp_verification_entity_1 = require("../entities/otp-verification.entity");
 const tenant_entity_1 = require("../../tenancy/entities/tenant.entity");
+const company_entity_1 = require("../../tenancy/entities/company.entity");
 const tenant_seeder_service_1 = require("../../tenancy/services/tenant-seeder.service");
 const enums_1 = require("../../../common/enums");
 let AuthService = AuthService_1 = class AuthService {
@@ -208,15 +209,50 @@ let AuthService = AuthService_1 = class AuthService {
         if (!isMatch) {
             throw new common_1.UnauthorizedException('Invalid email or password');
         }
+        let company = null;
+        let branch = null;
+        if (user.tenantId) {
+            const companyRepo = this.dataSource.getRepository(company_entity_1.Company);
+            company = await companyRepo.findOne({
+                where: { tenantId: user.tenantId },
+                order: { createdAt: 'ASC' },
+                relations: ['branches'],
+            });
+            if (company && company.branches && company.branches.length > 0) {
+                branch = company.branches.find((b) => b.isHeadOffice) || company.branches[0];
+            }
+        }
         const tokens = this.generateTokens(user);
         return {
             success: true,
+            tenant: user.tenant
+                ? {
+                    id: user.tenant.id,
+                    name: user.tenant.name,
+                    slug: user.tenant.slug,
+                }
+                : undefined,
+            company: company
+                ? {
+                    id: company.id,
+                    legalName: company.legalName,
+                }
+                : undefined,
+            branch: branch
+                ? {
+                    id: branch.id,
+                    branchName: branch.branchName,
+                    stateCode: branch.stateCode,
+                }
+                : undefined,
             user: {
                 id: user.id,
                 email: user.email,
                 fullName: user.fullName,
                 tenantId: user.tenantId,
                 tenantName: user.tenant?.name,
+                companyId: company?.id,
+                branchId: branch?.id,
                 role: user.role?.name,
                 permissions: user.role?.permissions || [],
                 branches: user.branchAccess || [],
@@ -288,6 +324,29 @@ let AuthService = AuthService_1 = class AuthService {
             message: 'Password has been successfully updated. You may now log in.',
         };
     }
+    async refreshTokens(refreshToken) {
+        if (!refreshToken) {
+            throw new common_1.UnauthorizedException('Refresh token is required');
+        }
+        try {
+            const refreshSecret = this.configService.get('JWT_REFRESH_SECRET', 'zeno_refresh_secret_key_2026_enterprise_books');
+            const payload = this.jwtService.verify(refreshToken, { secret: refreshSecret });
+            const user = await this.userRepository.findOne({
+                where: { id: payload.sub },
+                relations: ['role', 'tenant'],
+            });
+            if (!user || !user.isActive) {
+                throw new common_1.UnauthorizedException('User account not found or deactivated');
+            }
+            return {
+                success: true,
+                ...this.generateTokens(user),
+            };
+        }
+        catch {
+            throw new common_1.UnauthorizedException('Refresh token is invalid or expired');
+        }
+    }
     generateTokens(user) {
         const payload = {
             sub: user.id,
@@ -295,18 +354,20 @@ let AuthService = AuthService_1 = class AuthService {
             tenantId: user.tenantId,
             role: user.role?.name,
         };
+        const accessExpiry = this.configService.get('JWT_EXPIRES_IN', '30d');
+        const refreshExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN', '60d');
         const accessToken = this.jwtService.sign(payload, {
             secret: this.configService.get('JWT_SECRET', 'zeno_super_secret_jwt_key_2026_enterprise_books'),
-            expiresIn: '15m',
+            expiresIn: accessExpiry,
         });
         const refreshToken = this.jwtService.sign(payload, {
             secret: this.configService.get('JWT_REFRESH_SECRET', 'zeno_refresh_secret_key_2026_enterprise_books'),
-            expiresIn: '7d',
+            expiresIn: refreshExpiry,
         });
         return {
             accessToken,
             refreshToken,
-            expiresIn: 900,
+            expiresIn: 30 * 24 * 60 * 60,
         };
     }
 };

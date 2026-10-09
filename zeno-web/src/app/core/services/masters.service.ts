@@ -163,10 +163,37 @@ export class MastersService {
     return this.api.get<any>(`/accounting/trial-balance?companyId=${companyId}`);
   }
 
+  getProfitLoss(companyId: string, startDate?: string, endDate?: string): Observable<any> {
+    let url = `/accounting/profit-loss?companyId=${companyId}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    return this.api.get<any>(url);
+  }
+
+  getBalanceSheet(companyId: string, asOfDate?: string): Observable<any> {
+    let url = `/accounting/balance-sheet?companyId=${companyId}`;
+    if (asOfDate) url += `&asOfDate=${asOfDate}`;
+    return this.api.get<any>(url);
+  }
+
+  getLedgerStatement(companyId: string, ledgerId: string, startDate?: string, endDate?: string): Observable<any> {
+    let url = `/accounting/ledger-statement?companyId=${companyId}&ledgerId=${ledgerId}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    return this.api.get<any>(url);
+  }
+
   getStockSummary(companyId: string, godownId?: string): Observable<any[]> {
     let query = `?companyId=${companyId}`;
     if (godownId) query += `&godownId=${godownId}`;
     return this.api.get<any[]>(`/inventory/summary${query}`);
+  }
+
+  getStockItemStatement(companyId: string, itemId: string, startDate?: string, endDate?: string): Observable<any> {
+    let url = `/inventory/item-statement?companyId=${companyId}&itemId=${itemId}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    return this.api.get<any>(url);
   }
 
   // Settings

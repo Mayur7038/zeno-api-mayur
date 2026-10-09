@@ -27,6 +27,25 @@ export declare class InventoryController {
         variantId: string;
         currentBalance: number;
     }>;
+    getItemStatement(tenantId: string, companyId: string, itemId: string, startDate?: string, endDate?: string): Promise<{
+        itemId: string;
+        entries: {
+            id: string;
+            entryDate: string;
+            voucherType: string;
+            voucherNo: string;
+            qtyIn: number;
+            qtyOut: number;
+            unitRate: number;
+            totalValue: number;
+            runningQty: number;
+            godownName: string;
+        }[];
+        totalInQty: number;
+        totalOutQty: number;
+        closingQty: number;
+        closingValue: number;
+    }>;
     getOpeningBalances(tenantId: string, companyId: string, godownId: string): Promise<{
         itemId: any;
         itemName: any;

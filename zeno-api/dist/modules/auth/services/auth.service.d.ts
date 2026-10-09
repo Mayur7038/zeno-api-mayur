@@ -55,12 +55,28 @@ export declare class AuthService {
         refreshToken: string;
         expiresIn: number;
         success: boolean;
+        tenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        company: {
+            id: string;
+            legalName: string;
+        };
+        branch: {
+            id: string;
+            branchName: string;
+            stateCode: string;
+        };
         user: {
             id: string;
             email: string;
             fullName: string;
             tenantId: string;
             tenantName: string;
+            companyId: string;
+            branchId: string;
             role: string;
             permissions: import("../../rbac/entities/role-permission.entity").RolePermission[];
             branches: import("../../rbac/entities/user-branch-access.entity").UserBranchAccess[];
@@ -80,6 +96,12 @@ export declare class AuthService {
     resetPassword(dto: ResetPasswordDto): Promise<{
         success: boolean;
         message: string;
+    }>;
+    refreshTokens(refreshToken: string): Promise<{
+        accessToken: string;
+        refreshToken: string;
+        expiresIn: number;
+        success: boolean;
     }>;
     private generateTokens;
 }

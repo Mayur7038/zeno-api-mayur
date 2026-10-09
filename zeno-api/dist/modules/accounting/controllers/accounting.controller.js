@@ -104,6 +104,126 @@ let AccountingController = class AccountingController {
             rows,
         };
     }
+    async getProfitLoss(tenantId, companyId, startDate, endDate) {
+        const qb = this.entryRepo
+            .createQueryBuilder('e')
+            .innerJoin('e.ledger', 'ledger')
+            .innerJoin('ledger.ledgerGroup', 'grp')
+            .select('ledger.id', 'ledgerId')
+            .addSelect('ledger.name', 'ledgerName')
+            .addSelect('grp.id', 'groupId')
+            .addSelect('grp.name', 'groupName')
+            .addSelect('grp.nature', 'nature')
+            .addSelect('SUM(e.debit_amount)', 'totalDebit')
+            .addSelect('SUM(e.credit_amount)', 'totalCredit')
+            .where('e.tenant_id = :tenantId', { tenantId })
+            .andWhere('e.company_id = :companyId', { companyId })
+            .andWhere("grp.nature IN ('INCOME', 'EXPENSE')")
+            .groupBy('ledger.id')
+            .addGroupBy('ledger.name')
+            .addGroupBy('grp.id')
+            .addGroupBy('grp.name')
+            .addGroupBy('grp.nature');
+        if (startDate)
+            qb.andWhere('e.entry_date >= :startDate', { startDate });
+        if (endDate)
+            qb.andWhere('e.entry_date <= :endDate', { endDate });
+        const raw = await qb.getRawMany();
+        let totalIncome = 0;
+        let totalExpense = 0;
+        const incomeRows = [];
+        const expenseRows = [];
+        for (const r of raw) {
+            const dr = Number(r.totalDebit || 0);
+            const cr = Number(r.totalCredit || 0);
+            const row = {
+                ledgerId: r.ledgerId,
+                ledgerName: r.ledgerName,
+                groupId: r.groupId,
+                groupName: r.groupName,
+                nature: r.nature,
+                debit: Number(dr.toFixed(2)),
+                credit: Number(cr.toFixed(2)),
+                amount: r.nature === 'INCOME'
+                    ? Number((cr - dr).toFixed(2))
+                    : Number((dr - cr).toFixed(2)),
+            };
+            if (r.nature === 'INCOME') {
+                totalIncome += row.amount;
+                incomeRows.push(row);
+            }
+            else {
+                totalExpense += row.amount;
+                expenseRows.push(row);
+            }
+        }
+        const netProfit = Number((totalIncome - totalExpense).toFixed(2));
+        return {
+            incomeRows, expenseRows,
+            totalIncome: Number(totalIncome.toFixed(2)),
+            totalExpense: Number(totalExpense.toFixed(2)),
+            netProfit, isProfit: netProfit >= 0,
+        };
+    }
+    async getBalanceSheet(tenantId, companyId, asOfDate) {
+        const qb = this.entryRepo
+            .createQueryBuilder('e')
+            .innerJoin('e.ledger', 'ledger')
+            .innerJoin('ledger.ledgerGroup', 'grp')
+            .select('ledger.id', 'ledgerId')
+            .addSelect('ledger.name', 'ledgerName')
+            .addSelect('ledger.opening_balance', 'openingBalance')
+            .addSelect('ledger.balance_type', 'balanceType')
+            .addSelect('grp.id', 'groupId')
+            .addSelect('grp.name', 'groupName')
+            .addSelect('grp.nature', 'nature')
+            .addSelect('SUM(e.debit_amount)', 'totalDebit')
+            .addSelect('SUM(e.credit_amount)', 'totalCredit')
+            .where('e.tenant_id = :tenantId', { tenantId })
+            .andWhere('e.company_id = :companyId', { companyId })
+            .andWhere("grp.nature IN ('ASSET', 'LIABILITY')")
+            .groupBy('ledger.id').addGroupBy('ledger.name')
+            .addGroupBy('ledger.opening_balance').addGroupBy('ledger.balance_type')
+            .addGroupBy('grp.id').addGroupBy('grp.name').addGroupBy('grp.nature');
+        if (asOfDate)
+            qb.andWhere('e.entry_date <= :asOfDate', { asOfDate });
+        const raw = await qb.getRawMany();
+        let totalAssets = 0;
+        let totalLiabilities = 0;
+        const assetRows = [];
+        const liabilityRows = [];
+        for (const r of raw) {
+            const dr = Number(r.totalDebit || 0);
+            const cr = Number(r.totalCredit || 0);
+            const ob = Number(r.openingBalance || 0);
+            const isObDr = (r.balanceType || 'DR') === 'DR';
+            const netDebit = dr + (isObDr ? ob : 0);
+            const netCredit = cr + (isObDr ? 0 : ob);
+            const row = {
+                ledgerId: r.ledgerId, ledgerName: r.ledgerName,
+                groupId: r.groupId, groupName: r.groupName, nature: r.nature,
+                openingBalance: ob,
+                debit: Number(netDebit.toFixed(2)), credit: Number(netCredit.toFixed(2)),
+                amount: r.nature === 'ASSET'
+                    ? Number((netDebit - netCredit).toFixed(2))
+                    : Number((netCredit - netDebit).toFixed(2)),
+            };
+            if (r.nature === 'ASSET') {
+                totalAssets += row.amount;
+                assetRows.push(row);
+            }
+            else {
+                totalLiabilities += row.amount;
+                liabilityRows.push(row);
+            }
+        }
+        return {
+            assetRows, liabilityRows,
+            totalAssets: Number(totalAssets.toFixed(2)),
+            totalLiabilities: Number(totalLiabilities.toFixed(2)),
+            isBalanced: Math.abs(totalAssets - totalLiabilities) < 1,
+        };
+    }
 };
 exports.AccountingController = AccountingController;
 __decorate([
@@ -171,6 +291,27 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], AccountingController.prototype, "getTrialBalance", null);
+__decorate([
+    (0, common_1.Get)('profit-loss'),
+    (0, swagger_1.ApiOperation)({ summary: 'Profit & Loss statement grouped by Income and Expense ledger groups' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Query)('companyId')),
+    __param(2, (0, common_1.Query)('startDate')),
+    __param(3, (0, common_1.Query)('endDate')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], AccountingController.prototype, "getProfitLoss", null);
+__decorate([
+    (0, common_1.Get)('balance-sheet'),
+    (0, swagger_1.ApiOperation)({ summary: 'Balance Sheet grouped by Asset and Liability ledger groups' }),
+    __param(0, (0, current_tenant_decorator_1.CurrentTenant)()),
+    __param(1, (0, common_1.Query)('companyId')),
+    __param(2, (0, common_1.Query)('asOfDate')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AccountingController.prototype, "getBalanceSheet", null);
 exports.AccountingController = AccountingController = __decorate([
     (0, swagger_1.ApiTags)('Accounting & Ledgers'),
     (0, swagger_1.ApiBearerAuth)(),

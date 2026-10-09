@@ -39,14 +39,16 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
     :host {
       display: inline-block;
       min-width: 260px;
+      vertical-align: middle;
     }
     .zeno-search-wrapper {
       position: relative;
       display: flex;
       align-items: center;
       width: 100%;
+      height: 38px;
       background: var(--surface-0, #ffffff);
-      border: 1px solid var(--surface-200, #e2e8f0);
+      border: 1px solid var(--surface-300, #cbd5e1);
       border-radius: var(--radius-sm, 6px);
       transition: all 0.15s ease-in-out;
 
@@ -70,7 +72,8 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
     }
     .zeno-search-input {
       width: 100%;
-      padding: 8px 34px 8px 34px;
+      height: 100%;
+      padding: 0 34px 0 34px;
       border: none;
       background: transparent;
       font-family: inherit;

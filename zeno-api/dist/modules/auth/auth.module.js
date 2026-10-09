@@ -31,7 +31,9 @@ exports.AuthModule = AuthModule = __decorate([
                 imports: [config_1.ConfigModule],
                 useFactory: (configService) => ({
                     secret: configService.get('JWT_SECRET', 'zeno_super_secret_jwt_key_2026_enterprise_books'),
-                    signOptions: { expiresIn: '15m' },
+                    signOptions: {
+                        expiresIn: configService.get('JWT_EXPIRES_IN', '30d'),
+                    },
                 }),
                 inject: [config_1.ConfigService],
             }),

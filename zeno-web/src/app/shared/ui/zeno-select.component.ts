@@ -48,14 +48,16 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
     :host {
       display: block;
       width: 100%;
+      vertical-align: middle;
     }
     .zeno-select-wrap {
       position: relative;
       display: flex;
       align-items: center;
       width: 100%;
+      height: 38px;
       background: var(--surface-0, #ffffff);
-      border: 1px solid var(--surface-200, #e2e8f0);
+      border: 1px solid var(--surface-300, #cbd5e1);
       border-radius: var(--radius-sm, 6px);
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
@@ -85,11 +87,13 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
     }
     .zeno-base-select {
       width: 100%;
-      padding: 9px 36px 9px 12px;
+      height: 100%;
+      padding: 0 32px 0 12px;
       border: none;
       background: transparent;
       font-family: inherit;
-      font-size: 0.875rem;
+      font-size: 0.84rem;
+      font-weight: 500;
       color: var(--surface-900, #0f172a);
       outline: none;
       border-radius: var(--radius-sm, 6px);

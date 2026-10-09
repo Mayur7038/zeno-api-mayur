@@ -7,11 +7,13 @@ import { TenantService } from '../../../core/services/tenant.service';
 import { MastersService } from '../../../core/services/masters.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { exportToCsv } from '../../../core/utils/export.util';
+import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchable-select.component';
+import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-entry.component';
 
 @Component({
   selector: 'app-sales-returns',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ZenoSearchableSelectComponent, ZenoItemFastEntryComponent],
   template: `
     <div class="sales-page">
       @if (viewMode === 'list') {
@@ -53,8 +55,9 @@ import { exportToCsv } from '../../../core/utils/export.util';
 
         <!-- TABLE CARD -->
         <div class="zeno-card">
-          <table class="zeno-table">
-            <thead>
+          <div class="table-responsive">
+            <table class="zeno-table">
+              <thead>
               <tr>
                 <th>Credit Note #</th>
                 <th>Date</th>
@@ -107,6 +110,7 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </tbody>
           </table>
         </div>
+      </div>
       } @else if (viewMode === 'create') {
         <!-- FULL PAGE CREATE SALES RETURN / CREDIT NOTE -->
         <div class="page-header">
@@ -122,16 +126,20 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
         </div>
 
-        <div class="zeno-card form-page-card">
+        <div class="form-page-no-card">
+          <!-- TOP SECTION: CUSTOMER & METADATA (MAX 4 FIELDS) -->
           <div class="form-grid">
             <div class="form-group">
               <label class="required">Customer</label>
-              <select [(ngModel)]="newSr.customerLedgerId" (change)="onCustomerSelected()">
-                <option value="">Select Customer...</option>
-                @for (cust of customers; track cust.id) {
-                  <option [value]="cust.id">{{ cust.name }} ({{ cust.gstin || 'Unregistered' }})</option>
-                }
-              </select>
+              <zeno-searchable-select
+                [options]="customers"
+                labelKey="name"
+                valueKey="id"
+                secondaryKey="gstin"
+                placeholder="Select Customer..."
+                [(ngModel)]="newSr.customerLedgerId"
+                (selectChange)="onCustomerSelected()"
+              ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
@@ -160,98 +168,104 @@ import { exportToCsv } from '../../../core/utils/export.util';
             </div>
           </div>
 
-          <div class="form-grid">
-            <div class="form-group" style="grid-column: span 2;">
-              <label class="required">Return Reason</label>
-              <input type="text" [(ngModel)]="newSr.reason" />
-            </div>
-          </div>
+          <!-- LINE ITEMS EDITOR -->
+          <div class="line-items-section">
+            <zeno-item-fast-entry
+              [itemsList]="itemsList"
+              [showDiscount]="false"
+              [showGst]="false"
+              [editData]="editingItemData"
+              (itemAdded)="onFastItemAdded($event)"
+              (itemUpdated)="onFastItemUpdated($event)"
+            ></zeno-item-fast-entry>
 
-          <!-- ITEMS SECTION -->
-          <div class="items-section">
-            <div class="section-title-row">
-              <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Returned Items</h3>
-              <button type="button" class="btn-sm btn-outline" (click)="addItemRow()">
-                <i class="pi pi-plus"></i> Add Item
-              </button>
-            </div>
-
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th style="width: 32%;">Item / Product</th>
-                  <th style="width: 14%;">Returned Qty</th>
-                  <th style="width: 16%;">Sales Rate (₹)</th>
-                  <th style="width: 14%;">GST Rate (%)</th>
-                  <th style="width: 18%; text-align: right;">Total Refund (₹)</th>
-                  <th style="width: 6%;"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of newSr.items; track $index; let idx = $index) {
+            <div class="table-responsive">
+              <table class="zeno-table line-table">
+                <thead>
                   <tr>
-                    <td>
-                      <select [(ngModel)]="row.itemId" (change)="onItemSelect(idx)">
-                        <option value="">Select Item...</option>
-                        @for (item of itemsList; track item.id) {
-                          <option [value]="item.id">{{ item.name }} ({{ item.sku || 'No SKU' }})</option>
-                        }
-                      </select>
-                    </td>
-                    <td>
-                      <input type="number" min="1" [(ngModel)]="row.returnedQty" (input)="recalculateTotals()" />
-                    </td>
-                    <td>
-                      <input type="number" step="0.01" [(ngModel)]="row.unitPrice" (input)="recalculateTotals()" />
-                    </td>
-                    <td>
-                      <select [(ngModel)]="row.taxRate" (change)="recalculateTotals()">
-                        <option [value]="0">0%</option>
-                        <option [value]="5">5%</option>
-                        <option [value]="12">12%</option>
-                        <option [value]="18">18%</option>
-                        <option [value]="28">28%</option>
-                      </select>
-                    </td>
-                    <td style="text-align: right; font-weight: 600; color: #DC2626;">
-                      ₹{{ calculateRowTotal(row) | number:'1.2-2' }}
-                    </td>
-                    <td class="text-center">
-                      <button type="button" class="btn-icon text-danger" (click)="removeItemRow(idx)" [disabled]="newSr.items.length <= 1">
-                        <i class="pi pi-trash"></i>
-                      </button>
-                    </td>
+                    <th style="width: 36px;" class="text-center">#</th>
+                    <th style="min-width: 200px;">Product / Item</th>
+                    <th style="width: 80px;" class="text-center">Return Qty</th>
+                    <th style="width: 75px;" class="text-center">Unit</th>
+                    <th style="width: 110px;" class="text-right">Sales Rate (₹)</th>
+                    <th style="width: 85px;" class="text-center">GST %</th>
+                    <th style="width: 120px;" class="text-right">Total Refund (₹)</th>
+                    <th style="width: 70px;" class="text-center">Action</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @if (newSr.items.length === 0 || (newSr.items.length === 1 && !newSr.items[0].itemId)) {
+                    <tr>
+                      <td colspan="8" class="text-center" style="padding: 24px; color: var(--surface-500);">
+                        <i class="pi pi-inbox" style="font-size: 1.5rem; display: block; margin-bottom: 6px; color: var(--surface-400);"></i>
+                        No items added yet. Use the Fast Item Entry Bar above to add items to this return.
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of newSr.items; track $index; let idx = $index) {
+                      @if (row.itemId) {
+                        <tr>
+                          <td class="excel-row-num text-center">{{ idx + 1 }}</td>
+                          <td>
+                            <span class="font-bold" style="padding: 2px 6px; display: inline-block;">{{ getItemName(row.itemId) }}</span>
+                          </td>
+                          <td class="text-center font-mono font-bold">
+                            {{ row.returnedQty }}
+                          </td>
+                          <td class="text-center">
+                            <span class="unit-badge">{{ getUnitCode(row) }}</span>
+                          </td>
+                          <td class="text-right font-mono">
+                            ₹{{ row.unitPrice | number:'1.2-2' }}
+                          </td>
+                          <td class="text-center font-mono">
+                            {{ row.taxRate }}%
+                          </td>
+                          <td class="text-right font-mono font-bold" style="padding: 2px 8px; font-size: 0.875rem; color: #DC2626;">
+                            ₹{{ calculateRowTotal(row) | number:'1.2-2' }}
+                          </td>
+                          <td class="text-center">
+                            <button type="button" class="btn-icon text-primary" (click)="editItemRow(idx)" title="Edit line item">
+                              <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn-icon text-danger" (click)="removeItemRow(idx)" title="Delete line item">
+                              <i class="pi pi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <!-- ACCOUNTING BANNER -->
-          <div class="accounting-explanation-box">
-            <i class="pi pi-calculator"></i>
-            <div>
-              <strong>Automated Balanced Accounting Impact:</strong>
-              <div style="font-size: 0.8rem; margin-top: 2px;">
-                Dr. Sales Account (₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}) | 
-                Dr. Output GST (₹{{ modalTotals.taxTotal | number:'1.2-2' }}) | 
-                Cr. Customer Receivable (₹{{ modalTotals.grandTotal | number:'1.2-2' }})
+          <!-- SUMMARY & TOTALS FOOTER SECTION -->
+          <div class="form-footer-section">
+            <div class="narration-box">
+              <label class="narration-label"><i class="pi pi-align-left"></i> Reason for Return / Remarks</label>
+              <textarea
+                rows="3"
+                class="narration-textarea"
+                placeholder="Enter return reason or remarks..."
+                [(ngModel)]="newSr.reason"
+              ></textarea>
+            </div>
+
+            <div class="totals-summary-card">
+              <div class="summary-line">
+                <span>Reversed Taxable:</span>
+                <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
               </div>
-            </div>
-          </div>
-
-          <div class="totals-summary-card">
-            <div class="summary-line">
-              <span>Reversed Taxable:</span>
-              <strong>₹{{ modalTotals.taxableSubtotal | number:'1.2-2' }}</strong>
-            </div>
-            <div class="summary-line">
-              <span>Reversed GST Tax:</span>
-              <span>₹{{ modalTotals.taxTotal | number:'1.2-2' }}</span>
-            </div>
-            <div class="summary-line grand-total text-danger">
-              <span>Total Credit Note:</span>
-              <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
+              <div class="summary-line">
+                <span>Reversed GST Tax:</span>
+                <span>₹{{ modalTotals.taxTotal | number:'1.2-2' }}</span>
+              </div>
+              <div class="summary-line grand-total text-danger">
+                <span>Total Credit Note:</span>
+                <strong>₹{{ modalTotals.grandTotal | number:'1.2-2' }}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -283,31 +297,33 @@ import { exportToCsv } from '../../../core/utils/export.util';
           </div>
 
           <h4 style="margin: 24px 0 12px; font-size: 0.95rem; color: var(--surface-700)">Returned Line Items</h4>
-          <table class="zeno-table" style="border: 1px solid var(--surface-200); border-radius: 8px;">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Returned Qty</th>
-                <th>Rate</th>
-                <th>Taxable</th>
-                <th class="text-right">Total Refund</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of selectedReturn.items; track item.id) {
+          <div class="table-responsive">
+            <table class="zeno-table line-table">
+              <thead>
                 <tr>
-                  <td>
-                    <strong>{{ item.item?.name }}</strong>
-                    <div style="font-size: 0.72rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
-                  </td>
-                  <td class="font-bold">{{ item.returnedQty }}</td>
-                  <td>₹{{ item.rate | number:'1.2-2' }}</td>
-                  <td>₹{{ item.taxableAmount | number:'1.2-2' }}</td>
-                  <td class="text-right font-bold text-danger">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  <th>Item</th>
+                  <th>Returned Qty</th>
+                  <th>Rate</th>
+                  <th>Taxable</th>
+                  <th class="text-right">Total Refund</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (item of selectedReturn.items; track item.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.item?.name }}</strong>
+                      <div style="font-size: 0.72rem; color: var(--surface-500)">{{ item.item?.sku }}</div>
+                    </td>
+                    <td class="font-bold">{{ item.returnedQty }}</td>
+                    <td>₹{{ item.rate | number:'1.2-2' }}</td>
+                    <td>₹{{ item.taxableAmount | number:'1.2-2' }}</td>
+                    <td class="text-right font-bold text-danger">₹{{ item.totalAmount | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
 
           <div class="totals-summary-card" style="margin-top: 20px;">
             <div class="summary-line">
@@ -336,6 +352,24 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: var(--radius-sm, 6px); width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; }
     .btn-back:hover { background: var(--surface-200); color: var(--surface-900); }
     .form-page-card { padding: 24px; }
+    .add-line-btn {
+      background: #ffffff;
+      border: 1px dashed #818cf8;
+      color: #4338ca;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      &:hover {
+        background: #eef2ff;
+        border-color: #4f46e5;
+      }
+    }
     
     .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
     .kpi-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
@@ -347,12 +381,49 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
 
-    .zeno-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; overflow-x: auto; overflow-y: hidden; max-width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; }
-    .zeno-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; white-space: nowrap !important; }
-    .zeno-table th { background: var(--surface-50); padding: 12px 18px; color: var(--surface-600); font-weight: 600; border-bottom: 1px solid var(--surface-200); white-space: nowrap !important; }
-    .zeno-table td { padding: 13px 18px; border-bottom: 1px solid var(--surface-100); color: var(--surface-800); white-space: nowrap !important; }
-    .zeno-table tr:hover td { background: var(--surface-50); }
-    .zeno-table th *, .zeno-table td * { white-space: nowrap !important; }
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+    .zeno-table {
+      width: 100%;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      text-align: left;
+      font-size: 0.875rem;
+
+      th {
+        background-color: var(--surface-100) !important;
+        padding: 12px 16px;
+        color: var(--surface-700) !important;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--surface-300) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--surface-200) !important;
+        border-right: 1px solid var(--surface-200) !important;
+        color: var(--surface-800);
+        vertical-align: middle;
+        white-space: nowrap !important;
+        &:last-child { border-right: none !important; }
+      }
+
+      tr:last-child td { border-bottom: none !important; }
+      tr:hover td { background: rgba(248, 250, 252, 0.7); }
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--surface-300) !important;
+      border-radius: var(--radius-md) !important;
+      background: #ffffff;
+    }
 
     .reason-pill { background: #F1F5F9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; }
     .text-danger { color: #DC2626; }
@@ -371,12 +442,81 @@ import { exportToCsv } from '../../../core/utils/export.util';
     .form-group label.required::after { content: ' *'; color: #EF4444; }
     .form-group select, .form-group input { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 8px; font-size: 0.875rem; }
 
-    .items-section { margin-top: 16px; }
-    .section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .items-table { width: 100%; border-collapse: collapse; border: 1px solid var(--surface-200); border-radius: 8px; overflow: hidden; }
-    .items-table th { background: var(--surface-100); padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; color: var(--surface-600); }
-    .items-table td { padding: 8px 10px; border-bottom: 1px solid var(--surface-200); }
-    .items-table select, .items-table input { width: 100%; padding: 6px 8px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.85rem; }
+    .line-items-section {
+      margin: 20px 0;
+      border: 1px solid var(--surface-300);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      background: var(--surface-0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+      .section-title-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+
+        .section-title {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
+        background: #ffffff;
+      }
+
+      .line-table {
+        background: #ffffff;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+
+        th {
+          background-color: var(--surface-100) !important;
+          color: var(--surface-700) !important;
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--surface-300) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          &:last-child { border-right: none !important; }
+        }
+
+        td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--surface-200) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          vertical-align: middle;
+          &:last-child { border-right: none !important; }
+
+          input, select {
+            width: 100%;
+            height: 36px;
+            padding: 6px 10px;
+            border: 1px solid var(--surface-300) !important;
+            border-radius: 6px !important;
+          }
+        }
+
+        tr:last-child td {
+          border-bottom: none !important;
+        }
+
+        tr:hover td {
+          background-color: rgba(248, 250, 252, 0.7);
+        }
+      }
+    }
 
     .accounting-explanation-box { margin-top: 20px; background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px; color: #334155; }
     .totals-summary-card { width: 340px; margin-left: auto; margin-top: 16px; background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 10px; padding: 14px 16px; }
@@ -522,6 +662,21 @@ export class SalesReturnsComponent implements OnInit {
     }
   }
 
+  getItemName(itemId: string): string {
+    if (!itemId) return '';
+    const item = this.itemsList.find(i => i.id === itemId);
+    return item ? (item.name || item.itemName) : 'Selected Item';
+  }
+
+  getUnitCode(row: any): string {
+    if (!row) return 'Pcs';
+    const val = row.unitCode || row.unit;
+    if (!val) return 'Pcs';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return val.code || val.name || val.unitCode || 'Pcs';
+    return String(val);
+  }
+
   openCreatePage() {
     this.newSr = {
       customerLedgerId: '',
@@ -529,9 +684,7 @@ export class SalesReturnsComponent implements OnInit {
       godownId: this.godowns[0]?.id || '',
       returnDate: new Date().toISOString().split('T')[0],
       reason: 'Customer Cancellation / Defect',
-      items: [
-        { itemId: '', returnedQty: 1, unitPrice: 0, taxRate: 18, isInterstate: false, salesInvoiceItemId: null }
-      ]
+      items: []
     };
     this.recalculateTotals();
     this.viewMode = 'create';
@@ -554,11 +707,59 @@ export class SalesReturnsComponent implements OnInit {
     this.recalculateTotals();
   }
 
-  removeItemRow(index: number) {
-    if (this.newSr.items.length > 1) {
-      this.newSr.items.splice(index, 1);
+  editingItemData: { item: any, index: number } | null = null;
+
+  onFastItemAdded(itemData: any) {
+    if (this.newSr.items.length === 1 && !this.newSr.items[0].itemId) {
+      this.newSr.items = [];
+    }
+    this.newSr.items.push({
+      itemId: itemData.itemId,
+      returnedQty: itemData.qty,
+      unitPrice: itemData.rate,
+      taxRate: itemData.gstRate,
+      isInterstate: false,
+      salesInvoiceItemId: null
+    });
+    this.recalculateTotals();
+  }
+
+  editItemRow(index: number) {
+    const row = this.newSr.items[index];
+    if (row) {
+      this.editingItemData = {
+        item: {
+          itemId: row.itemId,
+          qty: row.returnedQty,
+          rate: row.unitPrice,
+          discount: 0,
+          gstRate: row.taxRate
+        },
+        index
+      };
+    }
+  }
+
+  onFastItemUpdated(itemData: any) {
+    if (this.editingItemData !== null && this.editingItemData.index >= 0) {
+      const idx = this.editingItemData.index;
+      if (this.newSr.items[idx]) {
+        this.newSr.items[idx].itemId = itemData.itemId;
+        this.newSr.items[idx].returnedQty = itemData.qty;
+        this.newSr.items[idx].unitPrice = itemData.rate;
+        this.newSr.items[idx].taxRate = itemData.gstRate;
+      }
+      this.editingItemData = null;
       this.recalculateTotals();
     }
+  }
+
+  removeItemRow(index: number) {
+    if (this.editingItemData?.index === index) {
+      this.editingItemData = null;
+    }
+    this.newSr.items.splice(index, 1);
+    this.recalculateTotals();
   }
 
   onCustomerSelected() {

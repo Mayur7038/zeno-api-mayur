@@ -14,6 +14,8 @@ import * as crypto from 'crypto';
 import { User } from '../entities/user.entity';
 import { OtpVerification } from '../entities/otp-verification.entity';
 import { Tenant } from '../../tenancy/entities/tenant.entity';
+import { Company } from '../../tenancy/entities/company.entity';
+import { Branch } from '../../tenancy/entities/branch.entity';
 import { TenantSeederService } from '../../tenancy/services/tenant-seeder.service';
 import {
   SignupDto,
@@ -255,16 +257,53 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // Retrieve user's primary company and branch
+    let company: Company | null = null;
+    let branch: Branch | null = null;
+    if (user.tenantId) {
+      const companyRepo = this.dataSource.getRepository(Company);
+      company = await companyRepo.findOne({
+        where: { tenantId: user.tenantId },
+        order: { createdAt: 'ASC' },
+        relations: ['branches'],
+      });
+      if (company && company.branches && company.branches.length > 0) {
+        branch = company.branches.find((b) => b.isHeadOffice) || company.branches[0];
+      }
+    }
+
     const tokens = this.generateTokens(user);
 
     return {
       success: true,
+      tenant: user.tenant
+        ? {
+            id: user.tenant.id,
+            name: user.tenant.name,
+            slug: user.tenant.slug,
+          }
+        : undefined,
+      company: company
+        ? {
+            id: company.id,
+            legalName: company.legalName,
+          }
+        : undefined,
+      branch: branch
+        ? {
+            id: branch.id,
+            branchName: branch.branchName,
+            stateCode: branch.stateCode,
+          }
+        : undefined,
       user: {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
         tenantId: user.tenantId,
         tenantName: user.tenant?.name,
+        companyId: company?.id,
+        branchId: branch?.id,
         role: user.role?.name,
         permissions: user.role?.permissions || [],
         branches: user.branchAccess || [],
@@ -360,6 +399,35 @@ export class AuthService {
     };
   }
 
+  /**
+   * 6. Refresh Tokens
+   */
+  async refreshTokens(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+    try {
+      const refreshSecret = this.configService.get<string>(
+        'JWT_REFRESH_SECRET',
+        'zeno_refresh_secret_key_2026_enterprise_books',
+      );
+      const payload = this.jwtService.verify(refreshToken, { secret: refreshSecret });
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+        relations: ['role', 'tenant'],
+      });
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException('User account not found or deactivated');
+      }
+      return {
+        success: true,
+        ...this.generateTokens(user),
+      };
+    } catch {
+      throw new UnauthorizedException('Refresh token is invalid or expired');
+    }
+  }
+
   private generateTokens(user: User) {
     const payload = {
       sub: user.id,
@@ -368,20 +436,23 @@ export class AuthService {
       role: user.role?.name,
     };
 
+    const accessExpiry = this.configService.get<string>('JWT_EXPIRES_IN', '30d') as any;
+    const refreshExpiry = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '60d') as any;
+
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_SECRET', 'zeno_super_secret_jwt_key_2026_enterprise_books'),
-      expiresIn: '15m',
+      expiresIn: accessExpiry,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET', 'zeno_refresh_secret_key_2026_enterprise_books'),
-      expiresIn: '7d',
+      expiresIn: refreshExpiry,
     });
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: 900, // 15 mins in seconds
+      expiresIn: 30 * 24 * 60 * 60, // 30 days in seconds
     };
   }
 }
