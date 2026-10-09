@@ -263,8 +263,8 @@ export const STANDARD_LEDGER_GROUPS: any[] = [
                         <div class="form-group">
                           <label>Balance Type</label>
                           <select [(ngModel)]="form.balanceType">
-                            <option value="DR">DR (Debit - Receivable / Asset)</option>
-                            <option value="CR">CR (Credit - Payable / Liability)</option>
+                            <option value="DR">Dr.</option>
+                            <option value="CR">Cr.</option>
                           </select>
                         </div>
                         <div class="form-group">
@@ -299,8 +299,8 @@ export const STANDARD_LEDGER_GROUPS: any[] = [
                         <div class="form-group">
                           <label>Balance Type</label>
                           <select [(ngModel)]="form.balanceType">
-                            <option value="DR">DR (Debit - Receivable / Asset)</option>
-                            <option value="CR">CR (Credit - Payable / Liability)</option>
+                            <option value="DR">Dr.</option>
+                            <option value="CR">Cr.</option>
                           </select>
                         </div>
                         <div class="form-group"></div>

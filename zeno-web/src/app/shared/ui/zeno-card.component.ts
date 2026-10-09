@@ -46,8 +46,7 @@ import { CommonModule } from '@angular/common';
       border: 1px solid var(--surface-200, #e2e8f0);
       border-radius: var(--radius-md, 10px);
       box-shadow: var(--shadow-subtle, 0 1px 3px 0 rgba(0, 0, 0, 0.05));
-      overflow-x: auto;
-      overflow-y: hidden;
+      overflow: visible;
       max-width: 100%;
 
       &.padded .zeno-card-body {

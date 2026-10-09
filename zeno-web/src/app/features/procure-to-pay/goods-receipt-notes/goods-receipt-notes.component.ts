@@ -27,36 +27,36 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
         </div>
 
         <!-- FILTER CARD -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="loadGrns()"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select
-              class="filter-select"
-              [(ngModel)]="selectedStatus"
-              (change)="filterStatus(selectedStatus)"
-            >
-              <option value="">All GRNs</option>
-              <option value="PENDING">Pending Invoicing</option>
-              <option value="PARTIALLY_CLEARED">Partially Invoiced</option>
-              <option value="CLEARED">Cleared</option>
-            </select>
-
-            <button class="btn-export" (click)="exportGrns()" [disabled]="grns.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (input)="loadGrns()"
+                placeholder="Search Goods Receipt Notes..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select
+                class="form-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All GRNs</option>
+                <option value="PENDING">Pending Invoicing</option>
+                <option value="PARTIALLY_CLEARED">Partially Invoiced</option>
+                <option value="CLEARED">Cleared</option>
+              </select>
+
+              <button class="btn-export" (click)="exportGrns()" [disabled]="grns.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>
@@ -114,7 +114,7 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
           <div class="header-actions">
             <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-success" (click)="submitCreateGRN()" [disabled]="submitting || form.items.length === 0">
+            <button class="btn-primary" (click)="submitCreateGRN()" [disabled]="submitting || form.items.length === 0">
               @if (submitting) {
                 <i class="pi pi-spin pi-spinner"></i> Posting Stock IN...
               } @else {
@@ -133,7 +133,7 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           }
 
           <!-- TOP SECTION: VENDOR & METADATA (MAX 4 FIELDS) -->
-          <div class="form-grid">
+          <div class="form-grid-4">
             <div class="form-group">
               <label class="required">Vendor</label>
               <zeno-searchable-select
@@ -145,6 +145,15 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
                 [(ngModel)]="form.vendorLedgerId"
                 (selectChange)="onVendorChange()"
               ></zeno-searchable-select>
+            </div>
+
+            <div class="form-group">
+              <label>Vendor Challan No.</label>
+              <input
+                type="text"
+                placeholder="e.g. CH-2026-001"
+                [(ngModel)]="form.vendorChallanNo"
+              />
             </div>
 
             <div class="form-group">
@@ -162,9 +171,8 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
             </div>
 
             @if (form.vendorLedgerId) {
-              <div class="form-group" style="justify-content: flex-end;">
-                <label>&nbsp;</label>
-                <button type="button" class="btn-secondary" style="height: 38px;" (click)="openPoModal()">
+              <div class="form-group span-4" style="margin-top: 4px;">
+                <button type="button" class="btn-secondary" style="height: 38px; align-self: flex-start;" (click)="openPoModal()">
                   <i class="pi pi-link"></i> Select Pending POs ({{ pendingPos.length }})
                 </button>
               </div>
@@ -287,6 +295,9 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           <div style="display: flex; justify-content: space-between; border-bottom: 2px solid var(--surface-200); padding-bottom: 16px; margin-bottom: 20px;">
             <div>
               <div class="font-bold" style="font-size: 1.125rem;">Vendor: {{ viewingGrn.vendorLedger?.name }}</div>
+              @if (viewingGrn.vendorChallanNo) {
+                <div>Vendor Challan No: <strong>{{ viewingGrn.vendorChallanNo }}</strong></div>
+              }
               <div>GRN Date: {{ viewingGrn.grnDate }}</div>
             </div>
             <div style="text-align: right;">
@@ -527,6 +538,86 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
     .kpi-info { display: flex; flex-direction: column; }
     .kpi-label { font-size: 0.72rem; color: var(--surface-500); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
     .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); margin-top: 2px; }
+
+    .form-footer-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    .narration-box {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .narration-label {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--surface-700);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .narration-textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 10px 12px;
+        border: 1px solid var(--surface-300);
+        border-radius: var(--radius-sm, 6px);
+        font-size: 0.875rem;
+        font-family: inherit;
+        color: var(--surface-900);
+        background-color: var(--surface-0);
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+        &:focus {
+          border-color: var(--primary-600);
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+      }
+    }
+
+    .totals-summary-card {
+      margin-left: auto;
+      width: 340px;
+      background: var(--surface-50);
+      border: 1px solid var(--surface-200);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .summary-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+        color: var(--surface-700);
+
+        &.grand-total {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          border-top: 1px solid var(--surface-200);
+          padding-top: 10px;
+          margin-top: 4px;
+
+          strong {
+            color: var(--primary-700);
+            font-size: 1.125rem;
+          }
+        }
+      }
+    }
   `],
 })
 export class GoodsReceiptNotesComponent implements OnInit {
@@ -559,6 +650,7 @@ export class GoodsReceiptNotesComponent implements OnInit {
   form: any = {
     grnDate: new Date().toISOString().split('T')[0],
     vendorLedgerId: '',
+    vendorChallanNo: '',
     godownId: '',
     notes: '',
     items: [],
@@ -614,6 +706,7 @@ export class GoodsReceiptNotesComponent implements OnInit {
     this.form = {
       grnDate: new Date().toISOString().split('T')[0],
       vendorLedgerId: this.vendors[0]?.id || '',
+      vendorChallanNo: '',
       godownId: this.tenant.currentGodown()?.id || '',
       notes: '',
       items: [],
@@ -785,6 +878,7 @@ export class GoodsReceiptNotesComponent implements OnInit {
       branchId,
       godownId: this.form.godownId,
       vendorLedgerId: this.form.vendorLedgerId,
+      vendorChallanNo: this.form.vendorChallanNo,
       grnDate: this.form.grnDate,
       purchaseOrderIds: this.selectedPoIds,
       notes: this.form.notes,

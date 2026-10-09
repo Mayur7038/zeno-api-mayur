@@ -28,7 +28,7 @@ import { CommonModule } from '@angular/common';
   styles: [`
     :host {
       display: block;
-      margin-bottom: 20px;
+      margin-bottom: 0;
     }
     .zeno-page-header {
       display: flex;
@@ -48,7 +48,7 @@ import { CommonModule } from '@angular/common';
       gap: 12px;
     }
     .zeno-page-title {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
       font-weight: 700;
       color: var(--surface-900, #0f172a);
       letter-spacing: -0.02em;

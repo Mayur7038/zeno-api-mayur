@@ -27,21 +27,22 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
         </div>
 
-        <!-- FILTER & TOOLBAR -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
-          <div class="filter-card">
-            <div class="filter-group">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
                 [(ngModel)]="searchQuery"
                 (input)="loadChallans()"
+                placeholder="Search delivery challans..."
               />
             </div>
 
-            <div class="filter-actions">
+            <div class="toolbar-filters">
               <select
-                class="filter-select"
+                class="form-select"
                 [(ngModel)]="selectedStatus"
                 (change)="filterStatus(selectedStatus)"
               >
@@ -58,8 +59,7 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
 
           <!-- CHALLANS TABLE -->
-          <div class="table-responsive">
-            <table class="zeno-table">
+          <table class="zeno-table">
               <thead>
               <tr>
                 <th>Challan No</th>
@@ -111,7 +111,6 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
             </tbody>
           </table>
         </div>
-      </div>
       } @else if (viewMode === 'create') {
         <!-- CREATE DELIVERY CHALLAN FULL PAGE VIEW -->
         <div class="page-header">
@@ -707,12 +706,6 @@ export class DeliveryChallansComponent implements OnInit {
   }
 
   editingItemData: { item: any, index: number } | null = null;
-
-  getItemName(itemId: string): string {
-    if (!itemId) return '';
-    const item = this.itemsList.find(i => i.id === itemId);
-    return item ? (item.name || item.itemName) : 'Selected Item';
-  }
 
   getUnitCode(row: any): string {
     if (row.unitCode) return row.unitCode;

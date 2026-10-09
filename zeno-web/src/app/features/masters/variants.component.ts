@@ -23,8 +23,8 @@ export interface VariantDefinition {
   standalone: true,
   imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="zeno-page-container">
-      <zeno-page-header title="Variant Master">
+    <div class="p2p-page">
+      <zeno-page-header title="Variant Master" subtitle="Manage item variant definitions, attributes, and options (Size, Color, Material).">
         <div actions>
           <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
             New Variant

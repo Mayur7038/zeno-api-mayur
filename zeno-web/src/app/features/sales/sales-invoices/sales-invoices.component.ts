@@ -27,21 +27,22 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
         </div>
 
-        <!-- FILTER & TOOLBAR -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
-          <div class="filter-card">
-            <div class="filter-group">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
               <i class="pi pi-search search-icon"></i>
               <input
                 type="text"
                 [(ngModel)]="searchQuery"
                 (input)="loadInvoices()"
+                placeholder="Search sales invoices..."
               />
             </div>
 
-            <div class="filter-actions">
+            <div class="toolbar-filters">
               <select
-                class="filter-select"
+                class="form-select"
                 [(ngModel)]="selectedStatus"
                 (change)="filterStatus(selectedStatus)"
               >
@@ -58,8 +59,7 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
 
           <!-- INVOICES TABLE -->
-          <div class="table-responsive">
-            <table class="zeno-table">
+          <table class="zeno-table">
               <thead>
               <tr>
                 <th>Invoice No</th>
@@ -123,7 +123,6 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
             </tbody>
           </table>
         </div>
-      </div>
       } @else if (viewMode === 'create') {
         <!-- CREATE SALES INVOICE FULL PAGE VIEW -->
         <div class="page-header">

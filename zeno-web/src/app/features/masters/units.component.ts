@@ -21,8 +21,8 @@ interface UnitItem {
   standalone: true,
   imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="zeno-page-container">
-      <zeno-page-header title="Unit">
+    <div class="p2p-page">
+      <zeno-page-header title="Unit of Measure" subtitle="Define primary and compound units of measurement (PCS, KG, MTR, BOX).">
         <div actions>
           <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
             New Unit

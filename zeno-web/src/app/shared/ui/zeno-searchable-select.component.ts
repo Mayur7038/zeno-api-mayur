@@ -100,6 +100,10 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       position: relative;
       width: 100%;
 
+      &.is-open {
+        z-index: 10000;
+      }
+
       &.is-disabled {
         opacity: 0.65;
         pointer-events: none;
@@ -198,26 +202,38 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       position: absolute;
       top: calc(100% + 4px);
       left: 0;
-      right: 0;
-      z-index: 1050;
-      background: var(--surface-0, #ffffff);
-      border: 1px solid var(--surface-200, #e2e8f0);
+      width: 100%;
+      min-width: 220px;
+      z-index: 9999;
+      background: #ffffff;
+      border: 1px solid var(--surface-300, #cbd5e1);
       border-radius: 8px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.05);
       max-height: 240px;
       overflow-y: auto;
-      padding: 4px;
+      padding: 6px;
+      box-sizing: border-box;
     }
 
     .no-options {
-      padding: 12px;
-      font-size: 0.82rem;
-      color: var(--surface-500, #64748b);
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--surface-600, #475569);
+      background-color: var(--surface-50, #f8fafc);
+      border: 1px dashed var(--surface-300, #cbd5e1);
+      border-radius: 6px;
       text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      margin: 2px;
+
+      i {
+        font-size: 1rem;
+        color: var(--surface-400, #94a3b8);
+      }
     }
 
     .options-list {

@@ -20,8 +20,8 @@ interface StockCategoryItem {
   standalone: true,
   imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="zeno-page-container">
-      <zeno-page-header title="Stock Category">
+    <div class="p2p-page">
+      <zeno-page-header title="Stock Category" subtitle="Organize inventory items into sub-categories and brand lines.">
         <div actions>
           <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
             New Stock Category

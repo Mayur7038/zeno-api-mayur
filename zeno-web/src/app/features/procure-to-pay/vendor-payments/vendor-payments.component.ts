@@ -27,31 +27,31 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
         </div>
 
         <!-- FILTER CARD -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select class="filter-select" [(ngModel)]="selectedVendor">
-              <option value="">All Vendors</option>
-              @for (v of vendors; track v.id) {
-                <option [value]="v.id">{{ v.name }}</option>
-              }
-            </select>
-
-            <button class="btn-export" (click)="exportPayments()" [disabled]="filteredPayments.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                placeholder="Search vendor payments..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select class="form-select" [(ngModel)]="selectedVendor">
+                <option value="">All Vendors</option>
+                @for (v of vendors; track v.id) {
+                  <option [value]="v.id">{{ v.name }}</option>
+                }
+              </select>
+
+              <button class="btn-export" (click)="exportPayments()" [disabled]="filteredPayments.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>
@@ -117,59 +117,83 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
             </div>
           }
 
-          <div class="form-grid-3">
+          <div class="form-grid">
             <div class="form-group">
-              <label>Payment Date *</label>
-              <input type="date" [(ngModel)]="form.paymentDate" required />
-            </div>
-
-            <div class="form-group">
-              <label>Vendor *</label>
+              <label class="required">Vendor (To)</label>
               <zeno-searchable-select
                 [options]="vendors"
                 labelKey="name"
                 valueKey="id"
                 secondaryKey="gstin"
-                placeholder="-- Select Vendor --"
+                placeholder="Select Vendor..."
                 [(ngModel)]="form.vendorLedgerId"
                 (selectChange)="onVendorChange()"
               ></zeno-searchable-select>
             </div>
 
             <div class="form-group">
-              <label>Payment Mode (Cash/Bank) *</label>
+              <label class="required">Paid From (Bank / Cash Account)</label>
               <zeno-searchable-select
                 [options]="paymentModes"
                 labelKey="name"
                 valueKey="id"
-                placeholder="Select Payment Mode..."
+                placeholder="Select Bank / Cash Account..."
                 [(ngModel)]="form.paymentModeLedgerId"
               ></zeno-searchable-select>
             </div>
+
+            <div class="form-group">
+              <label class="required">Payment Date</label>
+              <input type="date" [(ngModel)]="form.paymentDate" />
+            </div>
+
+            <div class="form-group">
+              <label class="required">Payment Mode</label>
+              <select [(ngModel)]="form.paymentType">
+                <option value="BANK">Bank Transfer / NEFT</option>
+                <option value="RTGS">RTGS</option>
+                <option value="UPI">UPI</option>
+                <option value="CHEQUE">Cheque</option>
+                <option value="CASH">Cash</option>
+              </select>
+            </div>
           </div>
 
-          <div class="form-grid-2" style="margin-top: 14px;">
+          <div class="form-grid">
             <div class="form-group">
-              <label>Reference / Cheque / UTR #</label>
+              <label class="required">Total Amount Paid (₹)</label>
+              <input type="number" step="0.01" [(ngModel)]="form.totalAmount" (input)="onAmountChanged()" />
+            </div>
+
+            <div class="form-group">
+              <label>Ref / UTR / Cheque Number</label>
               <input type="text" [(ngModel)]="form.referenceChequeNo" />
             </div>
-            <div class="form-group">
-              <label>Payment Narration</label>
+
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Remarks / Narration</label>
               <input type="text" [(ngModel)]="form.notes" />
             </div>
           </div>
 
-          <!-- UNPAID INVOICES ALLOCATION TABLE -->
-          <div class="allocation-section">
-            <div class="section-title">
-              <span>Select &amp; Allocate Outstanding Bills</span>
-              <span class="outstanding-total font-mono">Total Outstanding: ₹{{ totalPendingBalance.toFixed(2) }}</span>
+          <!-- BILL-BY-BILL INVOICE ALLOCATION SECTION -->
+          <div class="line-items-section">
+            <div class="section-title-wrap">
+              <div>
+                <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Bill-by-Bill Invoice Allocations</h3>
+                <p style="font-size: 0.78rem; color: var(--surface-500); margin: 2px 0 0 0;">Allocate payment against open vendor bills</p>
+              </div>
+              @if (pendingBills.length > 0) {
+                <button type="button" class="btn-sm btn-outline" (click)="autoAllocateFIFO()">
+                  <i class="pi pi-bolt"></i> Auto-Allocate (FIFO)
+                </button>
+              }
             </div>
 
             @if (pendingBills.length === 0) {
-              <div style="padding: 32px 16px; text-align: center; color: var(--surface-500); background: #ffffff; border-radius: 4px; border: 1px solid var(--surface-200);">
-                <i class="pi pi-check-circle" style="font-size: 1.5rem; color: #10b981; display: block; margin-bottom: 8px;"></i>
-                No unpaid bills found for this vendor.
+              <div class="empty-invoices-notice">
+                <i class="pi pi-info-circle"></i>
+                <span>{{ form.vendorLedgerId ? 'No unpaid bills found for this vendor. Payment will be recorded as on-account payment.' : 'Please select a vendor to view open bills.' }}</span>
               </div>
             } @else {
               <div class="table-responsive">
@@ -178,10 +202,11 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
                     <tr>
                       <th>Invoice No</th>
                       <th>Date</th>
-                      <th>Bill Amount</th>
+                      <th>Total Value</th>
+                      <th>Already Paid</th>
                       <th>Balance Due</th>
-                      <th>Pay Amount (₹)</th>
-                      <th>Discount (₹)</th>
+                      <th style="width: 20%;">Pay Amount (₹)</th>
+                      <th style="width: 15%;">Discount (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -189,25 +214,26 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
                       <tr>
                         <td class="font-mono font-bold">{{ b.voucherNo }}</td>
                         <td>{{ b.invoiceDate }}</td>
-                        <td class="font-mono">₹{{ b.grandTotal }}</td>
-                        <td class="font-mono font-bold" style="color: #b91c1c;">₹{{ b.pendingBalance }}</td>
+                        <td>₹{{ (b.grandTotal || 0) | number:'1.2-2' }}</td>
+                        <td class="text-success font-mono">₹{{ ((b.grandTotal || 0) - (b.pendingBalance || 0)) | number:'1.2-2' }}</td>
+                        <td class="font-bold text-danger">₹{{ (b.pendingBalance || 0) | number:'1.2-2' }}</td>
                         <td>
                           <input
                             type="number"
+                            step="0.01"
                             [(ngModel)]="b.allocatedAmount"
                             (input)="recalculateAllocations()"
                             min="0"
                             [max]="b.pendingBalance"
-                            style="width: 140px;"
                           />
                         </td>
                         <td>
                           <input
                             type="number"
+                            step="0.01"
                             [(ngModel)]="b.discountAmount"
                             (input)="recalculateAllocations()"
                             min="0"
-                            style="width: 110px;"
                           />
                         </td>
                       </tr>
@@ -218,22 +244,22 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
             }
           </div>
 
-          <!-- SUMMARY -->
-          <div class="totals-summary-box font-mono">
-            <div>Amount to Pay: <strong>₹{{ totalAllocated.toFixed(2) }}</strong></div>
-            <div>Discount Taken: <strong>₹{{ totalDiscount.toFixed(2) }}</strong></div>
-            <div style="font-size: 1.125rem; color: #047857;">Total Settled: <strong>₹{{ (totalAllocated + totalDiscount).toFixed(2) }}</strong></div>
-          </div>
-
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <button class="btn-secondary" (click)="backToList()">Cancel</button>
-            <button class="btn-primary" (click)="submitPayment()" [disabled]="submitting || totalAllocated <= 0">
-              @if (submitting) {
-                <i class="pi pi-spin pi-spinner"></i> Posting Payment...
-              } @else {
-                <i class="pi pi-check"></i> Post Payment (₹{{ totalAllocated.toFixed(2) }})
-              }
-            </button>
+          <!-- SUMMARY & TOTALS -->
+          <div class="totals-summary-card">
+            <div class="summary-line">
+              <span>Total Paid:</span>
+              <strong>₹{{ (totalAllocated || 0) | number:'1.2-2' }}</strong>
+            </div>
+            @if (totalDiscount > 0) {
+              <div class="summary-line text-success">
+                <span>Discount Taken:</span>
+                <strong>₹{{ (totalDiscount || 0) | number:'1.2-2' }}</strong>
+              </div>
+            }
+            <div class="summary-line grand-total">
+              <span>Total Settled:</span>
+              <strong>₹{{ ((totalAllocated || 0) + (totalDiscount || 0)) | number:'1.2-2' }}</strong>
+            </div>
           </div>
         </div>
       }
@@ -264,74 +290,122 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
       &:hover { background: var(--surface-200); color: var(--surface-900); }
     }
     .form-page-card { padding: 24px; }
-    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .allocation-section {
+    
+    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: var(--radius-md); overflow: visible; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--surface-700); }
+    .form-group label.required::after { content: ' *'; color: #EF4444; }
+    .form-group select, .form-group input { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 8px; font-size: 0.875rem; }
+
+    .line-items-section {
       margin: 20px 0;
-      border: 1px solid var(--surface-200);
+      border: 1px solid var(--surface-300);
       border-radius: var(--radius-md);
       padding: 20px;
       background: var(--surface-0);
-      box-shadow: var(--shadow-subtle);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 
-      .section-title {
+      .section-title-wrap {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        font-size: 0.9375rem;
-        font-weight: 700;
+        justify-content: space-between;
         margin-bottom: 14px;
       }
 
-      .outstanding-total {
-        color: #b91c1c;
-        font-weight: 700;
-        font-size: 0.8125rem;
-        background: #fef2f2;
-        padding: 3px 10px;
-        border-radius: var(--radius-sm);
-        border: 1px solid #fecaca;
+      .empty-invoices-notice {
+        background: #F8FAFC;
+        border: 1px dashed var(--surface-300);
+        padding: 16px;
+        border-radius: 8px;
+        color: var(--surface-500);
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .table-responsive {
         overflow-x: auto;
-        border: 1px solid var(--surface-200);
-        border-radius: var(--radius-sm);
+        border: 1px solid var(--surface-300) !important;
+        border-radius: var(--radius-md) !important;
         background: #ffffff;
       }
 
       .line-table {
         background: #ffffff;
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
 
         th {
-          background-color: var(--surface-50);
-          color: var(--surface-600);
+          background-color: var(--surface-100) !important;
+          color: var(--surface-700) !important;
           font-weight: 700;
           font-size: 0.75rem;
-          letter-spacing: 0.03em;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
           padding: 11px 14px;
-          border-bottom: 1px solid var(--surface-200);
+          border-bottom: 1px solid var(--surface-300) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          white-space: nowrap !important;
+          &:last-child { border-right: none !important; }
         }
 
         td {
           padding: 10px 14px;
-          border-bottom: 1px solid var(--surface-100);
+          border-bottom: 1px solid var(--surface-200) !important;
+          border-right: 1px solid var(--surface-200) !important;
+          color: var(--surface-800);
           vertical-align: middle;
+          white-space: nowrap !important;
+          &:last-child { border-right: none !important; }
         }
 
-        tr:last-child td {
-          border-bottom: none;
-        }
+        tr:last-child td { border-bottom: none !important; }
+        tr:hover td { background: rgba(248, 250, 252, 0.7); }
+      }
+    }
 
-        tr:hover td {
-          background-color: rgba(248, 250, 252, 0.7);
+    .totals-summary-card {
+      margin-left: auto;
+      width: 340px;
+      background: var(--surface-50);
+      border: 1px solid var(--surface-200);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .summary-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+        color: var(--surface-700);
+
+        &.grand-total {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--surface-900);
+          border-top: 1px solid var(--surface-200);
+          padding-top: 10px;
+          margin-top: 4px;
+
+          strong {
+            color: var(--primary-700);
+            font-size: 1.125rem;
+          }
         }
       }
     }
-    .totals-summary-box { background: #f8fafc; border: 1px solid var(--surface-200); border-radius: var(--radius-sm); padding: 16px; display: flex; justify-content: space-around; align-items: center; }
+
+    .btn-primary { background: #2563EB; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary:hover { background: #1D4ED8; }
+    .btn-secondary { background: var(--surface-100); color: var(--surface-700); border: 1px solid var(--surface-300); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
+    .btn-outline { background: transparent; border: 1px solid var(--primary-600, #2563EB); color: var(--primary-600, #2563EB); font-weight: 600; cursor: pointer; }
     .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
     .text-emerald { color: #059669; font-weight: 600; }
 
@@ -413,6 +487,8 @@ export class VendorPaymentsComponent implements OnInit {
     paymentDate: new Date().toISOString().split('T')[0],
     vendorLedgerId: '',
     paymentModeLedgerId: '',
+    paymentType: 'BANK',
+    totalAmount: 0,
     referenceChequeNo: '',
     notes: '',
   };
@@ -478,6 +554,8 @@ export class VendorPaymentsComponent implements OnInit {
       paymentDate: new Date().toISOString().split('T')[0],
       vendorLedgerId: this.vendors[0]?.id || '',
       paymentModeLedgerId: this.paymentModes[0]?.id || '',
+      paymentType: 'BANK',
+      totalAmount: 0,
       referenceChequeNo: '',
       notes: '',
     };
@@ -487,6 +565,38 @@ export class VendorPaymentsComponent implements OnInit {
     if (this.form.vendorLedgerId) {
       this.onVendorChange();
     }
+  }
+
+  onAmountChanged() {
+    let unallocated = Number(this.form.totalAmount || 0);
+    for (const b of this.pendingBills) {
+      if (unallocated > 0) {
+        const take = Math.min(unallocated, b.pendingBalance);
+        b.allocatedAmount = take;
+        unallocated -= take;
+      } else {
+        b.allocatedAmount = 0;
+      }
+    }
+    this.recalculateAllocations();
+  }
+
+  autoAllocateFIFO() {
+    let remaining = Number(this.form.totalAmount || 0);
+    if (remaining <= 0) {
+      remaining = this.totalPendingBalance;
+      this.form.totalAmount = remaining;
+    }
+    for (const b of this.pendingBills) {
+      if (remaining > 0) {
+        const alloc = Math.min(remaining, b.pendingBalance);
+        b.allocatedAmount = alloc;
+        remaining -= alloc;
+      } else {
+        b.allocatedAmount = 0;
+      }
+    }
+    this.recalculateAllocations();
   }
 
   backToList() {

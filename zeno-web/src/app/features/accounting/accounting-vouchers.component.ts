@@ -43,47 +43,44 @@ interface StandardLine {
           </div>
         </div>
         
-        <!-- FILTER CARD -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="loadVouchers()"
-            />
-          </div>
-
-          <div class="date-filters">
-            <div class="date-input-group">
-              <span class="date-label">From:</span>
-              <input type="date" [(ngModel)]="startDate" (change)="loadVouchers()" />
-            </div>
-            <div class="date-input-group">
-              <span class="date-label">To:</span>
-              <input type="date" [(ngModel)]="endDate" (change)="loadVouchers()" />
-            </div>
-          </div>
-
-          <div class="filter-actions">
-            <select
-              class="filter-select"
-              [(ngModel)]="selectedStatus"
-              (change)="filterStatus(selectedStatus)"
-            >
-              <option value="">All Statuses</option>
-              <option value="POSTED">Posted</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-
-            <button class="btn-export" (click)="exportVouchers()" [disabled]="filteredVouchers.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (input)="loadVouchers()"
+                placeholder="Search vouchers..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <div class="date-input-group" style="display: flex; align-items: center; gap: 6px;">
+                <span class="date-label" style="font-size: 0.8125rem; font-weight: 600; color: var(--surface-600);">From:</span>
+                <input type="date" [(ngModel)]="startDate" (change)="loadVouchers()" class="form-select" />
+              </div>
+              <div class="date-input-group" style="display: flex; align-items: center; gap: 6px;">
+                <span class="date-label" style="font-size: 0.8125rem; font-weight: 600; color: var(--surface-600);">To:</span>
+                <input type="date" [(ngModel)]="endDate" (change)="loadVouchers()" class="form-select" />
+              </div>
+
+              <select
+                class="form-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Statuses</option>
+                <option value="POSTED">Posted</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+
+              <button class="btn-export" (click)="exportVouchers()" [disabled]="filteredVouchers.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>

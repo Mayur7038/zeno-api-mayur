@@ -20,8 +20,8 @@ interface StockGroupItem {
   standalone: true,
   imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
   template: `
-    <div class="zeno-page-container">
-      <zeno-page-header title="Stock Group">
+    <div class="p2p-page">
+      <zeno-page-header title="Stock Group" subtitle="Manage item categories, HSN/SAC codes, and default GST tax classifications.">
         <div actions>
           <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
             New Stock Group

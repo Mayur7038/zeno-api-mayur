@@ -28,35 +28,33 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
           </div>
         </div>
 
-        <!-- FILTER CARD -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select class="filter-select" [(ngModel)]="selectedMode">
-              <option value="">All Payment Modes</option>
-              <option value="BANK">Bank Transfer</option>
-              <option value="CASH">Cash</option>
-              <option value="CHEQUE">Cheque</option>
-              <option value="UPI">UPI</option>
-            </select>
-
-            <button class="btn-export" (click)="exportReceipts()" [disabled]="filteredReceipts.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
-          <div class="table-responsive">
-            <table class="zeno-table">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                placeholder="Search customer receipts..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select class="form-select" [(ngModel)]="selectedMode">
+                <option value="">All Payment Modes</option>
+                <option value="BANK">Bank Transfer</option>
+                <option value="CASH">Cash</option>
+                <option value="CHEQUE">Cheque</option>
+                <option value="UPI">UPI</option>
+              </select>
+
+              <button class="btn-export" (click)="exportReceipts()" [disabled]="filteredReceipts.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
+          <table class="zeno-table">
               <thead>
                 <tr>
                   <th>Receipt No</th>
@@ -105,13 +103,11 @@ import { ZenoSearchableSelectComponent } from '../../../shared/ui/zeno-searchabl
                       <button class="btn-icon" title="View Receipt Voucher" (click)="viewReceipt(rec)">
                         <i class="pi pi-eye"></i>
                       </button>
-                    </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-        </div>
       } @else if (viewMode === 'create') {
         <!-- FULL PAGE CREATE CUSTOMER RECEIPT -->
         <div class="page-header">

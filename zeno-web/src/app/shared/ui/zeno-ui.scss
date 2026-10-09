@@ -4,11 +4,13 @@
    ========================================================= */
 
 /* --- Page Containers & Headers --- */
-.zeno-page-container {
-  padding: 24px 32px;
-  max-width: 1600px;
-  margin: 0 auto;
+.zeno-page-container,
+.p2p-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .zeno-page-header {
@@ -17,10 +19,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 
   .zeno-page-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--surface-900, #0f172a);
     letter-spacing: -0.02em;
@@ -43,7 +45,27 @@
 }
 
 /* --- Form Grids & Layouts --- */
-.zeno-form-grid-3 {
+.zeno-form-grid,
+.form-grid,
+.zeno-form-grid-4,
+.form-grid-4,
+.form-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 20px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.zeno-form-grid-3,
+.form-grid-3,
+.form-grid-3col {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px 20px;
@@ -57,24 +79,12 @@
   }
 }
 
-.zeno-form-grid-2 {
+.zeno-form-grid-2,
+.form-grid-2,
+.form-grid-2col {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 20px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.zeno-form-grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px 20px;
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -91,6 +101,7 @@
 }
 
 /* --- Unified Form Labels & Captions --- */
+.form-group label,
 .zeno-form-label {
   display: flex;
   align-items: center;
@@ -131,10 +142,13 @@
 /* --- Base Input & Select Classes --- */
 .zeno-input,
 .zeno-select,
-.zeno-textarea {
+.zeno-textarea,
+.form-group input,
+.form-group select,
+.form-group textarea {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--surface-200, #e2e8f0);
+  padding: 8px 12px;
+  border: 1px solid var(--surface-300, #cbd5e1);
   border-radius: var(--radius-sm, 6px);
   font-family: inherit;
   font-size: 0.875rem;
@@ -249,6 +263,7 @@ table.excel-grid-table {
     zeno-searchable-select {
       width: 100% !important;
       display: block !important;
+      position: relative !important;
 
       .select-trigger {
         border: none !important;
@@ -271,6 +286,17 @@ table.excel-grid-table {
         background: #ffffff !important;
         box-shadow: none !important;
         z-index: 5 !important;
+      }
+
+      .dropdown-menu {
+        position: absolute !important;
+        top: calc(100% + 2px) !important;
+        left: 0 !important;
+        min-width: 220px !important;
+        z-index: 99999 !important;
+        background: #ffffff !important;
+        border: 1px solid var(--surface-300, #cbd5e1) !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
       }
     }
 
@@ -299,4 +325,189 @@ table.excel-grid-table {
       font-size: 0.72rem !important;
     }
   }
+}
+
+/* --- Unified Table Toolbar & Header Filtering --- */
+.table-toolbar {
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--surface-200, #e2e8f0);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbar-search {
+  position: relative;
+  flex: 1;
+  max-width: 380px;
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--surface-400, #94a3b8);
+    font-size: 0.875rem;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid var(--surface-300, #cbd5e1);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    outline: none;
+    background: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      border-color: var(--primary-600, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+  }
+}
+
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-select,
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--surface-300, #cbd5e1);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: var(--surface-900, #0f172a);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    border-color: var(--primary-600, #2563eb);
+  }
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid var(--surface-300, #cbd5e1);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--surface-700, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-50, #f8fafc);
+    border-color: var(--primary-500, #3b82f6);
+    color: var(--primary-600, #2563eb);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* --- Form Footer & Summary Card Styling --- */
+.form-footer-section {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 24px !important;
+  margin-top: 20px !important;
+  width: 100% !important;
+
+  @media (max-width: 768px) {
+    flex-direction: column !important;
+  }
+}
+
+.narration-box {
+  flex: 1 !important;
+  max-width: 500px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+
+  .narration-label {
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    color: var(--surface-700, #334155) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .narration-textarea {
+    width: 100% !important;
+    min-height: 80px !important;
+    padding: 10px 12px !important;
+    border: 1px solid var(--surface-300, #cbd5e1) !important;
+    border-radius: var(--radius-sm, 6px) !important;
+    font-size: 0.875rem !important;
+    font-family: inherit !important;
+    color: var(--surface-900, #0f172a) !important;
+    background-color: var(--surface-0, #ffffff) !important;
+    resize: vertical !important;
+    outline: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+
+    &:focus {
+      border-color: var(--primary-600, #2563eb) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    }
+  }
+}
+
+.totals-summary-card {
+  margin-left: auto !important;
+  width: 340px !important;
+  background: var(--surface-50, #f8fafc) !important;
+  border: 1px solid var(--surface-200, #e2e8f0) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+
+  .summary-line {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 0.875rem !important;
+    color: var(--surface-700, #334155) !important;
+
+    &.grand-total {
+      font-size: 1rem !important;
+      font-weight: 700 !important;
+      color: var(--surface-900, #0f172a) !important;
+      border-top: 1px solid var(--surface-200, #e2e8f0) !important;
+      padding-top: 10px !important;
+      margin-top: 4px !important;
+
+      strong {
+        color: var(--primary-700, #1d4ed8) !important;
+        font-size: 1.125rem !important;
+      }
+    }
+  }
+}
+
+/* Ensure Form Header Cards float in front of line items and lower cards */
+.form-header-card,
+.zeno-card.form-header-card {
+  position: relative !important;
+  z-index: 20 !important;
+  overflow: visible !important;
 }

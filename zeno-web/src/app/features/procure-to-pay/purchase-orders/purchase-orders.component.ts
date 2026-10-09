@@ -27,37 +27,37 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
         </div>
 
         <!-- FILTER BAR -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="loadOrders()"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select
-              class="filter-select"
-              [(ngModel)]="selectedStatus"
-              (change)="filterStatus(selectedStatus)"
-            >
-              <option value="">All Orders</option>
-              <option value="PENDING">Pending</option>
-              <option value="PARTIALLY_CLEARED">Partially Cleared</option>
-              <option value="CLEARED">Cleared</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-
-            <button class="btn-export" (click)="exportOrders()" [disabled]="orders.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (input)="loadOrders()"
+                placeholder="Search purchase orders..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select
+                class="form-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Orders</option>
+                <option value="PENDING">Pending</option>
+                <option value="PARTIALLY_CLEARED">Partially Cleared</option>
+                <option value="CLEARED">Cleared</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+
+              <button class="btn-export" (click)="exportOrders()" [disabled]="orders.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>

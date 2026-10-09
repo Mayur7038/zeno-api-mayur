@@ -188,7 +188,7 @@ export interface LedgerGroupNode extends LedgerGroupItem {
               }
 
               <div class="form-grid">
-                <div class="form-group full-width">
+                <div class="form-group">
                   <label class="required">Group Name</label>
                   <input
                     type="text"
@@ -216,7 +216,7 @@ export interface LedgerGroupNode extends LedgerGroupItem {
                   </select>
                 </div>
 
-                <div class="form-group full-width">
+                <div class="form-group">
                   <label>Parent Group (Leave blank if Primary)</label>
                   <select [(ngModel)]="formData.parentId" (change)="onParentChange()" class="form-control">
                     <option [ngValue]="null">-- Primary (No Parent) --</option>

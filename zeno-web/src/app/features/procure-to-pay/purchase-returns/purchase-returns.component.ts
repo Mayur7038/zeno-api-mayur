@@ -27,32 +27,31 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
         </div>
 
-        <!-- FILTER BAR -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select class="filter-select" [(ngModel)]="selectedVendor">
-              <option value="">All Vendors</option>
-              @for (v of vendors; track v.id) {
-                <option [value]="v.id">{{ v.name }}</option>
-              }
-            </select>
-
-            <button class="btn-export" (click)="exportReturns()" [disabled]="filteredReturns.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                placeholder="Search debit notes / purchase returns..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select class="form-select" [(ngModel)]="selectedVendor">
+                <option value="">All Vendors</option>
+                @for (v of vendors; track v.id) {
+                  <option [value]="v.id">{{ v.name }}</option>
+                }
+              </select>
+
+              <button class="btn-export" (click)="exportReturns()" [disabled]="filteredReturns.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>

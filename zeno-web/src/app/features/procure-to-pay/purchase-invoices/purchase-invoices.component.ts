@@ -27,37 +27,36 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           </div>
         </div>
 
-        <!-- FILTER CARD -->
-        <div class="zeno-card filter-card">
-          <div class="filter-group">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="loadInvoices()"
-            />
-          </div>
-
-          <div class="filter-actions">
-            <select
-              class="filter-select"
-              [(ngModel)]="selectedStatus"
-              (change)="filterStatus(selectedStatus)"
-            >
-              <option value="">All Invoices</option>
-              <option value="UNPAID">Unpaid</option>
-              <option value="PARTIALLY_PAID">Partially Paid</option>
-              <option value="PAID">Paid</option>
-            </select>
-
-            <button class="btn-export" (click)="exportInvoices()" [disabled]="invoices.length === 0" title="Export to CSV">
-              <i class="pi pi-download"></i> Export
-            </button>
-          </div>
-        </div>
-
-        <!-- TABLE CARD -->
+        <!-- TOOLBAR & TABLE CARD -->
         <div class="zeno-card">
+          <div class="table-toolbar">
+            <div class="toolbar-search">
+              <i class="pi pi-search search-icon"></i>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (input)="loadInvoices()"
+                placeholder="Search purchase invoices..."
+              />
+            </div>
+
+            <div class="toolbar-filters">
+              <select
+                class="form-select"
+                [(ngModel)]="selectedStatus"
+                (change)="filterStatus(selectedStatus)"
+              >
+                <option value="">All Invoices</option>
+                <option value="UNPAID">Unpaid</option>
+                <option value="PARTIALLY_PAID">Partially Paid</option>
+                <option value="PAID">Paid</option>
+              </select>
+
+              <button class="btn-export" (click)="exportInvoices()" [disabled]="invoices.length === 0" title="Export to CSV">
+                <i class="pi pi-download"></i> Export
+              </button>
+            </div>
+          </div>
           <table class="zeno-table">
             <thead>
               <tr>
@@ -146,33 +145,35 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
           }
 
           <!-- TOP SECTION: VENDOR & METADATA (MAX 4 FIELDS) -->
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="required">Vendor (Creditor)</label>
-              <zeno-searchable-select
-                [options]="vendors"
-                labelKey="name"
-                valueKey="id"
-                secondaryKey="gstin"
-                placeholder="Search Vendor (Name or GSTIN)..."
-                [(ngModel)]="form.vendorLedgerId"
-                (selectChange)="onVendorChange()"
-              ></zeno-searchable-select>
-            </div>
+          <div class="zeno-card form-header-card" style="position: relative; z-index: 20; overflow: visible; padding: 20px; margin-bottom: 20px; background: #ffffff; border: 1px solid var(--surface-200); border-radius: 10px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);">
+            <div class="zeno-form-grid-4">
+              <div class="form-group">
+                <label class="required">Vendor (Creditor)</label>
+                <zeno-searchable-select
+                  [options]="vendors"
+                  labelKey="name"
+                  valueKey="id"
+                  secondaryKey="gstin"
+                  placeholder="Search Vendor (Name or GSTIN)..."
+                  [(ngModel)]="form.vendorLedgerId"
+                  (selectChange)="onVendorChange()"
+                ></zeno-searchable-select>
+              </div>
 
-            <div class="form-group">
-              <label class="required">Invoice Date</label>
-              <input type="date" [(ngModel)]="form.invoiceDate" required />
-            </div>
+              <div class="form-group">
+                <label class="required">Invoice Date</label>
+                <input type="date" [(ngModel)]="form.invoiceDate" required />
+              </div>
 
-            <div class="form-group">
-              <label class="required">Vendor Bill #</label>
-              <input type="text" [(ngModel)]="form.vendorBillNo" required placeholder="Enter supplier invoice no..." />
-            </div>
+              <div class="form-group">
+                <label class="required">Vendor Bill #</label>
+                <input type="text" [(ngModel)]="form.vendorBillNo" required placeholder="Enter supplier invoice no..." />
+              </div>
 
-            <div class="form-group">
-              <label>Vendor Bill Date</label>
-              <input type="date" [(ngModel)]="form.vendorBillDate" />
+              <div class="form-group">
+                <label>Vendor Bill Date</label>
+                <input type="date" [(ngModel)]="form.vendorBillDate" />
+              </div>
             </div>
           </div>
 
@@ -474,8 +475,15 @@ import { ZenoItemFastEntryComponent } from '../../../shared/ui/zeno-item-fast-en
     .action-btn { width: 32px; height: 32px; border: 1px solid var(--surface-200); background: var(--surface-0); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--surface-600); }
     .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; label { font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); } input, select, textarea { border: 1px solid var(--surface-300); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; } }
+    .form-header-card {
+      position: relative !important;
+      z-index: 20 !important;
+      overflow: visible !important;
+    }
     .po-pull-bar { display: flex; align-items: center; justify-content: space-between; background: var(--primary-50); border: 1px solid var(--primary-200); border-radius: var(--radius-sm); padding: 12px 16px; margin: 16px 0; .po-pull-text { font-size: 0.875rem; font-weight: 600; color: var(--primary-800); display: flex; align-items: center; gap: 8px; } }
     .line-items-section {
+      position: relative;
+      z-index: 1;
       margin: 20px 0;
       border: 1px solid var(--surface-200);
       border-radius: var(--radius-md);

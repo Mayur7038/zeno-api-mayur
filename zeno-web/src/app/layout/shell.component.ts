@@ -12,7 +12,7 @@ import { TenantService } from '../core/services/tenant.service';
   template: `
     <div class="app-layout">
       <!-- SIDEBAR -->
-      <aside class="sidebar" [class.settings-mode]="isSettingsMode">
+      <aside class="sidebar" [class.settings-mode]="isSettingsMode" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar-header">
           <div class="brand-logo" (click)="goToHome()" style="cursor: pointer;" title="Back to Home / Dashboard">
             <img src="/zeno-books-logo.png" alt="ZENO BOOKS" class="brand-logo-img" />
@@ -45,7 +45,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (accountMasterOpen) {
+            @if (accountMasterOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/masters/ledger-groups" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-sitemap"></i>
@@ -77,7 +77,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (inventoryMasterOpen) {
+            @if (inventoryMasterOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/masters/items" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-tags"></i>
@@ -121,7 +121,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (purchaseOpen) {
+            @if (purchaseOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/procure-to-pay/purchase-orders" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-file"></i>
@@ -165,7 +165,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (salesOpen) {
+            @if (salesOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/sales/sales-orders" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-file"></i>
@@ -209,7 +209,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (accountingOpen) {
+            @if (accountingOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/accounting/payments" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-arrow-circle-up"></i>
@@ -235,10 +235,6 @@ import { TenantService } from '../core/services/tenant.service';
                   <i class="pi pi-file-import"></i>
                   <span>Credit Note</span>
                 </a>
-                <a routerLink="/reports/ledger-statement" routerLinkActive="active" class="nav-subitem">
-                  <i class="pi pi-list"></i>
-                  <span>Ledger Report</span>
-                </a>
               </div>
             }
           </div>
@@ -261,7 +257,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (inventoryOpen) {
+            @if (inventoryOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/inventory/stock-transfer" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-arrows-h"></i>
@@ -305,7 +301,7 @@ import { TenantService } from '../core/services/tenant.service';
               ></i>
             </button>
 
-            @if (manufacturingOpen) {
+            @if (manufacturingOpen || isSidebarCollapsed) {
               <div class="nav-submenu">
                 <a routerLink="/manufacturing/boms" routerLinkActive="active" class="nav-subitem">
                   <i class="pi pi-list"></i>
@@ -475,10 +471,17 @@ import { TenantService } from '../core/services/tenant.service';
       }
 
         <div class="sidebar-footer">
-          <div class="tenant-badge">
-            <i class="pi pi-building"></i>
-            <span class="tenant-name">{{ auth.currentUser()?.tenantName || 'Tenant Org' }}</span>
-          </div>
+          <button
+            type="button"
+            class="sidebar-toggle-btn"
+            (click)="toggleSidebarCollapse()"
+            [title]="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
+          >
+            <i class="pi" [class.pi-angle-double-left]="!isSidebarCollapsed" [class.pi-angle-double-right]="isSidebarCollapsed"></i>
+            @if (!isSidebarCollapsed) {
+              <span class="toggle-text">Collapse Sidebar</span>
+            }
+          </button>
         </div>
       </aside>
 
@@ -488,9 +491,6 @@ import { TenantService } from '../core/services/tenant.service';
         <header class="topbar">
           <div class="topbar-left">
             <div class="topbar-company-info">
-              <div class="company-badge-icon">
-                <i class="pi pi-building"></i>
-              </div>
               <div class="company-info-text">
                 <span class="company-title">{{ tenant.currentCompany()?.legalName || tenant.currentCompany()?.tradeName || auth.currentUser()?.tenantName || 'ZENO BOOKS' }}</span>
               </div>
@@ -668,11 +668,11 @@ import { TenantService } from '../core/services/tenant.service';
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .sidebar-header {
       padding: 14px 18px;
-      border-bottom: 1px solid var(--surface-200);
       display: flex;
       align-items: center;
       min-height: 90px;
@@ -1079,24 +1079,190 @@ import { TenantService } from '../core/services/tenant.service';
     }
 
     .sidebar-footer {
-      padding: 14px 16px;
+      padding: 12px 14px;
       border-top: 1px solid var(--surface-200);
       background-color: var(--surface-50);
-    }
-
-    .tenant-badge {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+    }
+
+    .sidebar-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--surface-300);
+      color: var(--surface-700);
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--surface-700);
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 
       i {
+        font-size: 0.95rem;
         color: var(--primary-600);
+        transition: transform 0.2s ease;
+      }
+
+      &:hover {
+        background: var(--primary-50);
+        border-color: var(--primary-300);
+        color: var(--primary-700);
+
+        i {
+          color: var(--primary-700);
+        }
+      }
+    }
+
+    /* Collapsed Sidebar Styles */
+    .sidebar.collapsed {
+      width: 68px;
+      overflow: visible;
+      z-index: 100;
+
+      .sidebar-nav {
+        overflow: visible;
+      }
+
+      .sidebar-header {
+        padding: 14px 8px;
+        justify-content: center;
+
+        .brand-logo {
+          justify-content: center;
+        }
+
+        .brand-logo-img {
+          max-width: 44px;
+          height: auto;
+          object-fit: cover;
+          object-position: left;
+        }
+      }
+
+      .nav-section-title,
+      .pill-soon,
+      .dropdown-caret,
+      .toggle-text,
+      .nav-item span,
+      .dropdown-title,
+      .settings-nav-section-title {
+        display: none !important;
+      }
+
+      .nav-item,
+      .nav-dropdown-header {
+        justify-content: center;
+        padding: 10px 0;
+        gap: 0;
+      }
+
+      .nav-item i,
+      .dropdown-icon {
+        font-size: 1.15rem;
+        margin: 0;
+      }
+
+      /* Hover flyout menu for dropdowns when collapsed */
+      .nav-dropdown {
+        position: relative;
+
+        .nav-submenu {
+          display: none !important;
+        }
+
+        &:hover {
+          .nav-submenu {
+            display: flex !important;
+            flex-direction: column !important;
+            position: absolute !important;
+            left: 60px !important;
+            top: 0 !important;
+            background: #ffffff !important;
+            min-width: 210px !important;
+            padding: 6px !important;
+            border-radius: var(--radius-md, 8px) !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+            border: 1px solid var(--surface-200) !important;
+            z-index: 9999 !important;
+            gap: 2px !important;
+
+            .nav-subitem {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: flex-start !important;
+              padding: 8px 12px !important;
+              gap: 10px !important;
+              width: 100% !important;
+              border-radius: var(--radius-sm, 6px) !important;
+
+              span {
+                display: inline !important;
+                font-size: 0.8125rem !important;
+                font-weight: 500 !important;
+                color: var(--surface-800) !important;
+                white-space: nowrap !important;
+              }
+
+              i {
+                font-size: 0.95rem !important;
+                color: var(--surface-500) !important;
+                margin: 0 !important;
+              }
+
+              &:hover {
+                background-color: var(--surface-100) !important;
+
+                span {
+                  color: var(--primary-700) !important;
+                }
+                i {
+                  color: var(--primary-600) !important;
+                }
+              }
+
+              &.active {
+                background-color: var(--primary-50) !important;
+
+                span {
+                  color: var(--primary-700) !important;
+                  font-weight: 600 !important;
+                }
+                i {
+                  color: var(--primary-600) !important;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .sidebar-footer {
+        padding: 10px 8px;
+      }
+
+      .sidebar-toggle-btn {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 50%;
+        justify-content: center;
+      }
+
+      .btn-sidebar-home span {
+        display: none !important;
+      }
+
+      .btn-sidebar-home {
+        justify-content: center;
+        padding: 9px 0;
       }
     }
 
@@ -1128,24 +1294,15 @@ import { TenantService } from '../core/services/tenant.service';
     .topbar-company-info {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 6px 14px;
-      background-color: var(--surface-50);
-      border: 1px solid var(--surface-200);
-      border-radius: var(--radius-sm);
+      gap: 8px;
     }
 
     .company-badge-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
-      background-color: var(--primary-50);
-      color: var(--primary-600);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
-      border: 1px solid var(--primary-100);
+      font-size: 1.1rem;
+      color: var(--primary-600);
     }
 
     .company-info-text {
@@ -1353,7 +1510,12 @@ export class ShellComponent implements OnInit {
   inventoryOpen = false;
   manufacturingOpen = false;
 
+  isSidebarCollapsed = false;
   isSettingsMode = false;
+
+  toggleSidebarCollapse() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+  }
   currentSettingsTab = 'company';
 
   toggleQuickActionMenu(event: MouseEvent) {
