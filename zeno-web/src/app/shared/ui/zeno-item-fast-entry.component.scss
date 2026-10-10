@@ -1,0 +1,160 @@
+    :host {
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    .fast-entry-wrapper {
+      width: 100%;
+    }
+
+    .fast-entry-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 10px;
+      width: 100%;
+
+      .item-field {
+        flex: 1 1 220px;
+        min-width: 200px;
+      }
+      .unit-field {
+        width: 70px;
+        flex-shrink: 0;
+      }
+      .qty-field {
+        width: 90px;
+        flex-shrink: 0;
+      }
+      .rate-field {
+        width: 110px;
+        flex-shrink: 0;
+      }
+      .discount-field {
+        width: 100px;
+        flex-shrink: 0;
+      }
+      .free-field {
+        width: 85px;
+        flex-shrink: 0;
+      }
+      .gst-field {
+        width: 90px;
+        flex-shrink: 0;
+      }
+      .amount-field {
+        width: 125px;
+        flex-shrink: 0;
+      }
+      .action-field {
+        flex-shrink: 0;
+      }
+    }
+
+    .entry-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .entry-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--surface-700, #334155);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .entry-input {
+      height: 38px;
+      padding: 0 10px;
+      border: 1px solid var(--surface-300, #cbd5e1);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--surface-900, #0f172a);
+      background: var(--surface-0, #ffffff);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: var(--primary-600, #2563eb);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      &.readonly-input {
+        background: var(--surface-100, #f1f5f9);
+        color: var(--surface-600, #475569);
+        font-weight: 600;
+        text-align: center;
+      }
+
+      &.select-input {
+        cursor: pointer;
+      }
+    }
+
+    .amount-display {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 12px;
+      background: var(--surface-100, #f1f5f9);
+      border: 1px solid var(--surface-300, #cbd5e1);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--primary-700, #1d4ed8);
+    }
+
+    .btn-add-item {
+      height: 38px;
+      padding: 0 16px;
+      background: var(--primary-600, #2563eb);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease;
+
+      &:hover:not(:disabled) {
+        background: var(--primary-700, #1d4ed8);
+      }
+
+      &.btn-update-item {
+        background: #16a34a;
+        &:hover:not(:disabled) {
+          background: #15803d;
+        }
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-cancel-edit {
+      height: 38px;
+      width: 38px;
+      background: var(--surface-200, #e2e8f0);
+      color: var(--surface-700, #334155);
+      border: none;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--surface-300, #cbd5e1);
+      }
+    }

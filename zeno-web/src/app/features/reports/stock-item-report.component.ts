@@ -111,46 +111,7 @@ import { TenantService } from '../../core/services/tenant.service';
       }
     </div>
   `,
-  styles: [`
-    .rpt-page { display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
-    .page-header h1 { font-size: 1.25rem; font-weight: 700; color: var(--surface-900); margin: 0; }
-    .sub { font-size: 0.78rem; color: var(--surface-500); margin: 2px 0 0 0; }
-    .header-back-title { display: flex; align-items: center; gap: 12px; }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
-    .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: 6px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
-    .btn-secondary { background: var(--surface-100); color: var(--surface-700); border: 1px solid var(--surface-300); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .btn-secondary[disabled] { opacity: 0.5; cursor: not-allowed; }
-    .date-filter-bar { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--surface-200); border-radius: 10px; padding: 10px 14px; }
-    .date-group { display: flex; flex-direction: column; gap: 3px; }
-    .date-group label { font-size: 0.7rem; font-weight: 600; color: var(--surface-500); text-transform: uppercase; }
-    .date-group input, .date-group select { border: 1px solid var(--surface-300); border-radius: 6px; padding: 5px 8px; font-size: 0.85rem; }
-    .loading-state { padding: 60px; text-align: center; color: var(--surface-500); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .net-result-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 12px; font-size: 0.925rem; font-weight: 600; border: 1px solid transparent; }
-    .net-result-bar.profit { background: #F0FDF4; border-color: #BBF7D0; color: #15803D; }
-    .net-result-bar.loss { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
-    .net-amount { font-size: 1.4rem; font-weight: 800; margin-left: 8px; }
-    .net-label { font-weight: 400; font-size: 0.8rem; opacity: 0.7; }
-    
-    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: 12px; margin-bottom: 0;}
-    .table-responsive { overflow-x: auto; }
-    .zeno-table { width: 100%; border-collapse: separate !important; border-spacing: 0 !important; font-size: 0.875rem; }
-    .zeno-table th { background: var(--surface-100); padding: 10px 16px; color: var(--surface-700); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--surface-300) !important; border-right: 1px solid var(--surface-200) !important; white-space: nowrap; }
-    .zeno-table th:last-child { border-right: none !important; }
-    .zeno-table td { padding: 11px 16px; border-bottom: 1px solid var(--surface-200) !important; border-right: 1px solid var(--surface-200) !important; color: var(--surface-800); vertical-align: middle; }
-    .zeno-table td:last-child { border-right: none !important; }
-    .zeno-table tr:last-child td { border-bottom: none !important; }
-    .zeno-table tfoot td { border-top: 2px solid var(--surface-300) !important; background: var(--surface-50); }
-    .total-row td { font-weight: 700; padding: 12px 16px; }
-    .text-right { text-align: right; }
-    .text-center { text-align: center; }
-    .text-muted { color: var(--surface-500); font-size: 0.82rem; }
-    .font-mono { font-family: monospace; }
-    .font-bold { font-weight: 700; }
-    .text-success { color: #16A34A; }
-    .text-danger { color: #DC2626; }
-    .empty-cell { padding: 32px !important; color: var(--surface-400); font-style: italic; }
-  `]
+  styleUrl: './stock-item-report.component.scss'
 })
 export class StockItemReportComponent implements OnInit {
   loading = false;

@@ -75,9 +75,7 @@ export interface VariantDefinition {
           <thead>
             <tr>
               <th>Variant Name</th>
-              <th>Code</th>
               <th>Data Type</th>
-              <th>Fixed Values / Dropdown Options</th>
               <th>Status</th>
               <th class="text-right">Actions</th>
             </tr>
@@ -96,26 +94,9 @@ export interface VariantDefinition {
                   </div>
                 </td>
                 <td>
-                  <span class="font-mono badge-code">{{ v.code || '—' }}</span>
-                </td>
-                <td>
                   <span class="type-badge" [ngClass]="v.type.toLowerCase()">
                     {{ formatTypeName(v.type) }}
                   </span>
-                </td>
-                <td>
-                  @if (v.type === 'DROPDOWN' && v.options && v.options.length > 0) {
-                    <div class="options-tags">
-                      @for (opt of v.options; track $index) {
-                        <span class="val-pill">{{ opt }}</span>
-                      }
-                      <span class="opt-count">({{ v.options.length }} values)</span>
-                    </div>
-                  } @else if (v.type === 'DROPDOWN') {
-                    <span style="color: var(--surface-400); font-style: italic;">No options defined</span>
-                  } @else {
-                    <span style="color: var(--surface-400); font-size: 0.8125rem;">Dynamic input ({{ v.type | lowercase }})</span>
-                  }
                 </td>
                 <td>
                   @if (v.isActive) {
@@ -148,18 +129,10 @@ export interface VariantDefinition {
         }
 
         <div class="zeno-form-grid-2">
-          <zeno-form-group label="Variant Name" [required]="true">
+          <zeno-form-group label="Variant Name" [required]="true" [span]="2">
             <zeno-input
               [(ngModel)]="formData.name"
               (inputChange)="onNameChanged()"
-            ></zeno-input>
-          </zeno-form-group>
-
-          <zeno-form-group label="Variant Code" [required]="true">
-            <zeno-input
-              [(ngModel)]="formData.code"
-              [uppercase]="true"
-              [mono]="true"
             ></zeno-input>
           </zeno-form-group>
 
@@ -209,10 +182,6 @@ export interface VariantDefinition {
               </div>
             </div>
           }
-
-          <zeno-form-group [span]="2">
-            <zeno-checkbox [(ngModel)]="formData.isActive" label="Variant is Active (available in product creation)"></zeno-checkbox>
-          </zeno-form-group>
         </div>
 
         <div footer>
@@ -221,7 +190,7 @@ export interface VariantDefinition {
             variant="primary"
             icon="pi pi-check"
             [loading]="saving"
-            [disabled]="saving || !formData.name || !formData.code"
+            [disabled]="saving || !formData.name"
             (btnClick)="saveVariant()"
           >
             {{ editingVariant ? 'Update Variant' : 'Create Variant' }}
@@ -230,90 +199,7 @@ export interface VariantDefinition {
       </zeno-modal>
     </div>
   `,
-  styles: [`
-    .masters-page { display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; }
-    .header-actions { display: flex; gap: 10px; }
-    .text-secondary { color: var(--surface-500); }
-
-    .table-toolbar { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--surface-200); gap: 16px; }
-    .toolbar-search { position: relative; flex: 1; max-width: 380px; }
-    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); font-size: 0.875rem; }
-    .toolbar-search input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; }
-    .toolbar-search input:focus { border-color: var(--primary-600); }
-    .toolbar-filters { display: flex; align-items: center; gap: 10px; }
-    .form-select { padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; background: #fff; }
-
-    .variant-name-cell { display: flex; align-items: center; gap: 12px; }
-    .type-icon-box {
-      width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9375rem;
-      &.dropdown { background: #EEF2FF; color: #4F46E5; }
-      &.text { background: #F0FDF4; color: #16A34A; }
-      &.number { background: #FEF3C7; color: #D97706; }
-      &.date { background: #FDF2F8; color: #DB2777; }
-    }
-
-    .badge-code { background: var(--surface-100); padding: 3px 8px; border-radius: 4px; font-weight: 700; color: var(--surface-800); }
-    
-    .type-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
-      &.dropdown { background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; }
-      &.text { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
-      &.number { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
-      &.date { background: #FDF2F8; color: #BE185D; border: 1px solid #FBCFE8; }
-    }
-
-    .options-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 450px; }
-    .val-pill { background: #F1F5F9; color: #1E293B; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid #CBD5E1; }
-    .opt-count { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; }
-
-    .actions-cell { display: flex; justify-content: flex-end; gap: 8px; }
-    .btn-icon { background: none; border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer; color: var(--surface-600); transition: all 0.15s; }
-    .btn-icon:hover { background: var(--surface-100); color: var(--surface-900); }
-    .text-danger { color: #dc2626 !important; }
-    .text-danger:hover { background: #fee2e2 !important; }
-
-    .btn-export {
-      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #fff; border: 1px solid var(--surface-300); border-radius: 6px;
-      font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); cursor: pointer; transition: all 0.2s;
-      &:hover:not(:disabled) { background: var(--surface-50); border-color: var(--primary-500); color: var(--primary-600); }
-      &:disabled { opacity: 0.5; cursor: not-allowed; }
-    }
-
-    /* Modal */
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-dialog { background: #fff; border-radius: 12px; width: 100%; max-width: 580px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden; }
-    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--surface-200); display: flex; justify-content: space-between; align-items: center; h3 { margin: 0; font-size: 1.125rem; font-weight: 700; color: var(--surface-900); } .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--surface-400); &:hover { color: var(--surface-700); } } }
-    .modal-body { padding: 20px; max-height: calc(85vh - 120px); overflow-y: auto; }
-    .modal-footer { padding: 14px 20px; border-top: 1px solid var(--surface-200); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface-50); }
-
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .full-width { grid-column: 1 / -1; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); }
-    .form-group label.required::after { content: ' *'; color: #ef4444; }
-    .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; }
-    .form-control:focus { border-color: var(--primary-600); }
-    .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; cursor: pointer; color: var(--surface-800); }
-
-    .dropdown-builder-box {
-      background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 12px;
-    }
-    .builder-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .option-input-row { display: flex; gap: 8px; }
-    .chips-container { display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; background: #fff; padding: 10px; border: 1px solid #E2E8F0; border-radius: 6px; align-items: center; }
-    .chip-item {
-      display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE;
-      padding: 4px 10px; border-radius: 16px; font-size: 0.8125rem; font-weight: 600;
-    }
-    .chip-remove {
-      background: none; border: none; font-size: 1.1rem; line-height: 1; cursor: pointer; color: #6366F1; padding: 0;
-      &:hover { color: #DC2626; }
-    }
-    .chips-empty { font-size: 0.8125rem; color: var(--surface-400); font-style: italic; width: 100%; text-align: center; }
-
-    .alert-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; }
-  `],
+  styleUrl: './variants.component.scss',
 })
 export class VariantsComponent implements OnInit {
   variants: VariantDefinition[] = [];
@@ -491,10 +377,14 @@ export class VariantsComponent implements OnInit {
       this.errorMessage = 'Variant name is required.';
       return;
     }
-    if (!this.formData.code.trim()) {
-      this.errorMessage = 'Variant code is required.';
-      return;
+
+    if (!this.formData.code || !this.formData.code.trim()) {
+      this.formData.code = this.formData.name
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .substring(0, 10) || 'VAR';
     }
+
     if (this.formData.type === 'DROPDOWN' && this.formData.options.length === 0) {
       this.errorMessage = 'Please add at least one fixed dropdown value (e.g. Red, Blue, Green).';
       return;
@@ -589,12 +479,11 @@ export class VariantsComponent implements OnInit {
 
   exportVariants() {
     if (!this.filteredVariants || this.filteredVariants.length === 0) return;
-    const headers = ['Variant Name', 'Code', 'Data Type', 'Fixed Values / Options', 'Status'];
+    const headers = ['Variant Name', 'Code', 'Data Type', 'Status'];
     const rows = this.filteredVariants.map((v) => [
       v.name || '',
       v.code || '',
       v.type || '',
-      Array.isArray(v.options) ? v.options.join('; ') : '',
       v.isActive ? 'Active' : 'Inactive',
     ]);
     exportToCsv('Variant_Master', headers, rows);

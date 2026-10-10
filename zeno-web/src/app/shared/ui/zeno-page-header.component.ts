@@ -25,64 +25,7 @@ import { CommonModule } from '@angular/common';
     </div>
     <ng-content></ng-content>
   `,
-  styles: [`
-    :host {
-      display: block;
-      margin-bottom: 0;
-    }
-    .zeno-page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-    .zeno-page-header-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .zeno-title-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .zeno-page-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--surface-900, #0f172a);
-      letter-spacing: -0.02em;
-      margin: 0;
-      line-height: 1.2;
-    }
-    .zeno-page-badge {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: var(--radius-full, 9999px);
-      background-color: var(--surface-200, #e2e8f0);
-      color: var(--surface-700, #334155);
-    }
-    .badge-primary {
-      background-color: var(--primary-100, #dbeafe);
-      color: var(--primary-800, #1e40af);
-    }
-    .badge-success {
-      background-color: #dcfce7;
-      color: #166534;
-    }
-    .zeno-page-subtitle {
-      font-size: 0.875rem;
-      color: var(--surface-500, #64748b);
-      margin: 0;
-    }
-    .zeno-page-header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-  `]
+  styleUrl: './zeno-page-header.component.scss'
 })
 export class ZenoPageHeaderComponent {
   @Input({ required: true }) title = '';

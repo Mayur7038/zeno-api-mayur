@@ -96,37 +96,7 @@ import { TenantService } from '../../core/services/tenant.service';
       }
     </div>
   `,
-  styles: [`
-    .rpt-page { display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
-    .page-header h1 { font-size: 1.25rem; font-weight: 700; color: var(--surface-900); margin: 0; }
-    .sub { font-size: 0.78rem; color: var(--surface-500); margin: 2px 0 0 0; }
-    .header-back-title { display: flex; align-items: center; gap: 12px; }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
-    .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: 6px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; }
-    .btn-secondary { background: var(--surface-100); color: var(--surface-700); border: 1px solid var(--surface-300); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .date-filter-bar { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--surface-200); border-radius: 10px; padding: 10px 14px; }
-    .date-group { display: flex; flex-direction: column; gap: 3px; }
-    .date-group label { font-size: 0.7rem; font-weight: 600; color: var(--surface-500); text-transform: uppercase; }
-    .date-group input { border: 1px solid var(--surface-300); border-radius: 6px; padding: 5px 8px; font-size: 0.85rem; }
-    .loading-state { padding: 60px; text-align: center; color: var(--surface-500); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    
-    .summary-box { background: var(--surface-50); border: 1px solid var(--surface-200); padding: 16px; border-radius: 8px; }
-    .summary-box .title { font-size: 0.75rem; font-weight: 700; color: var(--surface-500); text-transform: uppercase; margin-bottom: 8px; }
-    .summary-box .val { font-size: 1.3rem; font-weight: 800; color: var(--surface-900); }
-    
-    .zeno-card { background: #fff; border: 1px solid var(--surface-300); border-radius: 12px; margin-bottom: 0;}
-    .table-responsive { overflow-x: auto; }
-    .zeno-table { width: 100%; border-collapse: separate !important; border-spacing: 0 !important; font-size: 0.875rem; }
-    .zeno-table th { background: var(--surface-100); padding: 10px 16px; color: var(--surface-700); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid var(--surface-300); }
-    .zeno-table td { padding: 11px 16px; border-bottom: 1px solid var(--surface-200); color: var(--surface-800); }
-    .text-right { text-align: right; }
-    .text-center { text-align: center; }
-    .text-muted { color: var(--surface-500); }
-    .font-mono { font-family: monospace; }
-    .font-bold { font-weight: 700; }
-    .empty-cell { padding: 32px !important; color: var(--surface-400); font-style: italic; }
-  `]
+  styleUrl: './gstr1-report.component.scss'
 })
 export class Gstr1ReportComponent implements OnInit {
   loading = false;

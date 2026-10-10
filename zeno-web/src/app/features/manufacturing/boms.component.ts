@@ -412,69 +412,7 @@ interface BomLine {
       }
     </div>
   `,
-  styles: [`
-    .manufacturing-page { display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; }
-    .page-header h1 { font-size: 1.25rem; font-weight: 700; color: var(--surface-900); margin: 0; }
-    .header-back-title { display: flex; align-items: center; gap: 12px; }
-    .header-actions { display: flex; align-items: center; gap: 10px; }
-    .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: var(--radius-sm, 6px); width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; }
-    .btn-back:hover { background: var(--surface-200); color: var(--surface-900); }
-    .form-page-card { padding: 24px; }
-
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 12px; }
-    .kpi-card { background: #fff; border: 1px solid var(--surface-200); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
-    .kpi-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
-    .kpi-icon.blue { background: #EFF6FF; color: #2563EB; }
-    .kpi-icon.green { background: #F0FDF4; color: #16A34A; }
-    .kpi-icon.purple { background: #FAF5FF; color: #9333EA; }
-    .kpi-info { display: flex; flex-direction: column; }
-    .kpi-label { font-size: 0.75rem; color: var(--surface-500); font-weight: 500; text-transform: uppercase; }
-    .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--surface-900); }
-
-    .table-toolbar { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--surface-200); }
-    .toolbar-search { position: relative; flex: 1; max-width: 440px; }
-    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--surface-400); font-size: 0.875rem; }
-    .toolbar-search input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; }
-    .toolbar-search input:focus { border-color: var(--primary-600); }
-
-    .badge-custom { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
-
-    .actions-cell { display: flex; justify-content: flex-end; gap: 8px; }
-    .btn-icon { background: none; border: none; padding: 6px 8px; border-radius: 4px; cursor: pointer; color: var(--surface-600); transition: all 0.15s; }
-    .btn-icon:hover { background: var(--surface-100); color: var(--surface-900); }
-    .text-danger { color: #dc2626 !important; }
-    .text-danger:hover { background: #fee2e2 !important; }
-
-    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.8125rem; font-weight: 600; color: var(--surface-700); }
-    .form-group label.required::after { content: ' *'; color: #ef4444; }
-    .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--surface-300); border-radius: 6px; font-size: 0.875rem; outline: none; background: #fff; }
-    .form-control:focus { border-color: var(--primary-600); }
-
-    .section-title-bar { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; font-weight: 700; color: var(--surface-800); font-size: 0.9375rem; border-bottom: 2px solid var(--surface-100); padding-bottom: 6px; }
-    .btn-sm { padding: 4px 10px; font-size: 0.75rem; border-radius: 4px; font-weight: 600; cursor: pointer; }
-    .btn-outline { background: #fff; border: 1px solid var(--primary-600, #2563EB); color: var(--primary-600, #2563EB); }
-    .btn-outline:hover { background: var(--primary-50, #eff6ff); }
-
-    .lines-table-wrap { border: 1px solid var(--surface-200); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
-    .lines-table td { padding: 8px 10px; }
-    .lines-table .form-control { padding: 6px 8px; }
-
-    .cost-summary-box { background: var(--surface-50); border: 1px solid var(--surface-200); border-radius: 8px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-    .cost-item { display: flex; flex-direction: column; gap: 2px; }
-    .cost-label { font-size: 0.75rem; color: var(--surface-500); text-transform: uppercase; font-weight: 600; }
-    .cost-val { font-size: 1rem; color: var(--surface-800); }
-    .total-highlight .cost-val { color: #1e40af; font-size: 1.15rem; }
-    .unit-highlight .cost-val { color: #047857; font-size: 1.15rem; }
-
-    .detail-card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; background: var(--surface-50); padding: 14px; border-radius: 8px; }
-    .info-block { display: flex; flex-direction: column; gap: 3px; }
-    .info-block .label { font-size: 0.75rem; color: var(--surface-500); text-transform: uppercase; font-weight: 600; }
-    .info-block .value { font-size: 0.9375rem; color: var(--surface-900); }
-    .alert-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; }
-  `],
+  styleUrl: './boms.component.scss',
 })
 export class BomsComponent implements OnInit {
   viewMode: 'list' | 'create' | 'view' = 'list';

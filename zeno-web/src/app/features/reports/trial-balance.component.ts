@@ -70,12 +70,7 @@ import { RouterModule } from '@angular/router';
       </div>
     </div>
   `,
-  styles: [`
-    .p2p-page { display: flex; flex-direction: column; gap: 20px; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; h1 { font-size: 1.25rem; font-weight: 700; color: var(--surface-900); margin: 0; } }
-    .header-back-title { display: flex; align-items: center; gap: 12px; }
-    .btn-back { background: var(--surface-100); border: 1px solid var(--surface-300); color: var(--surface-700); border-radius: var(--radius-sm, 6px); width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; transition: all 0.15s ease; &:hover { background: var(--surface-200); color: var(--surface-900); } }
-  `],
+  styleUrl: './trial-balance.component.scss',
 })
 export class TrialBalanceComponent implements OnInit {
   rows: any[] = [];

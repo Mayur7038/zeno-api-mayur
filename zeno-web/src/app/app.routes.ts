@@ -115,51 +115,45 @@ export const routes: Routes = [
       // Accounting Vouchers (Payment, Receipt, Contra, Journal, Debit Note, Credit Note)
       {
         path: 'accounting/payments',
-        data: { voucherType: 'PAYMENT' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/payment-vouchers/payment-vouchers.component'
+          ).then((m) => m.PaymentVouchersComponent),
       },
       {
         path: 'accounting/receipts',
-        data: { voucherType: 'RECEIPT' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/receipt-vouchers/receipt-vouchers.component'
+          ).then((m) => m.ReceiptVouchersComponent),
       },
       {
         path: 'accounting/contra',
-        data: { voucherType: 'CONTRA' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/contra-vouchers/contra-vouchers.component'
+          ).then((m) => m.ContraVouchersComponent),
       },
       {
         path: 'accounting/journals',
-        data: { voucherType: 'JOURNAL' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/journal-vouchers/journal-vouchers.component'
+          ).then((m) => m.JournalVouchersComponent),
       },
       {
         path: 'accounting/debit-notes',
-        data: { voucherType: 'DEBIT_NOTE' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/debit-notes/debit-notes.component'
+          ).then((m) => m.DebitNotesComponent),
       },
       {
         path: 'accounting/credit-notes',
-        data: { voucherType: 'CREDIT_NOTE' },
         loadComponent: () =>
           import(
-            './features/accounting/accounting-vouchers.component'
-          ).then((m) => m.AccountingVouchersComponent),
+            './features/accounting/credit-notes/credit-notes.component'
+          ).then((m) => m.CreditNotesComponent),
       },
       // Inventory Management
       {
