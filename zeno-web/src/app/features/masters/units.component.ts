@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
@@ -20,119 +20,7 @@ interface UnitItem {
   selector: 'app-units',
   standalone: true,
   imports: [CommonModule, FormsModule, ...ZENO_UI_COMPONENTS],
-  template: `
-    <div class="p2p-page">
-      <zeno-page-header title="Unit of Measure" subtitle="Define primary and compound units of measurement (PCS, KG, MTR, BOX).">
-        <div actions>
-          <zeno-button variant="primary" icon="pi pi-plus" (btnClick)="openCreateModal()">
-            New Unit
-          </zeno-button>
-        </div>
-      </zeno-page-header>
-
-      <!-- TABLE & LIST CONTAINER -->
-      <zeno-table
-        [loading]="loading"
-        [empty]="filteredUnits.length === 0"
-        loadingMessage="Loading measurement units..."
-        emptyMessage="No units found. Click 'New Unit' to create one."
-      >
-        <div toolbar-left>
-          <zeno-search
-            [(ngModel)]="searchQuery"
-            (searchChange)="filterUnits()"
-          ></zeno-search>
-        </div>
-        <div toolbar-right>
-          <zeno-button
-            variant="secondary"
-            icon="pi pi-download"
-            [disabled]="filteredUnits.length === 0"
-            (btnClick)="exportUnits()"
-            title="Export to CSV"
-          >
-            Export
-          </zeno-button>
-        </div>
-
-        <table class="zeno-table">
-          <thead>
-            <tr>
-              <th>Unit Name</th>
-              <th>Symbol / Code</th>
-              <th>Status</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (u of filteredUnits; track u.id) {
-              <tr>
-                <td>
-                  <div class="unit-name-cell">
-                    <i class="pi pi-compass text-primary"></i>
-                    <strong>{{ u.name }}</strong>
-                  </div>
-                </td>
-                <td>
-                  <span class="code-badge font-mono">{{ u.code }}</span>
-                </td>
-                <td>
-                  @if (u.isActive) {
-                    <zeno-badge type="success" icon="pi pi-check">Active</zeno-badge>
-                  } @else {
-                    <zeno-badge type="danger">Inactive</zeno-badge>
-                  }
-                </td>
-                <td class="text-right actions-cell">
-                  <zeno-button variant="icon" icon="pi pi-pencil" title="Edit Unit" (btnClick)="openEditModal(u)"></zeno-button>
-                  <zeno-button variant="icon" icon="pi pi-trash" title="Delete Unit" (btnClick)="deleteUnit(u)" class="text-danger"></zeno-button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </zeno-table>
-
-      <!-- CREATE / EDIT MODAL -->
-      <zeno-modal
-        [isOpen]="showModal"
-        [title]="editingUnit ? 'Edit Unit of Measure' : 'New Unit of Measure'"
-        size="md"
-        (close)="closeModal()"
-      >
-        @if (errorMessage) {
-          <div class="alert alert-error">
-            <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
-          </div>
-        }
-
-        <div class="zeno-form-grid-2">
-          <zeno-form-group label="Unit Name" [required]="true" [span]="2">
-            <zeno-input [(ngModel)]="formData.name"></zeno-input>
-          </zeno-form-group>
-
-          <zeno-form-group label="Unit Code / Symbol" [required]="true">
-            <zeno-input [(ngModel)]="formData.code" [uppercase]="true"></zeno-input>
-          </zeno-form-group>
-
-          <zeno-form-group label="Allowed Decimal Places" [required]="true">
-            <zeno-select
-              [(ngModel)]="formData.decimalPlaces"
-              [options]="decimalOptions"
-            ></zeno-select>
-          </zeno-form-group>
-        </div>
-
-        <div footer>
-          <zeno-button variant="secondary" (btnClick)="closeModal()">Cancel</zeno-button>
-          <zeno-button variant="primary" icon="pi pi-check" [loading]="saving" (btnClick)="saveUnit()">
-            {{ editingUnit ? 'Update Unit' : 'Create Unit' }}
-          </zeno-button>
-        </div>
-      </zeno-modal>
-    </div>
-  `,
-  styleUrl: './units.component.scss',
+  templateUrl: './units.component.html',
 })
 export class UnitsComponent implements OnInit {
   units: UnitItem[] = [];

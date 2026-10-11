@@ -158,8 +158,8 @@
   outline: none;
 
   &:focus {
-    border-color: var(--primary-600, #2563eb);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    border-color: var(--primary-600, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 
   &:disabled,
@@ -184,22 +184,23 @@
 table.line-table,
 table.excel-grid-table {
   width: 100% !important;
-  border-collapse: collapse !important;
+  border-collapse: separate !important;
   border-spacing: 0 !important;
-  border: 1px solid var(--surface-300, #cbd5e1) !important;
-  border-radius: 0 !important;
+  border: 1px solid var(--surface-200, #e2e8f0) !important;
+  border-radius: var(--radius-md, 10px) !important;
+  overflow: hidden !important;
   background: #ffffff !important;
   font-size: 0.8125rem !important;
 
   thead th {
-    background-color: var(--surface-100, #f1f5f9) !important;
-    color: var(--surface-700, #334155) !important;
-    font-weight: 700 !important;
+    background-color: var(--surface-50, #f8fafc) !important;
+    color: var(--surface-600, #475569) !important;
+    font-weight: 600 !important;
     font-size: 0.75rem !important;
-    letter-spacing: 0.03em !important;
+    letter-spacing: 0.04em !important;
     text-transform: uppercase !important;
     padding: 10px 14px !important;
-    border: 1px solid var(--surface-300, #cbd5e1) !important;
+    border-bottom: 1px solid var(--surface-200, #e2e8f0) !important;
     white-space: nowrap !important;
     vertical-align: middle !important;
   }
@@ -208,17 +209,17 @@ table.excel-grid-table {
     transition: background-color 0.15s ease;
 
     &:hover {
-      background-color: rgba(241, 245, 249, 0.5) !important;
+      background-color: rgba(248, 250, 252, 0.75) !important;
     }
   }
 
   tbody td {
-    padding: 0 !important;
-    border: 1px solid var(--surface-300, #cbd5e1) !important;
+    padding: 6px 10px !important;
+    border-bottom: 1px solid var(--surface-100, #f1f5f9) !important;
     color: var(--surface-900, #0f172a) !important;
     vertical-align: middle !important;
     white-space: nowrap !important;
-    height: 28px !important;
+    height: 38px !important;
     position: relative !important;
 
     /* Excel Cell Inputs & Selects */
@@ -226,12 +227,12 @@ table.excel-grid-table {
     input[type="text"],
     select {
       width: 100% !important;
-      height: 28px !important;
-      border: none !important;
-      border-radius: 0 !important;
-      background: transparent !important;
+      height: 34px !important;
+      border: 1px solid var(--surface-300, #cbd5e1) !important;
+      border-radius: var(--radius-sm, 6px) !important;
+      background: #ffffff !important;
       box-shadow: none !important;
-      padding: 2px 4px !important;
+      padding: 4px 8px !important;
       font-family: inherit !important;
       font-size: 0.8125rem !important;
       color: var(--surface-900, #0f172a) !important;
@@ -239,8 +240,8 @@ table.excel-grid-table {
       margin: 0 !important;
 
       &:focus {
-        outline: 2px solid var(--primary-600, #2563eb) !important;
-        outline-offset: -2px !important;
+        border-color: var(--primary-600, #2563eb) !important;
+        box-shadow: 0 0 0 2px var(--primary-100, #dbeafe) !important;
         background: #ffffff !important;
         z-index: 5 !important;
         position: relative !important;
@@ -281,7 +282,7 @@ table.excel-grid-table {
 
       .is-open .select-trigger,
       &:focus-within .select-trigger {
-        outline: 2px solid var(--primary-600, #2563eb) !important;
+        outline: 2px solid var(--primary-600, #6366f1) !important;
         outline-offset: -2px !important;
         background: #ffffff !important;
         box-shadow: none !important;
@@ -363,8 +364,8 @@ table.excel-grid-table {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
     &:focus {
-      border-color: var(--primary-600, #2563eb);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      border-color: var(--primary-600, #6366f1);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
     }
   }
 }
@@ -389,7 +390,7 @@ table.excel-grid-table {
   transition: border-color 0.15s ease;
 
   &:focus {
-    border-color: var(--primary-600, #2563eb);
+    border-color: var(--primary-600, #6366f1);
   }
 }
 
@@ -410,7 +411,7 @@ table.excel-grid-table {
   &:hover:not(:disabled) {
     background: var(--surface-50, #f8fafc);
     border-color: var(--primary-500, #3b82f6);
-    color: var(--primary-600, #2563eb);
+    color: var(--primary-600, #6366f1);
   }
 
   &:disabled {
@@ -464,8 +465,8 @@ table.excel-grid-table {
     transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 
     &:focus {
-      border-color: var(--primary-600, #2563eb) !important;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+      border-color: var(--primary-600, #6366f1) !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
     }
   }
 }
@@ -497,7 +498,7 @@ table.excel-grid-table {
       margin-top: 4px !important;
 
       strong {
-        color: var(--primary-700, #1d4ed8) !important;
+        color: var(--primary-700, #4f46e5) !important;
         font-size: 1.125rem !important;
       }
     }

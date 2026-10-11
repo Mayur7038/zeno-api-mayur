@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
@@ -6,69 +6,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
   selector: 'app-coming-soon',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  template: `
-    <div class="coming-soon-container">
-      <div class="zeno-card hero-card">
-        <div class="badge-pill roadmap-badge">
-          <i class="pi pi-compass"></i> PHASE 2 & 3 ROADMAP
-        </div>
-        
-        <div class="icon-hero">
-          <i [class]="moduleInfo.icon"></i>
-        </div>
-
-        <h1 class="hero-title">{{ moduleInfo.title }}</h1>
-        <p class="hero-desc">{{ moduleInfo.description }}</p>
-
-        <div class="planned-workflow">
-          <h3>Planned End-to-End Workflow Architecture</h3>
-          <div class="steps-flow">
-            @for (step of moduleInfo.steps; track step.title; let idx = $index) {
-              <div class="flow-step">
-                <div class="step-num">{{ idx + 1 }}</div>
-                <div class="step-text">
-                  <div class="step-title">{{ step.title }}</div>
-                  <div class="step-sub">{{ step.desc }}</div>
-                </div>
-              </div>
-              @if (idx < moduleInfo.steps.length - 1) {
-                <div class="step-arrow">
-                  <i class="pi pi-arrow-right"></i>
-                </div>
-              }
-            }
-          </div>
-        </div>
-
-        <div class="feature-highlights">
-          <h3>Key Enterprise Features In Development</h3>
-          <div class="highlights-grid">
-            @for (h of moduleInfo.highlights; track h.title) {
-              <div class="highlight-item">
-                <div class="highlight-icon">
-                  <i class="pi pi-check"></i>
-                </div>
-                <div>
-                  <div class="highlight-title">{{ h.title }}</div>
-                  <div class="highlight-desc">{{ h.desc }}</div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="action-bar">
-          <a routerLink="/procure-to-pay/purchase-orders" class="btn-primary">
-            <i class="pi pi-shopping-cart"></i> Explore Procure-to-Pay Cycle (Live)
-          </a>
-          <a routerLink="/dashboard" class="btn-secondary">
-            <i class="pi pi-th-large"></i> Return to Dashboard
-          </a>
-        </div>
-      </div>
-    </div>
-  `,
-  styleUrl: './coming-soon.component.scss',
+  templateUrl: './coming-soon.component.html',
 })
 export class ComingSoonComponent implements OnInit {
   moduleKey = 'sales';

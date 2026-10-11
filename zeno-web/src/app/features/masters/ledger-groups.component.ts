@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
@@ -28,222 +28,7 @@ export interface LedgerGroupNode extends LedgerGroupItem {
   selector: 'app-ledger-groups',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <div class="masters-page">
-      <div class="page-header">
-        <div>
-          <h1>Ledger Group</h1>
-        </div>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="openCreateModal()">
-            <i class="pi pi-plus"></i> New Ledger Group
-          </button>
-        </div>
-      </div>
-
-      <!-- FILTER & TOOLBAR -->
-      <div class="zeno-card">
-        <div class="table-toolbar">
-          <div class="toolbar-search">
-            <i class="pi pi-search search-icon"></i>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (input)="filterGroups()"
-            />
-          </div>
-          <div class="toolbar-filters">
-            <select [(ngModel)]="natureFilter" (change)="filterGroups()" class="form-select">
-              <option value="ALL">All Natures</option>
-              <option value="ASSET">Assets</option>
-              <option value="LIABILITY">Liabilities</option>
-              <option value="INCOME">Income</option>
-              <option value="EXPENSE">Expenses</option>
-            </select>
-
-            @if (hasAnySubGroups) {
-              <button type="button" class="btn-text-tool" (click)="expandAll()" title="Expand all sub-groups">
-                <i class="pi pi-angle-double-down"></i> Expand All
-              </button>
-              <button type="button" class="btn-text-tool" (click)="collapseAll()" title="Collapse all sub-groups">
-                <i class="pi pi-angle-double-up"></i> Collapse All
-              </button>
-            }
-          </div>
-        </div>
-
-        <!-- GROUPS TABLE -->
-        <table class="zeno-table">
-          <thead>
-            <tr>
-              <th>Group Name</th>
-              <th>Nature</th>
-              <th>Parent Group</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            @if (loading) {
-              <tr>
-                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  <i class="pi pi-spin pi-spinner"></i> Loading ledger groups...
-                </td>
-              </tr>
-            } @else if (displayedRows.length === 0) {
-              <tr>
-                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No ledger groups match your filter criteria.
-                </td>
-              </tr>
-            }
-            @for (g of displayedRows; track g.id) {
-              <tr [class.child-row]="g.level > 0">
-                <td>
-                  <div class="group-name-cell" [style.padding-left.px]="g.level * 24">
-                    @if (g.hasChildren) {
-                      <button
-                        type="button"
-                        class="btn-expand-toggle"
-                        (click)="toggleExpand(g.id, $event)"
-                        [title]="isExpanded(g.id) ? 'Collapse sub-groups' : 'Expand sub-groups'"
-                      >
-                        <i [class]="isExpanded(g.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
-                      </button>
-                      <i
-                        [class]="isExpanded(g.id) ? 'pi pi-folder-open folder-icon' : 'pi pi-folder folder-icon'"
-                        [style.color]="getNatureColor(g.nature)"
-                        (click)="toggleExpand(g.id, $event)"
-                        style="cursor: pointer;"
-                        [title]="isExpanded(g.id) ? 'Click to collapse' : 'Click to expand'"
-                      ></i>
-                    } @else {
-                      @if (g.level > 0) {
-                        <span class="tree-branch-line">└─</span>
-                      } @else {
-                        <span class="expand-spacer"></span>
-                      }
-                      <i class="pi pi-folder folder-icon" [style.color]="getNatureColor(g.nature)"></i>
-                    }
-
-                    <span
-                      class="group-name-text"
-                      [class.parent-group-bold]="g.hasChildren"
-                      (click)="g.hasChildren ? toggleExpand(g.id, $event) : null"
-                      [style.cursor]="g.hasChildren ? 'pointer' : 'default'"
-                    >
-                      {{ g.name }}
-                    </span>
-
-                    @if (g.hasChildren) {
-                      <span class="sub-group-count-badge" (click)="toggleExpand(g.id, $event)" [title]="isExpanded(g.id) ? 'Click to collapse' : 'Click to expand'">
-                        {{ g.childCount }} {{ g.childCount === 1 ? 'sub-group' : 'sub-groups' }}
-                      </span>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <span class="badge-pill" [ngClass]="getNatureBadge(g.nature)">
-                    {{ g.nature }}
-                  </span>
-                </td>
-                <td>
-                  @if (g.parent?.name) {
-                    <span class="parent-pill">
-                      <i class="pi pi-folder"></i> {{ g.parent?.name }}
-                    </span>
-                  } @else {
-                    <span style="color: var(--surface-500);">Primary Group</span>
-                  }
-                </td>
-                <td class="text-right actions-cell">
-                  <button class="btn-icon" (click)="openEditModal(g)" title="Edit Group">
-                    <i class="pi pi-pencil"></i>
-                  </button>
-                  @if (!g.isPredefined) {
-                    <button class="btn-icon text-danger" (click)="deleteGroup(g)" title="Delete Custom Group">
-                      <i class="pi pi-trash"></i>
-                    </button>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <!-- CREATE / EDIT MODAL -->
-      @if (showModal) {
-        <div class="modal-backdrop" (click)="closeModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h3>{{ editingGroup ? 'Edit Ledger Group' : 'New Ledger Group' }}</h3>
-              <button class="close-btn" (click)="closeModal()">&times;</button>
-            </div>
-
-            <div class="modal-body">
-              @if (errorMessage) {
-                <div class="alert alert-error">
-                  <i class="pi pi-exclamation-circle"></i> {{ errorMessage }}
-                </div>
-              }
-
-              <div class="form-grid">
-                <div class="form-group">
-                  <label class="required">Group Name</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.name"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label>Group Code</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="formData.code"
-                    class="form-control"
-                  />
-                </div>
-
-                <div class="form-group">
-                  <label class="required">Nature of Group</label>
-                  <select [(ngModel)]="formData.nature" class="form-control">
-                    <option value="ASSET">ASSET</option>
-                    <option value="LIABILITY">LIABILITY</option>
-                    <option value="INCOME">INCOME</option>
-                    <option value="EXPENSE">EXPENSE</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label>Parent Group (Leave blank if Primary)</label>
-                  <select [(ngModel)]="formData.parentId" (change)="onParentChange()" class="form-control">
-                    <option [ngValue]="null">-- Primary (No Parent) --</option>
-                    @for (p of availableParents; track p.id) {
-                      <option [value]="p.id">{{ p.name }} ({{ p.nature }})</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-              <button class="btn-primary" (click)="saveGroup()" [disabled]="saving">
-                @if (saving) {
-                  <i class="pi pi-spin pi-spinner"></i> Saving...
-                } @else {
-                  <i class="pi pi-check"></i> {{ editingGroup ? 'Update Group' : 'Create Group' }}
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-  `,
-  styleUrl: './ledger-groups.component.scss',
+  templateUrl: './ledger-groups.component.html',
 })
 export class LedgerGroupsComponent implements OnInit {
   groups: LedgerGroupItem[] = [];
@@ -461,15 +246,15 @@ export class LedgerGroupsComponent implements OnInit {
   getNatureBadge(nature: string): string {
     switch (nature) {
       case 'ASSET':
-        return 'badge-partial';
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
       case 'LIABILITY':
-        return 'badge-warning';
+        return 'bg-amber-50 text-amber-700 border border-amber-200';
       case 'INCOME':
-        return 'badge-cleared';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'EXPENSE':
-        return 'badge-cancelled';
+        return 'bg-rose-50 text-rose-700 border border-rose-200';
       default:
-        return 'badge-partial';
+        return 'bg-surface-100 text-surface-700 border border-surface-200';
     }
   }
 

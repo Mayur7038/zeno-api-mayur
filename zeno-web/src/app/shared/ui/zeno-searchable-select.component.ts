@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   ElementRef,
   EventEmitter,
@@ -22,74 +22,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       multi: true
     }
   ],
-  template: `
-    <div
-      class="search-select-container"
-      [class.is-open]="isOpen"
-      [class.is-disabled]="disabled"
-      [class.has-value]="value !== null && value !== ''"
-    >
-      <div class="select-trigger" (click)="toggleDropdown()">
-        <i class="pi pi-search search-icon"></i>
-        @if (!isOpen) {
-          <span class="selected-text" [class.placeholder]="!selectedOption">
-            {{ selectedOption ? getDisplayLabel(selectedOption) : (placeholder || emptyLabel || 'Select...') }}
-          </span>
-        } @else {
-          <input
-            #searchInput
-            type="text"
-            class="search-input"
-            [(ngModel)]="searchQuery"
-            (input)="onSearchInput()"
-            (click)="$event.stopPropagation()"
-            (keydown)="onKeyDown($event)"
-            [placeholder]="selectedOption ? getDisplayLabel(selectedOption) : 'Type to search...'"
-          />
-        }
-
-        <div class="trigger-actions">
-          @if (allowClear && value !== null && value !== '' && !disabled) {
-            <i class="pi pi-times clear-btn" (click)="clearSelection($event)" title="Clear selection"></i>
-          }
-          <i class="pi pi-chevron-down arrow-icon" [class.rotated]="isOpen"></i>
-        </div>
-      </div>
-
-      @if (isOpen) {
-        <div class="dropdown-menu">
-          @if (filteredOptions.length === 0) {
-            <div class="no-options">
-              <i class="pi pi-exclamation-circle"></i> No results found
-            </div>
-          } @else {
-            <ul class="options-list" #optionsList>
-              @for (opt of filteredOptions; track getOptionValue(opt); let i = $index) {
-                <li
-                  class="option-item"
-                  [class.is-active]="i === activeIndex"
-                  [class.is-selected]="getOptionValue(opt) === value"
-                  (click)="selectOption(opt, $event)"
-                  (mouseenter)="activeIndex = i"
-                >
-                  <div class="option-main">
-                    <span class="option-title">{{ getOptionLabel(opt) }}</span>
-                    @if (getSecondaryLabel(opt)) {
-                      <span class="option-sub">{{ getSecondaryLabel(opt) }}</span>
-                    }
-                  </div>
-                  @if (getOptionValue(opt) === value) {
-                    <i class="pi pi-check check-icon"></i>
-                  }
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      }
-    </div>
-  `,
-  styleUrl: './zeno-searchable-select.component.scss'
+  templateUrl: './zeno-searchable-select.component.html',
 })
 export class ZenoSearchableSelectComponent implements ControlValueAccessor {
   @Input() options: any[] = [];

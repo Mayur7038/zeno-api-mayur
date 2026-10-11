@@ -1,10 +1,8 @@
+@use './app/shared/ui/zeno-ui.scss' as *;
+
 /* =========================================================
    ZENO BOOKS: Clean Enterprise Design System (PrimeNG Light)
    ========================================================= */
-
-@import 'primeicons/primeicons.css';
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import './app/shared/ui/zeno-ui.scss';
 
 :root {
   /* Brand Primary */
@@ -73,8 +71,6 @@
 /* Global Reset */
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html, body {
@@ -156,11 +152,11 @@ html, body {
   border: none;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
-  box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.2);
+  box-shadow: 0 1px 2px 0 rgba(99, 102, 241, 0.2);
 
   &:hover {
     background-color: var(--primary-700);
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
   }
 
   &:active {
@@ -307,7 +303,7 @@ html, body {
     &:focus {
       outline: none;
       border-color: var(--primary-600);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
 
     &::placeholder {
@@ -430,7 +426,7 @@ html, body {
     &:focus {
       outline: none !important;
       border-color: var(--primary-600) !important;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
       background-color: #ffffff !important;
     }
 
@@ -511,7 +507,7 @@ html, body {
     background-color: var(--primary-50) !important;
     border-color: var(--primary-600) !important;
     color: var(--primary-800) !important;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 1px 3px rgba(99, 102, 241, 0.12);
   }
 
   &:active {
@@ -806,14 +802,13 @@ html, body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   background-color: #ffffff !important;
-  border: 1px solid var(--surface-300) !important;
-  border-radius: 0 !important;
+  border: 1px solid var(--surface-200) !important;
+  border-radius: var(--radius-md, 10px) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   margin-bottom: 16px;
 
   > table {
     border: none !important;
-    border-radius: 0 !important;
     margin-bottom: 0 !important;
   }
 }
@@ -831,14 +826,14 @@ html, body {
 
   /* Header cell styling */
   thead th {
-    background-color: var(--surface-100) !important;
-    color: var(--surface-700) !important;
-    font-weight: 700 !important;
+    background-color: var(--surface-50) !important;
+    color: var(--surface-600) !important;
+    font-weight: 600 !important;
     font-size: 0.75rem !important;
     letter-spacing: 0.04em !important;
     text-transform: uppercase !important;
     padding: 12px 14px !important;
-    border-bottom: 1px solid var(--surface-300) !important;
+    border-bottom: 1px solid var(--surface-200) !important;
     border-top: none !important;
     white-space: nowrap;
     text-align: left;
@@ -849,12 +844,12 @@ html, body {
     transition: background-color 0.15s ease;
 
     &:hover td {
-      background-color: rgba(241, 245, 249, 0.6) !important;
+      background-color: rgba(248, 250, 252, 0.75) !important;
     }
 
     td {
       padding: 10px 14px !important;
-      border-bottom: 1px solid var(--surface-200) !important;
+      border-bottom: 1px solid var(--surface-100) !important;
       color: var(--surface-800);
       vertical-align: middle;
       font-size: 0.875rem;
@@ -890,7 +885,7 @@ html, body {
 
   tfoot tr td {
     background-color: var(--surface-50);
-    border-top: 1px solid var(--surface-300);
+    border-top: 1px solid var(--surface-200);
     font-weight: 700;
   }
 }
@@ -901,22 +896,9 @@ table.line-table:not(.table-responsive table),
 table.items-table:not(.table-responsive table),
 table.lines-table:not(.table-responsive table),
 table.line-items-table:not(.table-responsive table) {
-  border: 1px solid var(--surface-300) !important;
-  border-radius: 0 !important;
+  border: 1px solid var(--surface-200) !important;
+  border-radius: var(--radius-md, 10px) !important;
   overflow: hidden;
-
-  thead tr:first-child th:first-child {
-    border-top-left-radius: 0 !important;
-  }
-  thead tr:first-child th:last-child {
-    border-top-right-radius: 0 !important;
-  }
-  tbody tr:last-child td:first-child {
-    border-bottom-left-radius: 0 !important;
-  }
-  tbody tr:last-child td:last-child {
-    border-bottom-right-radius: 0 !important;
-  }
 }
 
 /* Line items container section */
@@ -971,8 +953,8 @@ table.line-items-table:not(.table-responsive table) {
 
 .add-line-btn {
   background: transparent;
-  border: 1px dashed var(--primary-500, #3B82F6);
-  color: var(--primary-600, #2563EB);
+  border: 1px dashed var(--primary-500, #8b5cf6);
+  color: var(--primary-600, #6366f1);
   padding: 6px 14px;
   border-radius: 6px;
   font-size: 0.84rem;
@@ -984,9 +966,225 @@ table.line-items-table:not(.table-responsive table) {
   transition: all 0.15s ease;
 
   &:hover {
-    background-color: var(--primary-50, #EFF6FF);
-    border-color: var(--primary-600, #2563EB);
+    background-color: var(--primary-50, #f5f3ff);
+    border-color: var(--primary-600, #6366f1);
   }
 }
+
+/* =========================================================
+   Settings Component Styling & Form Controls
+   ========================================================= */
+app-settings {
+  display: block;
+  width: 100%;
+
+  /* Form Labels & Required indicators */
+  label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--surface-700, #334155);
+    margin-bottom: 2px;
+    user-select: none;
+
+    .required {
+      color: var(--danger, #ef4444);
+      font-weight: 700;
+      margin-left: 1px;
+    }
+  }
+
+  /* Form Inputs, Selects, and Textareas */
+  input[type="text"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  input[type="password"],
+  select,
+  textarea {
+    width: 100%;
+    height: 38px;
+    padding: 8px 12px;
+    border: 1px solid var(--surface-300, #cbd5e1);
+    border-radius: var(--radius-sm, 6px);
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--surface-900, #0f172a);
+    background-color: var(--surface-0, #ffffff);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    outline: none;
+
+    &:hover:not(:focus):not(:disabled) {
+      border-color: var(--surface-400, #94a3b8);
+    }
+
+    &:focus {
+      border-color: var(--primary-600, #2563eb);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    &:disabled,
+    &[readonly] {
+      background-color: var(--surface-100, #f1f5f9);
+      color: var(--surface-500, #64748b);
+      cursor: not-allowed;
+    }
+  }
+
+  textarea {
+    height: auto;
+    min-height: 80px;
+    resize: vertical;
+  }
+
+  select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 14px 14px;
+    padding-right: 36px;
+  }
+
+  /* Toolbar & inline controls */
+  .relative > input[type="text"],
+  input[type="text"].pl-9 {
+    padding-left: 2.25rem !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .flex > select,
+  .flex select {
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* Sub-tabs & Filter Active State Highlights */
+  button.active,
+  .active {
+    background-color: var(--primary-50, #eff6ff) !important;
+    color: var(--primary-700, #1d4ed8) !important;
+    border-color: var(--primary-200, #bfdbfe) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08) !important;
+  }
+
+  /* Toggle Switch Button Component */
+  .zeno-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+
+    input {
+      opacity: 0 !important;
+      width: 0 !important;
+      height: 0 !important;
+      position: absolute !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--surface-300, #cbd5e1);
+      transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 9999px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+
+      &::before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #ffffff;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary-600, #2563eb);
+    }
+
+    input:focus-visible + .slider {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+
+    input:checked + .slider::before {
+      transform: translateX(20px);
+    }
+  }
+
+  /* Custom Toggle Feature Card Active Styling */
+  .enabled {
+    border-color: var(--primary-300, #93c5fd) !important;
+    background-color: rgba(239, 246, 255, 0.35) !important;
+  }
+
+  /* Tables inside Settings (Roles, FY, Branches, Warehouses, GST) */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+
+    thead th {
+      background-color: var(--surface-50, #f8fafc);
+      color: var(--surface-600, #475569);
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--surface-200, #e2e8f0);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--surface-100, #f1f5f9);
+      color: var(--surface-800, #1e293b);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+/* =========================================================
+   Global Search Bar & Toolbar Controls (Product UI Pattern)
+   ========================================================= */
+.relative > .pi-search ~ input,
+.relative > input:has(+ .pi-search),
+.relative:has(> .pi-search) > input,
+input[type="text"].pl-9,
+input.pl-9,
+zeno-search > div {
+  border-radius: 1.5rem !important; /* rounded-lg (8px) matching Product search */
+}
+
+
+
 
 

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
+﻿import { Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -13,27 +13,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       multi: true
     }
   ],
-  template: `
-    <label class="zeno-checkbox-label" [class.is-disabled]="disabled">
-      <input
-        type="checkbox"
-        [checked]="checked"
-        [disabled]="disabled"
-        (change)="onToggle($event)"
-      />
-      <span class="zeno-checkbox-custom">
-        <i class="pi pi-check zeno-check-icon"></i>
-      </span>
-      <span class="zeno-checkbox-text">
-        @if (label) {
-          {{ label }}
-        } @else {
-          <ng-content></ng-content>
-        }
-      </span>
-    </label>
-  `,
-  styleUrl: './zeno-checkbox.component.scss'
+  templateUrl: './zeno-checkbox.component.html',
 })
 export class ZenoCheckboxComponent implements ControlValueAccessor {
   @Input() label?: string;

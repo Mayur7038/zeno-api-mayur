@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
@@ -9,68 +9,7 @@ import { RouterModule } from '@angular/router';
   selector: 'app-trial-balance',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  template: `
-    <div class="p2p-page">
-      <div class="page-header">
-        <div class="header-back-title">
-          <button class="btn-back" routerLink="/reports" title="Back to Reports"><i class="pi pi-arrow-left"></i></button>
-          <h1>Trial Balance</h1>
-        </div>
-        <div>
-          @if (isBalanced) {
-            <span class="badge-pill badge-cleared" style="font-size: 0.875rem; padding: 6px 14px;">
-              <i class="pi pi-check-circle"></i> Balanced (Dr == Cr)
-            </span>
-          } @else {
-            <span class="badge-pill badge-cancelled" style="font-size: 0.875rem; padding: 6px 14px;">
-              <i class="pi pi-exclamation-triangle"></i> Out of Balance
-            </span>
-          }
-        </div>
-      </div>
-
-      <div class="zeno-card">
-        <table class="zeno-table">
-          <thead>
-            <tr>
-              <th>Account / Ledger Name</th>
-              <th class="text-right">Debit (Dr) ₹</th>
-              <th class="text-right">Credit (Cr) ₹</th>
-              <th class="text-right">Net Balance ₹</th>
-            </tr>
-          </thead>
-          <tbody>
-            @if (rows.length === 0) {
-              <tr>
-                <td colspan="4" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No ledger transactions posted yet.
-                </td>
-              </tr>
-            }
-            @for (r of rows; track r.ledgerId) {
-              <tr>
-                <td class="font-bold">{{ r.ledgerName }}</td>
-                <td class="text-right font-mono">{{ r.debit > 0 ? ('₹' + r.debit.toFixed(2)) : '—' }}</td>
-                <td class="text-right font-mono">{{ r.credit > 0 ? ('₹' + r.credit.toFixed(2)) : '—' }}</td>
-                <td class="text-right font-mono font-bold" [style.color]="r.balance >= 0 ? '#1e40af' : '#b91c1c'">
-                  ₹{{ Math.abs(r.balance).toFixed(2) }} {{ r.balance >= 0 ? 'Dr' : 'Cr' }}
-                </td>
-              </tr>
-            }
-          </tbody>
-          <tfoot>
-            <tr style="background: var(--surface-100); font-weight: 800; font-size: 0.9375rem;">
-              <td>TOTAL</td>
-              <td class="text-right font-mono" style="color: #1e40af;">₹{{ totalDebit.toFixed(2) }}</td>
-              <td class="text-right font-mono" style="color: #b91c1c;">₹{{ totalCredit.toFixed(2) }}</td>
-              <td class="text-right font-mono" style="color: #047857;">₹0.00</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  `,
-  styleUrl: './trial-balance.component.scss',
+  templateUrl: './trial-balance.component.html',
 })
 export class TrialBalanceComponent implements OnInit {
   rows: any[] = [];

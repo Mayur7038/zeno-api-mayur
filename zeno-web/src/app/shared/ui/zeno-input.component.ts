@@ -13,48 +13,32 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       multi: true
     }
   ],
-  template: `
-    <div
-      class="zeno-input-wrap"
-      [class.has-icon]="!!icon"
-      [class.is-disabled]="disabled"
-      [class.has-error]="error"
-    >
-      @if (icon) {
-        <i [class]="icon + ' zeno-input-prefix-icon'"></i>
-      }
-      <input
-        [type]="type"
-        [ngModel]="value"
-        [disabled]="disabled"
-        [readonly]="readonly"
-        [min]="min"
-        [max]="max"
-        [step]="step"
-        [class.uppercase]="uppercase"
-        [class.font-mono]="mono"
-        class="zeno-base-input"
-        (ngModelChange)="onValueChange($event)"
-        (blur)="onBlur($event)"
-      />
-    </div>
-  `,
-  styleUrl: './zeno-input.component.scss'
+  templateUrl: './zeno-input.component.html',
 })
 export class ZenoInputComponent implements ControlValueAccessor {
-  @Input() type: 'text' | 'number' | 'email' | 'password' | 'date' | 'tel' = 'text';
+  @Input() type: 'text' | 'number' | 'email' | 'password' | 'date' | 'tel' | 'time' | 'url' | 'search' = 'text';
   @Input() disabled = false;
   @Input() readonly = false;
   @Input() uppercase = false;
   @Input() mono = false;
-  @Input() min?: number;
-  @Input() max?: number;
+  @Input() min?: number | string;
+  @Input() max?: number | string;
   @Input() step?: string;
   @Input() icon?: string;
+  @Input() iconRight?: string;
   @Input() error = false;
+  @Input() placeholder?: string;
+  /** HTML autocomplete attribute value (e.g. 'off', 'email', 'name') */
+  @Input() autocomplete?: string;
+  @Input() maxlength?: number;
+  @Input() rows?: number;
+  /** textarea mode */
+  @Input() textarea = false;
 
   @Output() inputChange = new EventEmitter<any>();
   @Output() inputBlur = new EventEmitter<FocusEvent>();
+  @Output() inputFocus = new EventEmitter<FocusEvent>();
+  @Output() inputEnter = new EventEmitter<KeyboardEvent>();
 
   value: any = '';
 
@@ -86,5 +70,15 @@ export class ZenoInputComponent implements ControlValueAccessor {
   onBlur(event: FocusEvent) {
     this.onTouched();
     this.inputBlur.emit(event);
+  }
+
+  onFocus(event: FocusEvent) {
+    this.inputFocus.emit(event);
+  }
+
+  onKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      this.inputEnter.emit(event);
+    }
   }
 }

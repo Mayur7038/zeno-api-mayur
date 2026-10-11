@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MastersService } from '../../core/services/masters.service';
 import { TenantService } from '../../core/services/tenant.service';
@@ -9,58 +9,7 @@ import { RouterModule } from '@angular/router';
   selector: 'app-stock-summary',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  template: `
-    <div class="p2p-page">
-      <div class="page-header">
-        <div class="header-back-title">
-          <button class="btn-back" routerLink="/reports" title="Back to Reports"><i class="pi pi-arrow-left"></i></button>
-          <h1>Stock Summary</h1>
-        </div>
-        <div>
-          <span class="badge-pill badge-cleared" style="font-size: 0.875rem; padding: 6px 14px;">
-            <i class="pi pi-database"></i> Total Valuation: ₹{{ grandValuation.toLocaleString() }}
-          </span>
-        </div>
-      </div>
-
-      <div class="zeno-card">
-        <table class="zeno-table">
-          <thead>
-            <tr>
-              <th>Item / SKU</th>
-              <th>SKU Code</th>
-              <th>Unit</th>
-              <th class="text-right">Available Stock</th>
-              <th class="text-right">Average Rate ₹</th>
-              <th class="text-right">Total Inventory Value ₹</th>
-            </tr>
-          </thead>
-          <tbody>
-            @if (items.length === 0) {
-              <tr>
-                <td colspan="6" class="text-center" style="padding: 40px; color: var(--surface-500);">
-                  No stock items in inventory. Receive items via GRN to update stock ledger.
-                </td>
-              </tr>
-            }
-            @for (item of items; track item.itemId) {
-              <tr>
-                <td class="font-bold">{{ item.itemName }}</td>
-                <td class="font-mono">{{ item.sku || '—' }}</td>
-                <td>{{ item.unit }}</td>
-                <td class="text-right font-mono font-bold" style="color: #047857;">
-                  {{ item.currentStock }} {{ item.unit }}
-                </td>
-                <td class="text-right font-mono">₹{{ item.averageRate.toFixed(2) }}</td>
-                <td class="text-right font-mono font-bold">₹{{ item.totalValue.toFixed(2) }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `,
-  styleUrl: './stock-summary.component.scss',
+  templateUrl: './stock-summary.component.html',
 })
 export class StockSummaryComponent implements OnInit {
   items: any[] = [];

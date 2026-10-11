@@ -1,52 +1,11 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+﻿import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'zeno-modal',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    @if (isOpen) {
-      <div class="zeno-modal-backdrop" (click)="onBackdropClick($event)">
-        <div
-          class="zeno-modal-dialog"
-          [class]="'zeno-modal-' + size"
-          (click)="$event.stopPropagation()"
-        >
-          <div class="zeno-modal-header">
-            <div>
-              <h3 class="zeno-modal-title">{{ title }}</h3>
-              @if (subtitle) {
-                <p class="zeno-modal-subtitle">{{ subtitle }}</p>
-              }
-            </div>
-            <div class="zeno-modal-header-actions">
-              <ng-content select="[header-actions]"></ng-content>
-              @if (closable) {
-                <button
-                  type="button"
-                  class="zeno-modal-close-btn"
-                  (click)="handleClose()"
-                  title="Close (Esc)"
-                >
-                  <i class="pi pi-times"></i>
-                </button>
-              }
-            </div>
-          </div>
-
-          <div class="zeno-modal-body">
-            <ng-content></ng-content>
-          </div>
-
-          <div class="zeno-modal-footer">
-            <ng-content select="[footer]"></ng-content>
-          </div>
-        </div>
-      </div>
-    }
-  `,
-  styleUrl: './zeno-modal.component.scss'
+  templateUrl: './zeno-modal.component.html',
 })
 export class ZenoModalComponent {
   @Input() isOpen = false;
@@ -63,6 +22,18 @@ export class ZenoModalComponent {
     if (this.isOpen && this.closable) {
       this.handleClose();
     }
+  }
+
+  getDialogClasses(): string {
+    const base = 'bg-surface-0 rounded-md shadow-lg max-h-[90vh] flex flex-col overflow-hidden w-full';
+    const sizes = {
+      sm: 'max-w-[440px]',
+      md: 'max-w-[600px]',
+      lg: 'max-w-[860px]',
+      xl: 'max-w-[1100px]',
+      full: 'max-w-[96vw] h-[94vh]',
+    };
+    return `${base} ${sizes[this.size] || sizes.md}`;
   }
 
   onBackdropClick(event: MouseEvent) {

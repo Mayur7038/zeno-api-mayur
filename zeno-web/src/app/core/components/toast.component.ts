@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, ToastMessage } from '../services/toast.service';
 
@@ -6,50 +6,7 @@ import { ToastService, ToastMessage } from '../services/toast.service';
   selector: 'app-toast',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="toast-container" aria-live="polite" aria-atomic="true">
-      @for (toast of toastService.toasts(); track toast.id) {
-        <div 
-          class="toast-item" 
-          [ngClass]="['toast-' + toast.type, toast.closing ? 'toast-closing' : '']"
-          role="alert"
-        >
-          <div class="toast-indicator"></div>
-
-          <div class="toast-icon-wrap">
-            <i [class]="toast.icon"></i>
-          </div>
-
-          <div class="toast-body">
-            @if (toast.title) {
-              <div class="toast-title">{{ toast.title }}</div>
-            }
-            <div class="toast-message">{{ toast.message }}</div>
-          </div>
-
-          <button 
-            type="button" 
-            class="toast-close-btn" 
-            (click)="toastService.dismiss(toast.id)" 
-            aria-label="Close notification"
-            title="Dismiss"
-          >
-            <i class="pi pi-times"></i>
-          </button>
-
-          @if (toast.duration > 0) {
-            <div class="toast-progress">
-              <div 
-                class="toast-progress-bar"
-                [style.animation-duration.ms]="toast.duration"
-              ></div>
-            </div>
-          }
-        </div>
-      }
-    </div>
-  `,
-  styleUrl: './toast.component.scss'
+  templateUrl: './toast.component.html',
 })
 export class ToastComponent {
   constructor(public toastService: ToastService) {}

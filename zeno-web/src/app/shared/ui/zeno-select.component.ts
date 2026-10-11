@@ -13,47 +13,17 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       multi: true
     }
   ],
-  template: `
-    <div
-      class="zeno-select-wrap"
-      [class.is-disabled]="disabled"
-      [class.has-error]="error"
-    >
-      <select
-        [ngModel]="value"
-        [disabled]="disabled"
-        class="zeno-base-select"
-        (ngModelChange)="onValueChange($event)"
-        (blur)="onBlur($event)"
-      >
-        @if (allowEmpty) {
-          <option [ngValue]="null">{{ emptyLabel || 'Select...' }}</option>
-        }
-        @if (options && options.length > 0) {
-          @for (opt of options; track $index) {
-            <option
-              [ngValue]="getOptionValue(opt)"
-              [disabled]="opt?.disabled"
-            >
-              {{ getOptionLabel(opt) }}
-            </option>
-          }
-        }
-        <ng-content></ng-content>
-      </select>
-      <i class="pi pi-chevron-down zeno-select-arrow"></i>
-    </div>
-  `,
-  styleUrl: './zeno-select.component.scss'
+  templateUrl: './zeno-select.component.html',
 })
 export class ZenoSelectComponent implements ControlValueAccessor {
   @Input() options: any[] = [];
   @Input() labelKey?: string;
   @Input() valueKey?: string;
   @Input() disabled = false;
-  @Input() allowEmpty = false;
+  @Input() allowEmpty = true;
   @Input() emptyLabel?: string;
   @Input() error = false;
+  @Input() placeholder?: string;
 
   @Output() selectChange = new EventEmitter<any>();
   @Output() selectBlur = new EventEmitter<FocusEvent>();

@@ -13,6 +13,7 @@ import { ZenoRadioComponent } from './zeno-radio.component';
 import { ZenoTabsComponent } from './zeno-tabs.component';
 import { ZenoTableComponent } from './zeno-table.component';
 import { ZenoBadgeComponent } from './zeno-badge.component';
+import { ZenoPaginationComponent } from './zeno-pagination.component';
 
 export * from './zeno-button.component';
 export * from './zeno-page-header.component';
@@ -29,6 +30,7 @@ export * from './zeno-radio.component';
 export * from './zeno-tabs.component';
 export * from './zeno-table.component';
 export * from './zeno-badge.component';
+export * from './zeno-pagination.component';
 
 /**
  * Common ZENO Design System Components
@@ -50,6 +52,7 @@ export const ZENO_UI_COMPONENTS = [
   ZenoTabsComponent,
   ZenoTableComponent,
   ZenoBadgeComponent,
+  ZenoPaginationComponent,
 ] as const;
 
 

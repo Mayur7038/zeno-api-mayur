@@ -1,4 +1,4 @@
-import { Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
+﻿import { Component, EventEmitter, forwardRef, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -13,28 +13,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       multi: true
     }
   ],
-  template: `
-    <label class="zeno-radio-label" [class.is-disabled]="disabled">
-      <input
-        type="radio"
-        [name]="name"
-        [checked]="modelValue === value"
-        [disabled]="disabled"
-        (change)="onSelect()"
-      />
-      <span class="zeno-radio-custom">
-        <span class="zeno-radio-inner"></span>
-      </span>
-      <span class="zeno-radio-text">
-        @if (label) {
-          {{ label }}
-        } @else {
-          <ng-content></ng-content>
-        }
-      </span>
-    </label>
-  `,
-  styleUrl: './zeno-radio.component.scss'
+  templateUrl: './zeno-radio.component.html',
 })
 export class ZenoRadioComponent implements ControlValueAccessor {
   @Input({ required: true }) value: any;
