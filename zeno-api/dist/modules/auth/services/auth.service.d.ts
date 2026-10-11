@@ -1,3 +1,4 @@
+import { OnApplicationBootstrap } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -6,7 +7,7 @@ import { OtpVerification } from '../entities/otp-verification.entity';
 import { Tenant } from '../../tenancy/entities/tenant.entity';
 import { TenantSeederService } from '../../tenancy/services/tenant-seeder.service';
 import { SignupDto, VerifyOtpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../dto/auth.dto';
-export declare class AuthService {
+export declare class AuthService implements OnApplicationBootstrap {
     private userRepository;
     private otpRepository;
     private tenantRepository;
@@ -16,6 +17,7 @@ export declare class AuthService {
     private dataSource;
     private readonly logger;
     constructor(userRepository: Repository<User>, otpRepository: Repository<OtpVerification>, tenantRepository: Repository<Tenant>, jwtService: JwtService, configService: ConfigService, tenantSeeder: TenantSeederService, dataSource: DataSource);
+    onApplicationBootstrap(): Promise<void>;
     signup(dto: SignupDto): Promise<{
         success: boolean;
         message: string;

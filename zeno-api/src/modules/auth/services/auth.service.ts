@@ -3,6 +3,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   Logger,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
@@ -27,7 +28,7 @@ import {
 import { OtpPurpose } from '../../../common/enums';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -43,12 +44,63 @@ export class AuthService {
     private dataSource: DataSource,
   ) {}
 
+  async onApplicationBootstrap() {
+    try {
+      const userCount = await this.userRepository.count();
+      if (userCount === 0) {
+        this.logger.log('No users found in system. Seeding default demo account (admin@zenobooks.com / Password123!)...');
+
+        await this.dataSource.transaction(async (manager) => {
+          const tenant = manager.create(Tenant, {
+            name: 'Apex Technologies Pvt Ltd',
+            slug: 'apex-technologies-' + Math.floor(1000 + Math.random() * 9000),
+            isActive: true,
+          });
+          await manager.save(Tenant, tenant);
+
+          const salt = await bcrypt.genSalt(10);
+          const passwordHash = await bcrypt.hash('Password123!', salt);
+
+          const user = manager.create(User, {
+            email: 'admin@zenobooks.com',
+            fullName: 'Apex Demo Administrator',
+            passwordHash,
+            isEmailVerified: true,
+            isActive: true,
+            tenantId: tenant.id,
+          });
+          await manager.save(User, user);
+
+          await this.tenantSeeder.provisionTenantWithDefaults(
+            manager,
+            tenant,
+            {
+              legalName: 'Apex Technologies Pvt Ltd',
+              gstin: '27AABCU9603R1ZM',
+              stateCode: '27',
+              stateName: 'Maharashtra',
+            },
+            user,
+          );
+        });
+
+        this.logger.log('✅ Default demo account seeded successfully: admin@zenobooks.com / Password123!');
+      }
+    } catch (err: any) {
+      this.logger.error('Failed to seed default demo user account:', err?.message || err);
+    }
+  }
+
   /**
    * 1. Email OTP Signup
    */
   async signup(dto: SignupDto) {
+    if (!dto.email) {
+      throw new BadRequestException('Email address is required');
+    }
+    const cleanEmail = dto.email.trim().toLowerCase();
     const existing = await this.userRepository.findOne({
-      where: { email: dto.email.toLowerCase() },
+      where: { email: cleanEmail },
     });
 
     if (existing && existing.isEmailVerified) {
@@ -57,7 +109,7 @@ export class AuthService {
 
     // Check resend cooldown
     const latestOtp = await this.otpRepository.findOne({
-      where: { email: dto.email.toLowerCase(), purpose: OtpPurpose.SIGNUP, isConsumed: false },
+      where: { email: cleanEmail, purpose: OtpPurpose.SIGNUP, isConsumed: false },
       order: { createdAt: 'DESC' },
     });
 
@@ -73,7 +125,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, salt);
 
     const otpRecord = this.otpRepository.create({
-      email: dto.email.toLowerCase(),
+      email: cleanEmail,
       otpHash,
       purpose: OtpPurpose.SIGNUP,
       attemptsCount: 0,
@@ -86,8 +138,8 @@ export class AuthService {
         companyName: dto.companyName,
         passwordHash,
         gstin: dto.gstin,
-        stateCode: dto.stateCode,
-        stateName: dto.stateName,
+        stateCode: dto.stateCode || '27',
+        stateName: dto.stateName || 'Maharashtra',
       },
     });
 
@@ -95,13 +147,13 @@ export class AuthService {
 
     // In production, send via SendGrid/SES/SMTP. For development/testing, output prominently to console.
     this.logger.log(`========================================`);
-    this.logger.log(`[EMAIL OTP SIGNUP] To: ${dto.email} | OTP: ${otp}`);
+    this.logger.log(`[EMAIL OTP SIGNUP] To: ${cleanEmail} | OTP: ${otp}`);
     this.logger.log(`========================================`);
 
     return {
       success: true,
       message: 'Verification OTP sent to your email',
-      email: dto.email,
+      email: cleanEmail,
       cooldownSeconds: 60,
       devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
     };
@@ -111,8 +163,11 @@ export class AuthService {
    * 2. Verify Email OTP & Provision Tenant + Company + Masters
    */
   async verifyOtp(dto: VerifyOtpDto) {
-    const email = dto.email.toLowerCase();
-    const otpHash = crypto.createHash('sha256').update(dto.otp).digest('hex');
+    if (!dto.email || !dto.otp) {
+      throw new BadRequestException('Email and OTP are required');
+    }
+    const email = dto.email.trim().toLowerCase();
+    const otpHash = crypto.createHash('sha256').update(dto.otp.trim()).digest('hex');
 
     const otpRecord = await this.otpRepository.findOne({
       where: { email, purpose: OtpPurpose.SIGNUP, isConsumed: false },

@@ -167,10 +167,10 @@ export class SignupComponent {
 
     this.auth
       .signup({
-        companyName: this.companyName,
-        fullName: this.fullName,
-        email: this.email,
-        gstin: this.gstin,
+        companyName: this.companyName?.trim(),
+        fullName: this.fullName?.trim(),
+        email: this.email?.trim(),
+        gstin: this.gstin?.trim() || undefined,
         password: this.password,
         stateCode: '27',
         stateName: 'Maharashtra',
@@ -186,7 +186,16 @@ export class SignupComponent {
         },
         error: (err) => {
           this.loading = false;
-          this.errorMessage = err.error?.message || 'Failed to initiate signup';
+          if (err.status === 0) {
+            this.errorMessage = 'Unable to connect to the backend service (http://localhost:4000). Please verify the server is running.';
+          } else {
+            const rawMsg = err.error?.message;
+            if (Array.isArray(rawMsg)) {
+              this.errorMessage = rawMsg.join(', ');
+            } else {
+              this.errorMessage = rawMsg || err.statusText || 'Failed to initiate signup';
+            }
+          }
         },
       });
   }
@@ -202,7 +211,16 @@ export class SignupComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.message || 'Verification failed';
+        if (err.status === 0) {
+          this.errorMessage = 'Unable to connect to the backend service (http://localhost:4000). Please verify the server is running.';
+        } else {
+          const rawMsg = err.error?.message;
+          if (Array.isArray(rawMsg)) {
+            this.errorMessage = rawMsg.join(', ');
+          } else {
+            this.errorMessage = rawMsg || err.statusText || 'Verification failed';
+          }
+        }
       },
     });
   }

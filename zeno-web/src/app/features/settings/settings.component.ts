@@ -7,6 +7,7 @@ import { ApiService } from '../../core/services/api.service';
 import { TenantService } from '../../core/services/tenant.service';
 import { MastersService } from '../../core/services/masters.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AccountingService, FinancialYear } from '../../core/services/accounting.service';
 import { INDIAN_STATES } from '../../core/constants/states.constant';
 
 @Component({
@@ -35,6 +36,13 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
           } @else if (activeTab === 'warehouses') {
             <button class="btn-primary" (click)="openCreateWarehouseModal()">
               <i class="pi pi-plus"></i> Add New Warehouse
+            </button>
+          } @else if (activeTab === 'financial-years') {
+            <button class="btn-secondary" (click)="openCloseFyModal()" [disabled]="closingFy || !hasOpenFy()">
+              <i class="pi pi-lock"></i> Close F.Y. & Transfer Balances
+            </button>
+            <button class="btn-primary" (click)="openCreateFyModal()">
+              <i class="pi pi-plus"></i> Open New F.Y.
             </button>
           } @else if (activeTab === 'roles') {
             @if (roleViewMode === 'list') {
@@ -1009,91 +1017,94 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
 
       <!-- TAB 5: SALES CONFIGURATION -->
       @if (activeTab === 'sales') {
-        <div class="config-sections-wrapper">
-          <!-- INVOICING & CREDIT POLICIES -->
-          <div class="zeno-card padded-card">
-            <div class="card-title">Sales Invoicing & Statutory Compliance</div>
-            
-            <div class="config-grid">
-              <div class="form-group">
-                <label>Default Customer Credit Period (Days)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="settings.salesSettings.defaultCreditPeriod" 
-                  min="0"
-                />
-              </div>
+        <div class="zeno-card padded-card">
+          <div class="two-col-grid">
+            <!-- COLUMN 1: INVOICING & CREDIT PARAMETERS -->
+            <div class="config-col">
+              <div class="form-grid-stacked">
+                <div class="form-group">
+                  <label>Default Customer Credit Period (Days)</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="settings.salesSettings.defaultCreditPeriod" 
+                    min="0"
+                    placeholder="e.g. 30"
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>E-Way Bill Generation Threshold (₹)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="settings.salesSettings.ewayBillThreshold" 
-                  min="0"
-                />
-              </div>
+                <div class="form-group">
+                  <label>E-Way Bill Generation Threshold (₹)</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="settings.salesSettings.ewayBillThreshold" 
+                    min="0"
+                    placeholder="e.g. 50000"
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>Customer Credit Limit Enforcement</label>
-                <select [(ngModel)]="settings.salesSettings.creditLimitAction">
-                  <option value="WARN">Show Warning Alert on Exceeding</option>
-                  <option value="BLOCK">Strict Block (Prevent Invoice Creation)</option>
-                  <option value="IGNORE">No Verification</option>
-                </select>
-              </div>
+                <div class="form-group">
+                  <label>Customer Credit Limit Enforcement</label>
+                  <select [(ngModel)]="settings.salesSettings.creditLimitAction">
+                    <option value="WARN">Show Warning Alert on Exceeding</option>
+                    <option value="BLOCK">Strict Block (Prevent Invoice Creation)</option>
+                    <option value="IGNORE">No Verification</option>
+                  </select>
+                </div>
 
-              <div class="form-group">
-                <label>Default Sales Invoice Print Template</label>
-                <select [(ngModel)]="settings.salesSettings.printTemplate">
-                  <option value="TAX_INVOICE_GST">Standard GST Tax Invoice (A4)</option>
-                  <option value="COMPACT_2COL">Compact 2-Column Template</option>
-                  <option value="THERMAL_80MM">Thermal POS Receipt (80mm)</option>
-                  <option value="EXPORT_INVOICE">Export & Commercial Invoice</option>
-                </select>
+                <div class="form-group">
+                  <label>Default Sales Invoice Print Template</label>
+                  <select [(ngModel)]="settings.salesSettings.printTemplate">
+                    <option value="TAX_INVOICE_GST">Standard GST Tax Invoice (A4)</option>
+                    <option value="COMPACT_2COL">Compact 2-Column Template</option>
+                    <option value="THERMAL_80MM">Thermal POS Receipt (80mm)</option>
+                    <option value="EXPORT_INVOICE">Export & Commercial Invoice</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div class="toggles-sublist">
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Automatic Invoice Round-Off</span>
-                  <span class="toggle-row-desc">Automatically round final payable amount to the nearest whole rupee</span>
+            <!-- COLUMN 2: SALES RULES, POLICIES & TERMS -->
+            <div class="config-col">
+              <div class="toggles-sublist no-top-border">
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Automatic Invoice Round-Off</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.salesSettings.enableRoundOff" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.salesSettings.enableRoundOff" />
-                  <span class="slider round"></span>
-                </label>
+
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Allow Negative Stock Invoicing</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.salesSettings.allowNegativeStockSale" />
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Allow Billing Below Purchase Cost</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.salesSettings.allowSalesBelowCost" />
+                    <span class="slider round"></span>
+                  </label>
+                </div>
               </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Allow Negative Stock Invoicing</span>
-                  <span class="toggle-row-desc">Permit billing and dispatch even if warehouse quantity is zero or negative</span>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.salesSettings.allowNegativeStockSale" />
-                  <span class="slider round"></span>
-                </label>
+              <div class="form-group full-width-field" style="margin-top: 14px;">
+                <label>Default Terms & Conditions (Appended on Invoices)</label>
+                <textarea 
+                  rows="4" 
+                  [(ngModel)]="settings.salesSettings.termsAndConditions"
+                  placeholder="Enter standard payment terms, warranty info, or conditions..."
+                ></textarea>
               </div>
-
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Allow Billing Below Purchase Cost</span>
-                  <span class="toggle-row-desc">Permit selling prices lower than latest acquisition cost / moving average</span>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.salesSettings.allowSalesBelowCost" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
-            </div>
-
-            <div class="form-group full-width-field" style="margin-top: 18px;">
-              <label>Default Terms & Conditions (Appended on Invoices)</label>
-              <textarea 
-                rows="3" 
-                [(ngModel)]="settings.salesSettings.termsAndConditions"
-              ></textarea>
             </div>
           </div>
         </div>
@@ -1101,83 +1112,86 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
 
       <!-- TAB 6: PURCHASE CONFIGURATION -->
       @if (activeTab === 'purchase') {
-        <div class="config-sections-wrapper">
-          <div class="zeno-card padded-card">
-            <div class="card-title">Procurement Policies & Verification</div>
-            
-            <div class="config-grid">
-              <div class="form-group">
-                <label>PO Approval Authority Threshold (₹)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="settings.purchaseSettings.poApprovalThreshold" 
-                  min="0"
-                />
-              </div>
+        <div class="zeno-card padded-card">
+          <div class="two-col-grid">
+            <!-- COLUMN 1: PROCUREMENT PARAMETERS -->
+            <div class="config-col">
+              <div class="form-grid-stacked">
+                <div class="form-group">
+                  <label>PO Approval Authority Threshold (₹)</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="settings.purchaseSettings.poApprovalThreshold" 
+                    min="0"
+                    placeholder="e.g. 100000"
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>Maximum Price Variance Tolerance (%)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="settings.purchaseSettings.strictPriceVariancePercent" 
-                  min="0" 
-                  max="100"
-                />
-              </div>
+                <div class="form-group">
+                  <label>Maximum Price Variance Tolerance (%)</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="settings.purchaseSettings.strictPriceVariancePercent" 
+                    min="0" 
+                    max="100"
+                    placeholder="e.g. 5"
+                  />
+                </div>
 
-              <div class="form-group">
-                <label>Default Vendor Credit Period (Days)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="settings.purchaseSettings.defaultVendorCreditDays" 
-                  min="0"
-                />
+                <div class="form-group">
+                  <label>Default Vendor Credit Period (Days)</label>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="settings.purchaseSettings.defaultVendorCreditDays" 
+                    min="0"
+                    placeholder="e.g. 45"
+                  />
+                </div>
               </div>
             </div>
 
-            <div class="toggles-sublist">
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Enforce Three-Way Matching (PO ↔ GRN ↔ Bill)</span>
-                  <span class="toggle-row-desc">Block vendor bill posting if quantities exceed verified warehouse GRN counts</span>
+            <!-- COLUMN 2: WORKFLOW & VERIFICATION TOGGLES -->
+            <div class="config-col">
+              <div class="toggles-sublist no-top-border">
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Enforce Three-Way Matching (PO ↔ GRN ↔ Bill)</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.purchaseSettings.enforceThreeWayMatch" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.purchaseSettings.enforceThreeWayMatch" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Auto-Generate GRN on Purchase Order Approval</span>
-                  <span class="toggle-row-desc">Automatically create pending warehouse receiving document when PO is issued</span>
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Auto-Generate GRN on PO Approval</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.purchaseSettings.autoGrnFromPo" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.purchaseSettings.autoGrnFromPo" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Auto-Generate Vendor Bill on GRN Completion</span>
-                  <span class="toggle-row-desc">Draft purchase invoice immediately upon complete physical receiving</span>
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Auto-Generate Vendor Bill on GRN Completion</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.purchaseSettings.autoInvoiceFromGrn" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.purchaseSettings.autoInvoiceFromGrn" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Auto ITC Reversal on Debit Notes</span>
-                  <span class="toggle-row-desc">Automatically debit GST Input Tax Credit when generating purchase returns</span>
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Auto ITC Reversal on Debit Notes</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.purchaseSettings.debitNoteAutoItcReversal" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.purchaseSettings.debitNoteAutoItcReversal" />
-                  <span class="slider round"></span>
-                </label>
               </div>
             </div>
           </div>
@@ -1186,82 +1200,83 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
 
       <!-- TAB 7: INVENTORY CONFIGURATION -->
       @if (activeTab === 'inventory') {
-        <div class="config-sections-wrapper">
-          <div class="zeno-card padded-card">
-            <div class="card-title">Warehouse & Inventory Management Controls</div>
-            
-            <div class="config-grid">
-              <div class="form-group">
-                <label>Default Stock Valuation Method</label>
-                <select [(ngModel)]="settings.inventorySettings.valuationMethod">
-                  <option value="FIFO">FIFO (First In, First Out)</option>
-                  <option value="WEIGHTED_AVG">Weighted Average Cost (WAC)</option>
-                </select>
+        <div class="zeno-card padded-card">
+          <div class="two-col-grid">
+            <!-- COLUMN 1: VALUATION & GODOWN POLICIES -->
+            <div class="config-col">
+              <div class="form-grid-stacked" style="margin-bottom: 14px;">
+                <div class="form-group">
+                  <label>Default Stock Valuation Method</label>
+                  <select [(ngModel)]="settings.inventorySettings.valuationMethod">
+                    <option value="FIFO">FIFO (First In, First Out)</option>
+                    <option value="WEIGHTED_AVG">Weighted Average Cost (WAC)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Negative Stock Enforcement</label>
+                  <select [(ngModel)]="settings.inventorySettings.allowNegativeStock">
+                    <option [ngValue]="false">Strict Block (Prevent negative stock)</option>
+                    <option [ngValue]="true">Allowed with Warning Notification</option>
+                  </select>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label>Negative Stock Enforcement</label>
-                <select [(ngModel)]="settings.inventorySettings.allowNegativeStock">
-                  <option [ngValue]="false">Strict Block (Prevent negative stock)</option>
-                  <option [ngValue]="true">Allowed with Warning Notification</option>
-                </select>
+              <div class="toggles-sublist">
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Auto-Generate Product Barcodes</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.inventorySettings.autoGenerateBarcodes" />
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Two-Step Transfer Verification</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.inventorySettings.godownTransferVerification" />
+                    <span class="slider round"></span>
+                  </label>
+                </div>
               </div>
             </div>
 
-            <div class="toggles-sublist">
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Mandatory Batch & Lot Tracking</span>
-                  <span class="toggle-row-desc">Require batch number and manufacturing date on all warehouse receipts</span>
+            <!-- COLUMN 2: TRACKING & ALERT CONTROLS -->
+            <div class="config-col">
+              <div class="toggles-sublist no-top-border">
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Mandatory Batch & Lot Tracking</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.inventorySettings.mandatoryBatchTracking" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.inventorySettings.mandatoryBatchTracking" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Mandatory Serial / IMEI Number Tracking</span>
-                  <span class="toggle-row-desc">Enforce unique individual serial tracking for high-value items</span>
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Mandatory Serial / IMEI Tracking</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.inventorySettings.mandatorySerialNumber" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.inventorySettings.mandatorySerialNumber" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
 
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Auto-Generate Product Barcodes</span>
-                  <span class="toggle-row-desc">Automatically create unique EAN-13 barcodes when creating new items</span>
+                <div class="toggle-card-row">
+                  <div class="toggle-row-info">
+                    <span class="toggle-row-title">Low Stock Alert Notifications</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" [(ngModel)]="settings.inventorySettings.lowStockAlertEnabled" />
+                    <span class="slider round"></span>
+                  </label>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.inventorySettings.autoGenerateBarcodes" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
-
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Low Stock Alert Notifications</span>
-                  <span class="toggle-row-desc">Notify storekeeper when stock falls below minimum reorder point</span>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.inventorySettings.lowStockAlertEnabled" />
-                  <span class="slider round"></span>
-                </label>
-              </div>
-
-              <div class="toggle-card-row">
-                <div class="toggle-row-info">
-                  <span class="toggle-row-title">Two-Step Godown Transfer Verification</span>
-                  <span class="toggle-row-desc">Require dispatch and receipt confirmation for multi-branch warehouse transfers</span>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" [(ngModel)]="settings.inventorySettings.godownTransferVerification" />
-                  <span class="slider round"></span>
-                </label>
               </div>
             </div>
           </div>
@@ -2421,6 +2436,101 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
         }
       }
 
+      <!-- TAB 4: FINANCIAL YEARS (F.Y.) -->
+      @if (activeTab === 'financial-years') {
+        <div class="roles-container">
+          <div class="zeno-card padded-card">
+            <div class="card-header-flex" style="padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--surface-200);">
+              <div>
+                <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--surface-900);">
+                  <i class="pi pi-calendar" style="color: var(--primary-600); margin-right: 8px;"></i>
+                  Multi-Financial Year (F.Y.) Management
+                </h3>
+                <p style="margin: 4px 0 0; font-size: 0.8125rem; color: var(--surface-500);">
+                  Manage active & closed accounting periods. Closing a year automatically calculates and transfers Balance Sheet head closing balances as opening balances for the new year.
+                </p>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-secondary" (click)="openCloseFyModal()" [disabled]="closingFy || !hasOpenFy()">
+                  <i class="pi pi-lock"></i> Close Active F.Y. & Transfer Balances
+                </button>
+                <button type="button" class="btn-primary" (click)="openCreateFyModal()">
+                  <i class="pi pi-plus"></i> Open New F.Y.
+                </button>
+              </div>
+            </div>
+
+            <!-- TABLE OF FINANCIAL YEARS -->
+            <div class="table-responsive">
+              <table class="zeno-table">
+                <thead>
+                  <tr>
+                    <th>F.Y. Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Active Context</th>
+                    <th>Closed At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (fy of financialYears; track fy.id) {
+                    <tr>
+                      <td style="font-weight: 700; color: var(--surface-900);">{{ fy.name }}</td>
+                      <td>{{ fy.startDate }}</td>
+                      <td>{{ fy.endDate }}</td>
+                      <td>
+                        @if (fy.isClosed) {
+                          <span class="badge badge-closed" style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.75rem;">
+                            <i class="pi pi-lock" style="font-size: 0.7rem; margin-right: 4px;"></i> CLOSED
+                          </span>
+                        } @else {
+                          <span class="badge badge-open" style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.75rem;">
+                            <i class="pi pi-spin pi-spinner" style="font-size: 0.7rem; margin-right: 4px;"></i> OPEN / ACTIVE
+                          </span>
+                        }
+                      </td>
+                      <td>
+                        @if (fy.isCurrent) {
+                          <span style="color: var(--primary-700); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="pi pi-check-circle" style="color: var(--primary-600);"></i> Current F.Y.
+                          </span>
+                        } @else {
+                          <span style="color: var(--surface-400);">--</span>
+                        }
+                      </td>
+                      <td>{{ fy.closedAt ? (fy.closedAt | date:'mediumDate') : '--' }}</td>
+                      <td>
+                        <div style="display: flex; gap: 6px;">
+                          @if (!fy.isClosed) {
+                            <button type="button" class="btn-xs btn-outline-danger" (click)="openCloseFyModal(fy)" title="Close year & transfer opening balances">
+                              <i class="pi pi-lock"></i> Close Year
+                            </button>
+                          }
+                          @if (!fy.isCurrent) {
+                            <button type="button" class="btn-xs btn-outline-primary" (click)="switchFy(fy)" title="Set as current active F.Y.">
+                              Switch Context
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                  @if (financialYears.length === 0) {
+                    <tr>
+                      <td colspan="7" style="text-align: center; padding: 24px; color: var(--surface-500);">
+                        No Financial Years found. Loading initial period...
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- MODAL: EDIT ROLE DETAILS -->
       @if (editRoleModalVisible && editingRole) {
         <div class="modal-backdrop">
@@ -2567,13 +2677,79 @@ import { INDIAN_STATES } from '../../core/constants/states.constant';
           </div>
         </div>
       }
+
+      <!-- MODAL: OPEN NEW FINANCIAL YEAR -->
+      @if (showCreateFyModal) {
+        <div class="modal-backdrop">
+          <div class="modal-dialog" style="max-width: 500px;">
+            <div class="modal-header">
+              <h3>Open New Financial Year</h3>
+              <button type="button" class="close-btn" (click)="showCreateFyModal = false">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label>F.Y. Name *</label>
+                <input type="text" [(ngModel)]="newFyData.name" placeholder="e.g. F.Y. 2026-2027" />
+              </div>
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label>Start Date *</label>
+                <input type="date" [(ngModel)]="newFyData.startDate" />
+              </div>
+              <div class="form-group">
+                <label>End Date *</label>
+                <input type="date" [(ngModel)]="newFyData.endDate" />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" (click)="showCreateFyModal = false">Cancel</button>
+              <button type="button" class="btn-primary" (click)="submitCreateFy()" [disabled]="creatingFy || !newFyData.name">
+                <i class="pi pi-check"></i> {{ creatingFy ? 'Creating...' : 'Open Financial Year' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- MODAL: CLOSE FINANCIAL YEAR & TRANSFER BALANCES -->
+      @if (showCloseFyModal && selectedFyToClose) {
+        <div class="modal-backdrop">
+          <div class="modal-dialog" style="max-width: 550px;">
+            <div class="modal-header">
+              <h3>Close Financial Year: {{ selectedFyToClose.name }}</h3>
+              <button type="button" class="close-btn" (click)="showCloseFyModal = false">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 14px; border-radius: 6px; font-size: 0.84rem; margin-bottom: 16px;">
+                <i class="pi pi-info-circle" style="margin-right: 6px; font-weight: bold;"></i>
+                <strong>Year-End Balance Transfer Rule:</strong>
+                Closing this Financial Year will calculate the final Net Closing Balance of all Balance Sheet Ledger Heads (Assets, Liabilities, Equity) and automatically post them as the Opening Balances for the new Financial Year.
+              </div>
+
+              <div class="form-group">
+                <label>Year-End Closing Audit Notes / Remarks</label>
+                <textarea rows="3" [(ngModel)]="fyClosingNotes" placeholder="Enter year-end audit remarks or approval notes..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" (click)="showCloseFyModal = false">Cancel</button>
+              <button type="button" class="btn-primary btn-danger-action" (click)="submitCloseFy()" [disabled]="closingFy">
+                <i class="pi pi-lock"></i> {{ closingFy ? 'Processing Transfer...' : 'Confirm Close & Transfer Balances' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styleUrl: './settings.component.scss',
 })
 export class SettingsComponent implements OnInit {
   readonly indianStates = INDIAN_STATES;
-  activeTab: 'company' | 'branches' | 'warehouses' | 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' = 'company';
+  activeTab: 'company' | 'branches' | 'warehouses' | 'financial-years' | 'toggles' | 'roles' | 'users' | 'mappings' | 'vouchers' | 'sales' | 'purchase' | 'inventory' | 'gst' | 'taxes' = 'company';
   gstSubTab: 'hierarchy' | 'slabs' = 'hierarchy';
   companySubTab: 'basic' | 'address' | 'gst' | 'contact' | 'logo' = 'basic';
   saving = false;
@@ -2671,6 +2847,21 @@ export class SettingsComponent implements OnInit {
     contactPhone: '',
     isActive: true,
   };
+
+  // Financial Year State
+  financialYears: any[] = [];
+  financialYearSearchQuery = '';
+  showCreateFyModal = false;
+  creatingFy = false;
+  newFyData = {
+    name: '',
+    startDate: '',
+    endDate: '',
+  };
+  showCloseFyModal = false;
+  closingFy = false;
+  selectedFyToClose: any = null;
+  fyClosingNotes = '';
 
   get currentCompany() {
     return this.tenant.currentCompany();
@@ -2948,6 +3139,7 @@ export class SettingsComponent implements OnInit {
     private toast: ToastService,
     private route: ActivatedRoute,
     private router: Router,
+    private accountingService: AccountingService,
   ) {}
 
   ngOnInit() {
@@ -2961,7 +3153,7 @@ export class SettingsComponent implements OnInit {
         this.gstSubTab = 'hierarchy';
       } else if (
         tab &&
-        ['company', 'branches', 'warehouses', 'toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory'].includes(tab)
+        ['company', 'branches', 'warehouses', 'financial-years', 'toggles', 'roles', 'users', 'mappings', 'vouchers', 'sales', 'purchase', 'inventory'].includes(tab)
       ) {
         this.activeTab = tab as any;
       }
@@ -3062,6 +3254,7 @@ export class SettingsComponent implements OnInit {
     this.loadCompanyProfile();
     this.loadBranches();
     this.loadWarehouses();
+    this.loadFinancialYears();
     const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id');
 
     // Load Settings
@@ -3133,6 +3326,114 @@ export class SettingsComponent implements OnInit {
         },
       });
     }
+  }
+
+  loadFinancialYears() {
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id') || '';
+    if (!compId) return;
+    this.accountingService.getFinancialYears(compId).subscribe({
+      next: (res) => {
+        this.financialYears = res || [];
+      },
+      error: (err) => {
+        console.error('Failed to load financial years', err);
+      },
+    });
+  }
+
+  hasOpenFy(): boolean {
+    return this.financialYears.some((fy) => !fy.isClosed);
+  }
+
+  openCreateFyModal() {
+    if (this.hasOpenFy()) {
+      this.toast.error('Cannot create a new Financial Year while an existing Financial Year is open. Please close the active Financial Year first.');
+      return;
+    }
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const nextYear = currentYear + 1;
+    this.newFyData = {
+      name: `F.Y. ${currentYear}-${nextYear}`,
+      startDate: `${currentYear}-04-01`,
+      endDate: `${nextYear}-03-31`,
+    };
+    this.showCreateFyModal = true;
+  }
+
+  submitCreateFy() {
+    if (!this.newFyData.name || !this.newFyData.startDate || !this.newFyData.endDate) {
+      this.toast.error('Please fill all required Financial Year fields.');
+      return;
+    }
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id') || '';
+    this.creatingFy = true;
+    this.accountingService
+      .createFinancialYear({
+        companyId: compId,
+        name: this.newFyData.name,
+        startDate: this.newFyData.startDate,
+        endDate: this.newFyData.endDate,
+      })
+      .subscribe({
+        next: (created) => {
+          this.creatingFy = false;
+          this.showCreateFyModal = false;
+          this.toast.success(`Financial Year ${created.name} created successfully.`);
+          this.loadFinancialYears();
+        },
+        error: (err) => {
+          this.creatingFy = false;
+          this.toast.error(err.error?.message || 'Failed to create Financial Year.');
+        },
+      });
+  }
+
+  openCloseFyModal(fy?: any) {
+    const target = fy || this.financialYears.find((f) => !f.isClosed);
+    if (!target || target.isClosed) return;
+    this.selectedFyToClose = target;
+    this.fyClosingNotes = '';
+    this.showCloseFyModal = true;
+  }
+
+  submitCloseFy() {
+    if (!this.selectedFyToClose) return;
+    const compId = this.tenant.currentCompany()?.id || localStorage.getItem('zeno_company_id') || '';
+    this.closingFy = true;
+    this.accountingService
+      .closeFinancialYear({
+        companyId: compId,
+        fyId: this.selectedFyToClose.id,
+        closingNotes: this.fyClosingNotes,
+      })
+      .subscribe({
+        next: () => {
+          this.closingFy = false;
+          this.showCloseFyModal = false;
+          this.toast.success(
+            `Financial Year ${this.selectedFyToClose.name} closed successfully. Balance Sheet head closing balances transferred as opening balances for the new Financial Year.`,
+          );
+          this.selectedFyToClose = null;
+          this.loadFinancialYears();
+        },
+        error: (err) => {
+          this.closingFy = false;
+          this.toast.error(err.error?.message || 'Failed to close Financial Year.');
+        },
+      });
+  }
+
+  switchFy(fy: any) {
+    this.accountingService.switchFinancialYear(fy.id).subscribe({
+      next: () => {
+        this.toast.success(`Switched active Financial Year context to ${fy.name}`);
+        this.loadFinancialYears();
+      },
+      error: (err) => {
+        this.toast.error(err.error?.message || 'Failed to switch Financial Year.');
+      },
+    });
   }
 
   getVoucherPreview(key: string): string {
@@ -3710,9 +4011,11 @@ export class SettingsComponent implements OnInit {
           this.toast.success(this.saveMessage, 'Features Saved');
           setTimeout(() => (this.saveSuccess = false), 3500);
         },
-        error: () => {
+        error: (err: any) => {
           this.saving = false;
-          this.toast.error('Failed to save modular system capabilities.', 'Save Failed');
+          this.loadAll(); // Reload actual feature states from server
+          const errorMsg = err.error?.message || 'Failed to save modular system capabilities.';
+          this.toast.error(errorMsg, 'Save Blocked');
         },
       });
       return;
@@ -3740,9 +4043,10 @@ export class SettingsComponent implements OnInit {
         this.toast.success(this.saveMessage, 'Settings Saved');
         setTimeout(() => (this.saveSuccess = false), 3500);
       },
-      error: () => {
+      error: (err: any) => {
         this.saving = false;
-        this.toast.error('Failed to save configuration settings.', 'Save Failed');
+        const errorMsg = err.error?.message || 'Failed to save configuration settings.';
+        this.toast.error(errorMsg, 'Save Failed');
       },
     });
   }
@@ -3790,9 +4094,15 @@ export class SettingsComponent implements OnInit {
         this.toast.success(this.saveMessage, 'Feature Saved');
         setTimeout(() => (this.saveSuccess = false), 2500);
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Failed to update toggle', err);
-        this.toast.error('Failed to update feature setting.', 'Update Failed');
+        // Rollback switch state in UI if update/disable was blocked
+        toggle.isEnabled = !isChecked;
+        if (event.target) {
+          event.target.checked = !isChecked;
+        }
+        const errorMsg = err.error?.message || 'Failed to update feature setting.';
+        this.toast.error(errorMsg, 'Action Blocked');
       },
     });
   }

@@ -27,6 +27,11 @@ import { AuthService } from '../../core/services/auth.service';
             </div>
           }
 
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 10px 14px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+            <i class="pi pi-info-circle"></i>
+            <span>Demo Credentials: <strong>admin&#64;zenobooks.com</strong> | <strong>Password123!</strong></span>
+          </div>
+
           <form (ngSubmit)="onLogin()">
             <div class="form-group">
               <label>Work Email</label>
@@ -73,8 +78,8 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-  email = '';
-  password = '';
+  email = 'admin@zenobooks.com';
+  password = 'Password123!';
   loading = false;
   errorMessage = '';
 
@@ -94,7 +99,16 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.message || 'Login failed. Please check your credentials.';
+        if (err.status === 0) {
+          this.errorMessage = 'Unable to connect to backend server (http://localhost:4000). Please check server status.';
+        } else {
+          const rawMsg = err.error?.message;
+          if (Array.isArray(rawMsg)) {
+            this.errorMessage = rawMsg.join(', ');
+          } else {
+            this.errorMessage = rawMsg || 'Login failed. Please check your credentials.';
+          }
+        }
       },
     });
   }

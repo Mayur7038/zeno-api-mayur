@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CompanySettings } from '../entities/company-settings.entity';
 import { FeatureToggle } from '../entities/feature-toggle.entity';
 import { TaxMaster } from '../entities/tax-master.entity';
@@ -7,7 +7,8 @@ export declare class SettingsService {
     private settingsRepo;
     private toggleRepo;
     private taxMasterRepo;
-    constructor(settingsRepo: Repository<CompanySettings>, toggleRepo: Repository<FeatureToggle>, taxMasterRepo: Repository<TaxMaster>);
+    private dataSource;
+    constructor(settingsRepo: Repository<CompanySettings>, toggleRepo: Repository<FeatureToggle>, taxMasterRepo: Repository<TaxMaster>, dataSource: DataSource);
     getSettings(tenantId: string, companyId: string): Promise<CompanySettings>;
     getDefaultVoucherConfig(): {
         PO: {
@@ -204,6 +205,10 @@ export declare class SettingsService {
     };
     updateSettings(tenantId: string, companyId: string, data: Partial<CompanySettings>): Promise<CompanySettings>;
     getFeatureToggles(tenantId: string, companyId: string): Promise<FeatureToggle[]>;
+    checkTransactionRecordsExist(tenantId: string, companyId: string, featureKey: FeatureKey): Promise<{
+        hasRecords: boolean;
+        message?: string;
+    }>;
     setFeatureToggle(tenantId: string, companyId: string, featureKey: FeatureKey, isEnabled: boolean): Promise<FeatureToggle>;
     isFeatureEnabled(tenantId: string, companyId: string, featureKey: FeatureKey): Promise<boolean>;
     getTaxMasters(tenantId: string, companyId: string): Promise<TaxMaster[]>;

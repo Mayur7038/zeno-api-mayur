@@ -10,24 +10,34 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
   const router = inject(Router);
   const http = inject(HttpClient);
 
-  // Add auth headers if not already added
-  const token = localStorage.getItem('zeno_token');
-  const tenantId = localStorage.getItem('zeno_tenant_id');
-  const companyId = localStorage.getItem('zeno_company_id');
-  const branchId = localStorage.getItem('zeno_branch_id');
+  // If public auth endpoint, do not attach existing session headers
+  const isAuthUrl =
+    req.url.includes('/auth/login') ||
+    req.url.includes('/auth/signup') ||
+    req.url.includes('/auth/refresh') ||
+    req.url.includes('/auth/verify-otp') ||
+    req.url.includes('/auth/forgot-password') ||
+    req.url.includes('/auth/reset-password');
 
   let headers = req.headers;
-  if (token && !headers.has('Authorization')) {
-    headers = headers.set('Authorization', `Bearer ${token}`);
-  }
-  if (tenantId && !headers.has('X-Tenant-Id')) {
-    headers = headers.set('X-Tenant-Id', tenantId);
-  }
-  if (companyId && !headers.has('X-Company-Id')) {
-    headers = headers.set('X-Company-Id', companyId);
-  }
-  if (branchId && !headers.has('X-Branch-Id')) {
-    headers = headers.set('X-Branch-Id', branchId);
+  if (!isAuthUrl) {
+    const token = localStorage.getItem('zeno_token');
+    const tenantId = localStorage.getItem('zeno_tenant_id');
+    const companyId = localStorage.getItem('zeno_company_id');
+    const branchId = localStorage.getItem('zeno_branch_id');
+
+    if (token && !headers.has('Authorization')) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    if (tenantId && !headers.has('X-Tenant-Id')) {
+      headers = headers.set('X-Tenant-Id', tenantId);
+    }
+    if (companyId && !headers.has('X-Company-Id')) {
+      headers = headers.set('X-Company-Id', companyId);
+    }
+    if (branchId && !headers.has('X-Branch-Id')) {
+      headers = headers.set('X-Branch-Id', branchId);
+    }
   }
 
   const clonedReq = req.clone({ headers });

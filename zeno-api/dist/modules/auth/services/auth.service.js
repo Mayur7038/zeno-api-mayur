@@ -45,15 +45,56 @@ let AuthService = AuthService_1 = class AuthService {
         this.tenantSeeder = tenantSeeder;
         this.dataSource = dataSource;
     }
+    async onApplicationBootstrap() {
+        try {
+            const userCount = await this.userRepository.count();
+            if (userCount === 0) {
+                this.logger.log('No users found in system. Seeding default demo account (admin@zenobooks.com / Password123!)...');
+                await this.dataSource.transaction(async (manager) => {
+                    const tenant = manager.create(tenant_entity_1.Tenant, {
+                        name: 'Apex Technologies Pvt Ltd',
+                        slug: 'apex-technologies-' + Math.floor(1000 + Math.random() * 9000),
+                        isActive: true,
+                    });
+                    await manager.save(tenant_entity_1.Tenant, tenant);
+                    const salt = await bcrypt.genSalt(10);
+                    const passwordHash = await bcrypt.hash('Password123!', salt);
+                    const user = manager.create(user_entity_1.User, {
+                        email: 'admin@zenobooks.com',
+                        fullName: 'Apex Demo Administrator',
+                        passwordHash,
+                        isEmailVerified: true,
+                        isActive: true,
+                        tenantId: tenant.id,
+                    });
+                    await manager.save(user_entity_1.User, user);
+                    await this.tenantSeeder.provisionTenantWithDefaults(manager, tenant, {
+                        legalName: 'Apex Technologies Pvt Ltd',
+                        gstin: '27AABCU9603R1ZM',
+                        stateCode: '27',
+                        stateName: 'Maharashtra',
+                    }, user);
+                });
+                this.logger.log('✅ Default demo account seeded successfully: admin@zenobooks.com / Password123!');
+            }
+        }
+        catch (err) {
+            this.logger.error('Failed to seed default demo user account:', err?.message || err);
+        }
+    }
     async signup(dto) {
+        if (!dto.email) {
+            throw new common_1.BadRequestException('Email address is required');
+        }
+        const cleanEmail = dto.email.trim().toLowerCase();
         const existing = await this.userRepository.findOne({
-            where: { email: dto.email.toLowerCase() },
+            where: { email: cleanEmail },
         });
         if (existing && existing.isEmailVerified) {
             throw new common_1.BadRequestException('User with this email already exists and is active');
         }
         const latestOtp = await this.otpRepository.findOne({
-            where: { email: dto.email.toLowerCase(), purpose: enums_1.OtpPurpose.SIGNUP, isConsumed: false },
+            where: { email: cleanEmail, purpose: enums_1.OtpPurpose.SIGNUP, isConsumed: false },
             order: { createdAt: 'DESC' },
         });
         const now = new Date();
@@ -66,7 +107,7 @@ let AuthService = AuthService_1 = class AuthService {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(dto.password, salt);
         const otpRecord = this.otpRepository.create({
-            email: dto.email.toLowerCase(),
+            email: cleanEmail,
             otpHash,
             purpose: enums_1.OtpPurpose.SIGNUP,
             attemptsCount: 0,
@@ -79,25 +120,28 @@ let AuthService = AuthService_1 = class AuthService {
                 companyName: dto.companyName,
                 passwordHash,
                 gstin: dto.gstin,
-                stateCode: dto.stateCode,
-                stateName: dto.stateName,
+                stateCode: dto.stateCode || '27',
+                stateName: dto.stateName || 'Maharashtra',
             },
         });
         await this.otpRepository.save(otpRecord);
         this.logger.log(`========================================`);
-        this.logger.log(`[EMAIL OTP SIGNUP] To: ${dto.email} | OTP: ${otp}`);
+        this.logger.log(`[EMAIL OTP SIGNUP] To: ${cleanEmail} | OTP: ${otp}`);
         this.logger.log(`========================================`);
         return {
             success: true,
             message: 'Verification OTP sent to your email',
-            email: dto.email,
+            email: cleanEmail,
             cooldownSeconds: 60,
             devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
         };
     }
     async verifyOtp(dto) {
-        const email = dto.email.toLowerCase();
-        const otpHash = crypto.createHash('sha256').update(dto.otp).digest('hex');
+        if (!dto.email || !dto.otp) {
+            throw new common_1.BadRequestException('Email and OTP are required');
+        }
+        const email = dto.email.trim().toLowerCase();
+        const otpHash = crypto.createHash('sha256').update(dto.otp.trim()).digest('hex');
         const otpRecord = await this.otpRepository.findOne({
             where: { email, purpose: enums_1.OtpPurpose.SIGNUP, isConsumed: false },
             order: { createdAt: 'DESC' },

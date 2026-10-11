@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CompanySettings } from '../entities/company-settings.entity';
 import { FeatureToggle } from '../entities/feature-toggle.entity';
 import { TaxMaster } from '../entities/tax-master.entity';
@@ -15,6 +15,7 @@ export class SettingsService {
     private toggleRepo: Repository<FeatureToggle>,
     @InjectRepository(TaxMaster)
     private taxMasterRepo: Repository<TaxMaster>,
+    private dataSource: DataSource,
   ) {}
 
   async getSettings(tenantId: string, companyId: string) {
@@ -141,12 +142,195 @@ export class SettingsService {
     return toggles;
   }
 
+  async checkTransactionRecordsExist(
+    tenantId: string,
+    companyId: string,
+    featureKey: FeatureKey,
+  ): Promise<{ hasRecords: boolean; message?: string }> {
+    try {
+      switch (featureKey) {
+        case FeatureKey.PURCHASE_ORDER: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM purchase_orders WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Purchase Orders option because ${count} Purchase Order transaction record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.GRN: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM goods_receipt_notes WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Goods Receipt Notes (GRN) option because ${count} GRN transaction record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.SALES_ORDER: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM sales_orders WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Sales Orders option because ${count} Sales Order transaction record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.DELIVERY_CHALLAN: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM delivery_challans WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Delivery Challans option because ${count} Delivery Challan transaction record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.MANUFACTURING: {
+          const boms = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM boms WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const entries = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM production_entries WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const total = (boms?.[0]?.count || 0) + (entries?.[0]?.count || 0);
+          if (total > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Manufacturing option because ${total} BOM / Production Entry record(s) exist. Please delete existing records first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.STOCK_TRANSFER: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM stock_transfers WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Stock Transfers option because ${count} Stock Transfer record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.STOCK_ADJUSTMENT: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM stock_adjustments WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Stock Adjustments option because ${count} Stock Adjustment record(s) exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.PRICE_LIST: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM price_lists WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Price Lists option because ${count} Price List record(s) exist. Please delete existing records first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.VARIANTS: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM variant_definitions WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Item Variants option because ${count} Variant Definition record(s) exist. Please delete existing records first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.GST: {
+          const resSales = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM sales_invoices WHERE tenant_id = $1 AND company_id = $2 AND total_tax > 0`,
+            [tenantId, companyId],
+          );
+          const resPur = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM purchase_invoices WHERE tenant_id = $1 AND company_id = $2 AND total_tax > 0`,
+            [tenantId, companyId],
+          );
+          const total = (resSales?.[0]?.count || 0) + (resPur?.[0]?.count || 0);
+          if (total > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable GST option because ${total} Invoice transaction record(s) with GST exist. Please delete existing transactions first.`,
+            };
+          }
+          break;
+        }
+        case FeatureKey.RACK_BIN: {
+          const res = await this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM rack_bins WHERE tenant_id = $1 AND company_id = $2`,
+            [tenantId, companyId],
+          );
+          const count = res?.[0]?.count || 0;
+          if (count > 0) {
+            return {
+              hasRecords: true,
+              message: `Cannot disable Rack/Bin Storage option because ${count} Rack/Bin location record(s) exist. Please delete existing locations first.`,
+            };
+          }
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn('Transaction record existence check warning:', err);
+    }
+    return { hasRecords: false };
+  }
+
   async setFeatureToggle(
     tenantId: string,
     companyId: string,
     featureKey: FeatureKey,
     isEnabled: boolean,
   ) {
+    if (isEnabled === false) {
+      const check = await this.checkTransactionRecordsExist(tenantId, companyId, featureKey);
+      if (check.hasRecords) {
+        throw new BadRequestException(check.message);
+      }
+    }
+
     let toggle = await this.toggleRepo.findOne({
       where: { tenantId, companyId, featureKey },
     });

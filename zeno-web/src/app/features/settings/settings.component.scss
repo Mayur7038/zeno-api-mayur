@@ -63,8 +63,13 @@
       }
     }
 
+    .zeno-card,
     .padded-card {
-      padding: 24px;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 0 !important;
     }
 
     .card-title {
@@ -1446,6 +1451,44 @@
       font-size: 0.8125rem;
     }
 
+    /* Single-Card 2-Column Grid Layout */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+
+      @media (max-width: 992px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .config-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .col-section-title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--surface-800);
+      margin-bottom: 4px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--primary-100);
+    }
+
+    .form-grid-stacked {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .no-top-border {
+      border-top: none !important;
+      padding-top: 0 !important;
+    }
+
     /* Config Sections */
     .config-grid {
       display: grid;
@@ -1458,18 +1501,18 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      padding-top: 16px;
-      border-top: 1px solid var(--surface-200);
+      padding-top: 0;
+      border-top: none;
     }
 
     .toggle-card-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: var(--surface-50);
-      border: 1px solid var(--surface-200);
-      border-radius: var(--radius-sm);
+      padding: 8px 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
     }
 
     .toggle-row-info {

@@ -32,6 +32,20 @@ export interface AccountingVoucher {
   createdAt?: string;
 }
 
+export interface FinancialYear {
+  id: string;
+  tenantId: string;
+  companyId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isClosed: boolean;
+  closedAt?: string;
+  isCurrent: boolean;
+  closingNotes?: string;
+  createdAt?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -76,5 +90,26 @@ export class AccountingService {
     if (startDate) query += `&startDate=${startDate}`;
     if (endDate) query += `&endDate=${endDate}`;
     return this.api.get(`/accounting/ledger-statement${query}`);
+  }
+
+  // Financial Year Management
+  getFinancialYears(companyId: string): Observable<FinancialYear[]> {
+    return this.api.get<FinancialYear[]>(`/accounting/financial-years?companyId=${companyId}`);
+  }
+
+  getCurrentFinancialYear(companyId: string): Observable<FinancialYear> {
+    return this.api.get<FinancialYear>(`/accounting/financial-years/current?companyId=${companyId}`);
+  }
+
+  createFinancialYear(data: { companyId: string; name: string; startDate: string; endDate: string }): Observable<FinancialYear> {
+    return this.api.post<FinancialYear>('/accounting/financial-years', data);
+  }
+
+  closeFinancialYear(data: { companyId: string; fyId?: string; closingNotes?: string }): Observable<any> {
+    return this.api.post('/accounting/financial-years/close', data);
+  }
+
+  switchFinancialYear(data: { companyId: string; fyId: string }): Observable<FinancialYear> {
+    return this.api.post<FinancialYear>('/accounting/financial-years/switch', data);
   }
 }

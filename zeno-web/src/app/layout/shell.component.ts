@@ -335,40 +335,123 @@ import { TenantService } from '../core/services/tenant.service';
           <div class="settings-nav-section-title">SETTING MENU</div>
 
           <nav class="sidebar-nav settings-subnav">
-            <!-- 1. COMPANY PROFILE -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'company' }"
-              [class.active]="currentSettingsTab === 'company'"
-              class="nav-item"
-            >
-              <i class="pi pi-building"></i>
-              <span>Company Profile</span>
-            </a>
+            <!-- 1. ORGANIZATION (DROPDOWN MENU) -->
+            <div class="nav-dropdown">
+              <button
+                type="button"
+                class="nav-dropdown-header"
+                (click)="toggleSettingsOrganization()"
+                [class.active-parent]="isSettingsOrganizationActive()"
+              >
+                <div class="dropdown-title-wrap">
+                  <i class="pi pi-building dropdown-icon"></i>
+                  <span class="dropdown-title">Organization</span>
+                </div>
+                <i
+                  class="pi pi-chevron-right dropdown-caret"
+                  [class.rotated]="settingsOrganizationOpen"
+                ></i>
+              </button>
 
-            <!-- 2. BRANCH -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'branches' }"
-              [class.active]="currentSettingsTab === 'branches'"
-              class="nav-item"
-            >
-              <i class="pi pi-sitemap"></i>
-              <span>Branch</span>
-            </a>
+              @if (settingsOrganizationOpen || isSidebarCollapsed) {
+                <div class="nav-submenu">
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'company' }"
+                    [class.active]="currentSettingsTab === 'company'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-building"></i>
+                    <span>Company Profile</span>
+                  </a>
 
-            <!-- 2. WAREHOUSE -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'warehouses' }"
-              [class.active]="currentSettingsTab === 'warehouses'"
-              class="nav-item"
-            >
-              <i class="pi pi-warehouse"></i>
-              <span>Warehouse</span>
-            </a>
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'branches' }"
+                    [class.active]="currentSettingsTab === 'branches'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-sitemap"></i>
+                    <span>Branch</span>
+                  </a>
 
-            <!-- 3. FEATURES -->
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'warehouses' }"
+                    [class.active]="currentSettingsTab === 'warehouses'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-warehouse"></i>
+                    <span>Warehouse</span>
+                  </a>
+
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'financial-years' }"
+                    [class.active]="currentSettingsTab === 'financial-years'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-calendar"></i>
+                    <span>Financial Years (F.Y.)</span>
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- 2. CONFIGURATION (DROPDOWN MENU) -->
+            <div class="nav-dropdown">
+              <button
+                type="button"
+                class="nav-dropdown-header"
+                (click)="toggleSettingsConfiguration()"
+                [class.active-parent]="isSettingsConfigurationActive()"
+              >
+                <div class="dropdown-title-wrap">
+                  <i class="pi pi-cog dropdown-icon"></i>
+                  <span class="dropdown-title">Configuration</span>
+                </div>
+                <i
+                  class="pi pi-chevron-right dropdown-caret"
+                  [class.rotated]="settingsConfigurationOpen"
+                ></i>
+              </button>
+
+              @if (settingsConfigurationOpen || isSidebarCollapsed) {
+                <div class="nav-submenu">
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'sales' }"
+                    [class.active]="currentSettingsTab === 'sales'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-shopping-bag"></i>
+                    <span>Sales Configuration</span>
+                  </a>
+
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'purchase' }"
+                    [class.active]="currentSettingsTab === 'purchase'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-shopping-cart"></i>
+                    <span>Purchase Configuration</span>
+                  </a>
+
+                  <a
+                    [routerLink]="['/settings']"
+                    [queryParams]="{ tab: 'inventory' }"
+                    [class.active]="currentSettingsTab === 'inventory'"
+                    class="nav-subitem"
+                  >
+                    <i class="pi pi-box"></i>
+                    <span>Inventory Configuration</span>
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- OTHER SETTING ITEMS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'toggles' }"
@@ -379,7 +462,6 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Features</span>
             </a>
 
-            <!-- 4. USER ROLES -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'roles' }"
@@ -390,7 +472,6 @@ import { TenantService } from '../core/services/tenant.service';
               <span>User Roles</span>
             </a>
 
-            <!-- 5. USERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'users' }"
@@ -401,7 +482,6 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Users</span>
             </a>
 
-            <!-- 6. DEFAULT LEDGERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'mappings' }"
@@ -412,7 +492,6 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Default Ledgers</span>
             </a>
 
-            <!-- 7. VOUCHER NUMBERS -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'vouchers' }"
@@ -423,40 +502,6 @@ import { TenantService } from '../core/services/tenant.service';
               <span>Voucher Numbers</span>
             </a>
 
-            <!-- 8. SALES CONFIGURATION -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'sales' }"
-              [class.active]="currentSettingsTab === 'sales'"
-              class="nav-item"
-            >
-              <i class="pi pi-shopping-bag"></i>
-              <span>Sales Configuration</span>
-            </a>
-
-            <!-- 9. PURCHASE CONFIGURATION -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'purchase' }"
-              [class.active]="currentSettingsTab === 'purchase'"
-              class="nav-item"
-            >
-              <i class="pi pi-shopping-cart"></i>
-              <span>Purchase Configuration</span>
-            </a>
-
-            <!-- 10. INVENTORY CONFIGURATION -->
-            <a
-              [routerLink]="['/settings']"
-              [queryParams]="{ tab: 'inventory' }"
-              [class.active]="currentSettingsTab === 'inventory'"
-              class="nav-item"
-            >
-              <i class="pi pi-box"></i>
-              <span>Inventory Configuration</span>
-            </a>
-
-            <!-- 11. GST -->
             <a
               [routerLink]="['/settings']"
               [queryParams]="{ tab: 'gst' }"
@@ -663,6 +708,8 @@ export class ShellComponent implements OnInit {
   inventoryMasterOpen = false;
   inventoryOpen = false;
   manufacturingOpen = false;
+  settingsOrganizationOpen = true;
+  settingsConfigurationOpen = true;
 
   isSidebarCollapsed = false;
   isSettingsMode = false;
@@ -827,5 +874,21 @@ export class ShellComponent implements OnInit {
     if (branch) {
       this.tenant.setBranch(branch);
     }
+  }
+
+  toggleSettingsOrganization() {
+    this.settingsOrganizationOpen = !this.settingsOrganizationOpen;
+  }
+
+  isSettingsOrganizationActive(): boolean {
+    return ['company', 'branches', 'warehouses', 'financial-years'].includes(this.currentSettingsTab);
+  }
+
+  toggleSettingsConfiguration() {
+    this.settingsConfigurationOpen = !this.settingsConfigurationOpen;
+  }
+
+  isSettingsConfigurationActive(): boolean {
+    return ['sales', 'purchase', 'inventory'].includes(this.currentSettingsTab);
   }
 }
