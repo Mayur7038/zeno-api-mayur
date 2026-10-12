@@ -40,7 +40,10 @@
   </div>
 
   @if (isOpen) {
-    <div class="absolute top-[calc(100%+4px)] left-0 w-full min-w-[220px] z-[9999] bg-surface-0 border border-surface-300 rounded-lg shadow-xl max-h-60 overflow-y-auto p-1.5">
+    <div
+      class="absolute left-0 w-full min-w-[240px] z-[9999] bg-surface-0 border border-surface-300 rounded-lg shadow-xl max-h-60 overflow-y-auto p-1.5"
+      [ngClass]="openUpwards ? 'bottom-[calc(100%+4px)]' : 'top-[calc(100%+4px)]'"
+    >
       @if (filteredOptions.length === 0) {
         <div class="py-3.5 px-4 text-[0.85rem] font-medium text-surface-600 bg-surface-50 border border-dashed border-surface-300 rounded-md text-center flex items-center justify-center gap-2 m-0.5">
           <i class="pi pi-exclamation-circle text-surface-400 text-base"></i> No results found

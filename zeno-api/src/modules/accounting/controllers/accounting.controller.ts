@@ -275,8 +275,86 @@ export class AccountingController {
       else { totalLiabilities += row.amount; liabilityRows.push(row); }
     }
 
+    // --- Compute Net Profit / Loss (Income vs Expense) up to asOfDate ---
+    const plQb = this.entryRepo
+      .createQueryBuilder('e')
+      .innerJoin('e.ledger', 'ledger')
+      .innerJoin('ledger.ledgerGroup', 'grp')
+      .select('grp.nature', 'nature')
+      .addSelect('ledger.opening_balance', 'openingBalance')
+      .addSelect('ledger.balance_type', 'balanceType')
+      .addSelect('SUM(e.debit_amount)', 'totalDebit')
+      .addSelect('SUM(e.credit_amount)', 'totalCredit')
+      .where('e.tenant_id = :tenantId', { tenantId })
+      .andWhere('e.company_id = :companyId', { companyId })
+      .andWhere("grp.nature IN ('INCOME', 'EXPENSE')")
+      .groupBy('ledger.id')
+      .addGroupBy('ledger.opening_balance')
+      .addGroupBy('ledger.balance_type')
+      .addGroupBy('grp.nature');
+
+    if (asOfDate) plQb.andWhere('e.entry_date <= :asOfDate', { asOfDate });
+
+    const plRaw = await plQb.getRawMany();
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    for (const r of plRaw) {
+      const dr = Number(r.totalDebit || 0);
+      const cr = Number(r.totalCredit || 0);
+      const ob = Number(r.openingBalance || 0);
+      const isObDr = (r.balanceType || 'DR') === 'DR';
+      const netDebit = dr + (isObDr ? ob : 0);
+      const netCredit = cr + (isObDr ? 0 : ob);
+
+      if (r.nature === 'INCOME') {
+        totalIncome += (netCredit - netDebit);
+      } else {
+        totalExpense += (netDebit - netCredit);
+      }
+    }
+
+    const netProfit = Number((totalIncome - totalExpense).toFixed(2));
+
+    if (netProfit > 0) {
+      // Net Profit: Included in Liabilities under Profit & Loss A/c (Reserves & Surplus / Capital)
+      const plRow = {
+        ledgerId: 'pl_net_profit',
+        ledgerName: 'Profit & Loss A/c (Net Profit)',
+        groupId: 'pl_group',
+        groupName: 'Profit & Loss A/c',
+        nature: 'LIABILITY',
+        openingBalance: 0,
+        debit: 0,
+        credit: netProfit,
+        amount: netProfit,
+      };
+      liabilityRows.push(plRow);
+      totalLiabilities += netProfit;
+    } else if (netProfit < 0) {
+      // Net Loss: Included on Assets side (or debit balance of P&L)
+      const absLoss = Number(Math.abs(netProfit).toFixed(2));
+      const plRow = {
+        ledgerId: 'pl_net_loss',
+        ledgerName: 'Profit & Loss A/c (Net Loss)',
+        groupId: 'pl_group',
+        groupName: 'Profit & Loss A/c',
+        nature: 'ASSET',
+        openingBalance: 0,
+        debit: absLoss,
+        credit: 0,
+        amount: absLoss,
+      };
+      assetRows.push(plRow);
+      totalAssets += absLoss;
+    }
+
     return {
       assetRows, liabilityRows,
+      totalIncome: Number(totalIncome.toFixed(2)),
+      totalExpense: Number(totalExpense.toFixed(2)),
+      netProfit,
+      isProfit: netProfit >= 0,
       totalAssets: Number(totalAssets.toFixed(2)),
       totalLiabilities: Number(totalLiabilities.toFixed(2)),
       isBalanced: Math.abs(totalAssets - totalLiabilities) < 1,

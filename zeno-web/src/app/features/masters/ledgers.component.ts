@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
@@ -44,7 +44,7 @@ export class LedgersComponent implements OnInit {
   showCreateModal = false;
   viewingLedger: any = null;
   editingLedgerId: string | null = null;
-  modalTab: 'basic' | 'address' | 'contact' | 'bank' = 'basic';
+  modalTab: 'address' | 'contact' | 'bank' | 'business' = 'address';
   submitting = false;
   createError = '';
 
@@ -76,10 +76,13 @@ export class LedgersComponent implements OnInit {
       code: '',
       ledgerGroupId: '',
       gstin: '',
+      gstType: 'Regular',
       pan: '',
+      tan: '',
       stateCode: '27',
       openingBalance: 0,
       balanceType: 'DR',
+      isActive: true,
       creditLimit: null,
       creditDays: 30,
       address: '',
@@ -88,6 +91,10 @@ export class LedgersComponent implements OnInit {
       pincode: '',
       country: 'India',
       shippingAddress: '',
+      shippingCountry: 'India',
+      shippingState: '',
+      shippingCity: '',
+      shippingPincode: '',
       contactPerson: '',
       phone: '',
       mobile: '',
@@ -240,11 +247,9 @@ export class LedgersComponent implements OnInit {
         this.form.balanceType = 'DR';
       }
     }
-    // If switched away from sundry debtors/creditors, reset modal tab to basic and clear party tax fields
+    // If switched away from sundry debtors/creditors, clear party tax fields
     if (!this.isParty) {
-      if (this.modalTab !== 'basic') {
-        this.modalTab = 'basic';
-      }
+      this.modalTab = 'address';
       this.form.gstin = '';
       this.form.pan = '';
     }
@@ -283,14 +288,11 @@ export class LedgersComponent implements OnInit {
   }
 
   copyBillingToShipping() {
-    let fullBilling = this.form.address || '';
-    if (this.form.city || this.form.state || this.form.pincode) {
-      const parts = [this.form.city, this.form.state, this.form.pincode].filter(Boolean);
-      if (parts.length > 0) {
-        fullBilling += fullBilling ? `\n${parts.join(', ')}` : parts.join(', ');
-      }
-    }
-    this.form.shippingAddress = fullBilling;
+    this.form.shippingAddress = this.form.address || '';
+    this.form.shippingCountry = this.form.country || 'India';
+    this.form.shippingState = this.form.state || '';
+    this.form.shippingCity = this.form.city || '';
+    this.form.shippingPincode = this.form.pincode || '';
   }
 
   backToList() {
@@ -301,7 +303,7 @@ export class LedgersComponent implements OnInit {
   openCreateModal() {
     this.editingLedgerId = null;
     this.form = this.getInitialForm();
-    this.modalTab = 'basic';
+    this.modalTab = 'address';
     this.createError = '';
     this.pendingPartyRole = null;
 
@@ -319,7 +321,7 @@ export class LedgersComponent implements OnInit {
   openPartyModal(type: 'CUSTOMER' | 'VENDOR') {
     this.editingLedgerId = null;
     this.form = this.getInitialForm();
-    this.modalTab = 'basic';
+    this.modalTab = 'address';
     this.createError = '';
     this.pendingPartyRole = type;
 
@@ -342,10 +344,13 @@ export class LedgersComponent implements OnInit {
       code: l.code || '',
       ledgerGroupId: l.ledgerGroupId || '',
       gstin: l.gstin || '',
+      gstType: l.gstType || 'Regular',
       pan: l.pan || '',
+      tan: l.tan || '',
       stateCode: l.stateCode || '27',
       openingBalance: l.openingBalance || 0,
       balanceType: l.balanceType || 'DR',
+      isActive: l.isActive !== undefined && l.isActive !== null ? l.isActive : true,
       creditLimit: l.creditLimit || null,
       creditDays: l.creditDays || 30,
       address: l.address || '',
@@ -354,6 +359,10 @@ export class LedgersComponent implements OnInit {
       pincode: l.pincode || '',
       country: l.country || 'India',
       shippingAddress: l.shippingAddress || '',
+      shippingCountry: l.shippingCountry || 'India',
+      shippingState: l.shippingState || '',
+      shippingCity: l.shippingCity || '',
+      shippingPincode: l.shippingPincode || '',
       contactPerson: l.contactPerson || '',
       phone: l.phone || '',
       mobile: l.mobile || '',
@@ -366,7 +375,7 @@ export class LedgersComponent implements OnInit {
       bankBranch: l.bankBranch || '',
       upiId: l.upiId || '',
     };
-    this.modalTab = 'basic';
+    this.modalTab = 'address';
     this.createError = '';
     if (this.groups.length === 0) {
       this.loadGroups();
@@ -377,8 +386,8 @@ export class LedgersComponent implements OnInit {
 
   nextModalTab() {
     if (!this.isParty) return;
-    if (this.modalTab === 'basic') this.modalTab = 'address';
-    else if (this.modalTab === 'address') this.modalTab = 'contact';
+    if (this.modalTab === 'address') this.modalTab = 'business';
+    else if (this.modalTab === 'business') this.modalTab = 'contact';
     else if (this.modalTab === 'contact') this.modalTab = 'bank';
   }
 

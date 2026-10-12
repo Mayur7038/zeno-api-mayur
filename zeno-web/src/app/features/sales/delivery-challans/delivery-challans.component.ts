@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,9 @@ export class DeliveryChallansComponent implements OnInit {
   loading = false;
   submitting = false;
   loadingPendingOrders = false;
+  showPendingOrdersModal = false;
+  pendingOrdersList: any[] = [];
+  selectedOrderIds: string[] = [];
 
   searchQuery = '';
   selectedStatus = '';
@@ -148,6 +151,9 @@ export class DeliveryChallansComponent implements OnInit {
     if (cust) {
       this.newDc.dispatchAddress = cust.addressLine1 || '';
     }
+    if (this.newDc.customerLedgerId) {
+      this.openPendingOrdersModal();
+    }
   }
 
   addItemRow() {
@@ -230,47 +236,110 @@ export class DeliveryChallansComponent implements OnInit {
     }
   }
 
-  pullPendingOrders() {
+  openPendingOrdersModal() {
     if (!this.newDc.customerLedgerId) return;
+    this.showPendingOrdersModal = true;
     this.loadingPendingOrders = true;
+    this.selectedOrderIds = [];
+    this.pendingOrdersList = [];
+
     this.salesService.getCustomerPendingOrders(this.newDc.customerLedgerId, this.companyId).subscribe({
       next: (orders) => {
         this.loadingPendingOrders = false;
-        if (!orders || orders.length === 0) {
-          alert('No pending sales orders found for this customer.');
-          return;
-        }
-
-        const lines: any[] = [];
-        const soIds: string[] = [];
-
-        for (const order of orders) {
-          soIds.push(order.id);
-          for (const item of order.items || []) {
+        this.pendingOrdersList = (orders || []).filter(order => {
+          return (order.items || []).some((item: any) => {
             const pendingQty = Number(item.orderedQty || 0) - Number(item.dispatchedQty || 0);
-            if (pendingQty > 0) {
-              lines.push({
-                itemId: item.itemId,
-                dispatchedQty: pendingQty,
-                rate: Number(item.rate || 0),
-                remarks: `From Order #${order.voucherNo}`,
-                soItemId: item.id
-              });
-            }
-          }
-        }
-
-        if (lines.length > 0) {
-          this.newDc.items = lines;
-          this.newDc.soIds = soIds;
-        } else {
-          alert('All items in open orders have already been dispatched.');
-        }
+            return pendingQty > 0;
+          });
+        });
+        // Select all available orders by default
+        this.selectedOrderIds = this.pendingOrdersList.map(o => o.id);
       },
       error: () => {
         this.loadingPendingOrders = false;
+        this.pendingOrdersList = [];
       }
     });
+  }
+
+  closePendingOrdersModal() {
+    this.showPendingOrdersModal = false;
+  }
+
+  isOrderSelected(orderId: string): boolean {
+    return this.selectedOrderIds.includes(orderId);
+  }
+
+  toggleOrderSelection(orderId: string) {
+    const idx = this.selectedOrderIds.indexOf(orderId);
+    if (idx > -1) {
+      this.selectedOrderIds.splice(idx, 1);
+    } else {
+      this.selectedOrderIds.push(orderId);
+    }
+  }
+
+  isAllOrdersSelected(): boolean {
+    return this.pendingOrdersList.length > 0 && this.selectedOrderIds.length === this.pendingOrdersList.length;
+  }
+
+  toggleSelectAllOrders() {
+    if (this.isAllOrdersSelected()) {
+      this.selectedOrderIds = [];
+    } else {
+      this.selectedOrderIds = this.pendingOrdersList.map(o => o.id);
+    }
+  }
+
+  applySelectedOrders() {
+    if (this.selectedOrderIds.length === 0) {
+      this.closePendingOrdersModal();
+      return;
+    }
+
+    const selectedOrders = this.pendingOrdersList.filter(o => this.selectedOrderIds.includes(o.id));
+    const lines: any[] = [];
+    const soIds: string[] = [];
+
+    for (const order of selectedOrders) {
+      soIds.push(order.id);
+      for (const item of order.items || []) {
+        const pendingQty = Number(item.orderedQty || 0) - Number(item.dispatchedQty || 0);
+        if (pendingQty > 0) {
+          lines.push({
+            itemId: item.itemId,
+            dispatchedQty: pendingQty,
+            rate: Number(item.rate || 0),
+            remarks: `SO #${order.voucherNo}`,
+            soItemId: item.id
+          });
+        }
+      }
+    }
+
+    if (lines.length > 0) {
+      this.newDc.items = lines;
+      this.newDc.soIds = soIds;
+      this.toast.success(`Loaded ${lines.length} line item(s) from ${selectedOrders.length} sales order(s).`, 'Orders Loaded');
+    }
+
+    this.closePendingOrdersModal();
+  }
+
+  getPendingItemsSummary(order: any): any[] {
+    return (order.items || [])
+      .filter((item: any) => (Number(item.orderedQty || 0) - Number(item.dispatchedQty || 0)) > 0)
+      .map((item: any) => ({
+        itemId: item.itemId,
+        itemName: item.item?.name || this.getItemName(item.itemId) || 'Item',
+        unit: item.unit?.code || 'Pcs',
+        pendingQty: Number(item.orderedQty || 0) - Number(item.dispatchedQty || 0)
+      }));
+  }
+
+  getSelectedCustomerName(): string {
+    const cust = this.customers.find(c => c.id === this.newDc.customerLedgerId);
+    return cust ? (cust.name || 'Selected Customer') : 'Customer';
   }
 
   recalculateTotals() {

@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { P2pService } from '../../../core/services/p2p.service';
@@ -44,6 +44,7 @@ export class PurchaseOrdersComponent implements OnInit {
     orderDate: new Date().toISOString().split('T')[0],
     expectedDeliveryDate: '',
     paymentTerms: 'Net 30 Days',
+    creditDays: 30,
     vendorLedgerId: '',
     branchId: '',
     notes: '',
@@ -96,11 +97,19 @@ export class PurchaseOrdersComponent implements OnInit {
     this.loadOrders();
   }
 
+  onVendorSelected() {
+    const v = this.vendors.find((item) => item.id === this.form.vendorLedgerId);
+    if (v && v.creditDays !== undefined && v.creditDays !== null) {
+      this.form.creditDays = v.creditDays;
+    }
+  }
+
   openCreateModal() {
     this.form = {
       orderDate: new Date().toISOString().split('T')[0],
       expectedDeliveryDate: '',
       paymentTerms: 'Net 30 Days',
+      creditDays: 30,
       vendorLedgerId: '',
       branchId: this.tenant.currentBranch()?.id || '',
       notes: '',

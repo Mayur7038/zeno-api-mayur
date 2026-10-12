@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   ElementRef,
   EventEmitter,
@@ -41,6 +41,7 @@ export class ZenoSearchableSelectComponent implements ControlValueAccessor {
 
   value: any = null;
   isOpen = false;
+  openUpwards = false;
   searchQuery = '';
   filteredOptions: any[] = [];
   activeIndex = 0;
@@ -94,6 +95,16 @@ export class ZenoSearchableSelectComponent implements ControlValueAccessor {
     this.searchQuery = '';
     this.filterOptions();
     this.activeIndex = 0;
+
+    try {
+      const rect = this.elementRef.nativeElement.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      this.openUpwards = spaceBelow < 260 && spaceAbove > spaceBelow;
+    } catch {
+      this.openUpwards = false;
+    }
+
     setTimeout(() => {
       if (this.searchInput) {
         this.searchInput.nativeElement.focus();
@@ -194,6 +205,9 @@ export class ZenoSearchableSelectComponent implements ControlValueAccessor {
       const val = opt[this.secondaryKey];
       return val ? String(val) : '';
     }
+    if (opt.ledgerGroup?.name) return opt.ledgerGroup.name;
+    if (opt.group?.name) return opt.group.name;
+    if (opt.groupName) return String(opt.groupName);
     if (opt.sku) return `SKU: ${opt.sku}`;
     if (opt.gstin) return `GSTIN: ${opt.gstin}`;
     if (opt.code) return `Code: ${opt.code}`;

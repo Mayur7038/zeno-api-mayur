@@ -251,7 +251,7 @@
             <span class="text-xs text-surface-500">Every journal must have balanced Debits and Credits.</span>
           </div>
 
-          <div class="overflow-x-auto border border-surface-200 rounded-lg">
+          <div class="border border-surface-200 rounded-lg overflow-visible">
             <table class="w-full text-left border-collapse text-sm">
               <thead class="bg-surface-50 text-surface-600 uppercase text-xs font-semibold tracking-wider border-b border-surface-200">
                 <tr>
@@ -361,7 +361,7 @@
             <span class="text-xs text-surface-500">Select expense or vendor ledgers being paid</span>
           </div>
 
-          <div class="overflow-x-auto border border-surface-200 rounded-lg">
+          <div class="border border-surface-200 rounded-lg overflow-visible">
             <table class="w-full text-left border-collapse text-sm">
               <thead class="bg-surface-50 text-surface-600 uppercase text-xs font-semibold tracking-wider border-b border-surface-200">
                 <tr>
@@ -378,7 +378,7 @@
                     <td class="text-surface-500 text-center px-3 py-2">{{ $index + 1 }}</td>
                     <td class="px-3 py-2 min-w-[260px]">
                       <zeno-searchable-select
-                        [options]="allLedgers"
+                        [options]="getAvailableLineLedgers()"
                         labelKey="name"
                         valueKey="id"
                         placeholder="-- Select Particulars / Account --"

@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -299,6 +299,13 @@ export class PaymentVouchersComponent implements OnInit {
       return this.cashBankLedgers.length > 0 ? this.cashBankLedgers : this.allLedgers;
     }
     return this.allLedgers;
+  }
+
+  getAvailableLineLedgers(): any[] {
+    if (!this.createForm.sourceAccountLedgerId) {
+      return this.allLedgers;
+    }
+    return this.allLedgers.filter((l) => l.id !== this.createForm.sourceAccountLedgerId);
   }
 
   getVoucherPrimaryAccountName(v: AccountingVoucher): string {

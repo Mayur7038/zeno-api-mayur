@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MastersService } from '../../core/services/masters.service';
@@ -49,7 +49,7 @@ export class ItemsComponent implements OnInit {
   // VIEW MODE: 'list' | 'create' | 'edit'
   viewMode: 'list' | 'create' | 'edit' = 'list';
   editingItem: any = null;
-  activeTab = 'basic';
+  activeTab = 'pricing';
   imageFileName = '';
 
   searchQuery = '';
@@ -602,7 +602,7 @@ export class ItemsComponent implements OnInit {
     };
     this.selectedVariants = [];
     this.skuRows = [];
-    this.activeTab = 'basic';
+    this.activeTab = 'pricing';
     this.filterCategoryList();
     this.syncInheritedGstRate();
     this.viewMode = 'create';
@@ -648,7 +648,7 @@ export class ItemsComponent implements OnInit {
       }));
     }
 
-    this.activeTab = 'basic';
+    this.activeTab = 'pricing';
     this.filterCategoryList();
     if (this.gstActiveLevel !== 'ITEM') {
       this.syncInheritedGstRate();
