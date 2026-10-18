@@ -22,21 +22,33 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
       isGlobal: true,
       envFilePath: '.env',
     }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST', '127.0.0.1'),
-        port: Number(config.get<number>('DB_PORT', 5433)),
-        username: config.get<string>('DB_USERNAME', 'postgres'),
-        password: config.get<string>('DB_PASSWORD', 'postgres'),
-        database: config.get<string>('DB_NAME', 'zeno_books'),
-        autoLoadEntities: true,
-        synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
-        logging: config.get<string>('DB_LOGGING', 'false') === 'true',
-      }),
+
+      useFactory: (config: ConfigService) => {
+        const isProduction = config.get<string>('NODE_ENV') === 'production';
+const dbUrl = config.get<string>('DATABASE_URL');
+console.log('DB host:', dbUrl ? new URL(dbUrl).host : 'DATABASE_URL missing');
+        return {
+          type: 'postgres' as const,
+
+          url: config.get<string>('DATABASE_URL'),
+
+          autoLoadEntities: true,
+
+          // Auto-creates missing tables in development.
+          // Always false in production unless explicitly forced via DB_SYNCHRONIZE=true.
+          synchronize:
+            config.get<string>('DB_SYNCHRONIZE', isProduction ? 'false' : 'true') === 'true',
+
+          logging: config.get<string>('DB_LOGGING', 'false') === 'true',
+        };
+      },
+
       inject: [ConfigService],
     }),
+
     AuthModule,
     TenancyModule,
     RbacModule,

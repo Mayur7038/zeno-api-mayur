@@ -49,6 +49,7 @@ export class MastersService {
     }
 
     let groups = await qb.orderBy('group.name', 'ASC').getMany();
+    console.log(groups , "asdfjadf" )
 
     // Deduplicate groups by normalized name in case multiple seedings occurred
     const deduplicatedMap = new Map<string, LedgerGroup>();
@@ -58,6 +59,9 @@ export class MastersService {
         deduplicatedMap.set(key, g);
       }
     }
+
+    console.log(groups , "asdfjadf" )
+
     groups = Array.from(deduplicatedMap.values());
 
     // If no groups exist, auto-seed standard Tally ledger groups for this tenant
@@ -122,7 +126,7 @@ export class MastersService {
       }
       groups = Array.from(freshMap.values());
     }
-
+    console.log(groups , "asdfjadf" )
     return groups;
   }
 
