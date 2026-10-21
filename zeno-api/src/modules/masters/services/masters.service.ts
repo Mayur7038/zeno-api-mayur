@@ -35,99 +35,155 @@ export class MastersService {
 
   // 1. Ledger Groups
   async getLedgerGroups(tenantId: string, companyId?: string) {
+    const normalizedCompanyId =
+      companyId &&
+        companyId !== 'undefined' &&
+        companyId !== 'null' &&
+        companyId.trim() !== ''
+        ? companyId.trim()
+        : undefined;
+
+    const defaultGroupDefs = [
+      {
+        name: 'Capital Account',
+        nature: LedgerGroupNature.LIABILITY,
+      },
+      {
+        name: 'Current Liabilities',
+        nature: LedgerGroupNature.LIABILITY,
+      },
+      {
+        name: 'Sundry Creditors (Vendors)',
+        nature: LedgerGroupNature.LIABILITY,
+        isCreditorVendor: true,
+      },
+      {
+        name: 'Duties & Taxes',
+        nature: LedgerGroupNature.LIABILITY,
+      },
+      {
+        name: 'Current Assets',
+        nature: LedgerGroupNature.ASSET,
+      },
+      {
+        name: 'Sundry Debtors (Customers)',
+        nature: LedgerGroupNature.ASSET,
+        isDebtorCustomer: true,
+      },
+      {
+        name: 'Bank Accounts',
+        nature: LedgerGroupNature.ASSET,
+      },
+      {
+        name: 'Cash-in-hand',
+        nature: LedgerGroupNature.ASSET,
+      },
+      {
+        name: 'Stock-in-hand',
+        nature: LedgerGroupNature.ASSET,
+      },
+      {
+        name: 'Purchase Accounts',
+        nature: LedgerGroupNature.EXPENSE,
+      },
+      {
+        name: 'Direct Expenses',
+        nature: LedgerGroupNature.EXPENSE,
+      },
+      {
+        name: 'Indirect Expenses',
+        nature: LedgerGroupNature.EXPENSE,
+      },
+      {
+        name: 'Sales Accounts',
+        nature: LedgerGroupNature.INCOME,
+      },
+      {
+        name: 'Direct Incomes',
+        nature: LedgerGroupNature.INCOME,
+      },
+      {
+        name: 'Indirect Incomes',
+        nature: LedgerGroupNature.INCOME,
+      },
+    ];
+
+    // Normalize names to avoid case/whitespace differences.
+    const normalizeName = (name: string) =>
+      name.trim().toLowerCase();
+
+    // Seed defaults independently for each company.
+    // Never seed company-specific defaults without a companyId.
+    if (tenantId && normalizedCompanyId) {
+      for (const def of defaultGroupDefs) {
+        const existing = await this.groupRepo
+          .createQueryBuilder('group')
+          .where('group.tenant_id = :tenantId', { tenantId })
+          .andWhere('group.company_id = :companyId', {
+            companyId: normalizedCompanyId,
+          })
+          .andWhere('LOWER(TRIM(group.name)) = :name', {
+            name: normalizeName(def.name),
+          })
+          .getOne();
+
+        if (!existing) {
+          const group = this.groupRepo.create({
+            tenantId,
+            companyId: normalizedCompanyId,
+            name: def.name,
+            nature: def.nature,
+            isCreditorVendor: def.isCreditorVendor ?? false,
+            isDebtorCustomer: def.isDebtorCustomer ?? false,
+            isPredefined: true,
+          });
+
+          try {
+            await this.groupRepo.save(group);
+          } catch (error) {
+            // Log errors rather than silently hiding database issues.
+            console.error(
+              `Failed to create default ledger group "${def.name}"`,
+              error,
+            );
+          }
+        }
+      }
+    }
+
+    // Fetch groups belonging to this tenant and company.
     const qb = this.groupRepo
       .createQueryBuilder('group')
       .leftJoinAndSelect('group.parent', 'parent')
       .leftJoinAndSelect('group.children', 'children');
 
     if (tenantId) {
-      qb.where('(group.tenant_id = :tenantId OR group.tenant_id IS NULL)', { tenantId });
+      qb.where('group.tenant_id = :tenantId', { tenantId });
     }
 
-    if (companyId && companyId !== 'undefined' && companyId !== 'null' && companyId.trim() !== '') {
-      qb.andWhere('(group.company_id = :companyId OR group.company_id IS NULL)', { companyId });
+    if (normalizedCompanyId) {
+      qb.andWhere('group.company_id = :companyId', {
+        companyId: normalizedCompanyId,
+      });
     }
 
-    let groups = await qb.orderBy('group.name', 'ASC').getMany();
-    console.log(groups , "asdfjadf" )
+    const groups = await qb
+      .orderBy('group.name', 'ASC')
+      .getMany();
 
-    // Deduplicate groups by normalized name in case multiple seedings occurred
+    // Deduplicate the returned results by normalized name.
+    // This only deduplicates the response; it does not delete DB records.
     const deduplicatedMap = new Map<string, LedgerGroup>();
-    for (const g of groups) {
-      const key = (g.name || '').trim().toLowerCase();
+
+    for (const group of groups) {
+      const key = normalizeName(group.name || '');
+
       if (!deduplicatedMap.has(key)) {
-        deduplicatedMap.set(key, g);
+        deduplicatedMap.set(key, group);
       }
     }
 
-    console.log(groups , "asdfjadf" )
-
-    groups = Array.from(deduplicatedMap.values());
-
-    // If no groups exist, auto-seed standard Tally ledger groups for this tenant
-    if (groups.length === 0 && tenantId) {
-      const defaultGroupDefs = [
-        { name: 'Capital Account', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
-        { name: 'Current Liabilities', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
-        {
-          name: 'Sundry Creditors (Vendors)',
-          nature: LedgerGroupNature.LIABILITY,
-          isCreditorVendor: true,
-          isPredefined: true,
-        },
-        { name: 'Duties & Taxes', nature: LedgerGroupNature.LIABILITY, isPredefined: true },
-        { name: 'Current Assets', nature: LedgerGroupNature.ASSET, isPredefined: true },
-        {
-          name: 'Sundry Debtors (Customers)',
-          nature: LedgerGroupNature.ASSET,
-          isDebtorCustomer: true,
-          isPredefined: true,
-        },
-        { name: 'Bank Accounts', nature: LedgerGroupNature.ASSET, isPredefined: true },
-        { name: 'Cash-in-hand', nature: LedgerGroupNature.ASSET, isPredefined: true },
-        { name: 'Stock-in-hand', nature: LedgerGroupNature.ASSET, isPredefined: true },
-        { name: 'Purchase Accounts', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
-        { name: 'Direct Expenses', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
-        { name: 'Indirect Expenses', nature: LedgerGroupNature.EXPENSE, isPredefined: true },
-        { name: 'Sales Accounts', nature: LedgerGroupNature.INCOME, isPredefined: true },
-        { name: 'Direct Incomes', nature: LedgerGroupNature.INCOME, isPredefined: true },
-        { name: 'Indirect Incomes', nature: LedgerGroupNature.INCOME, isPredefined: true },
-      ];
-
-      for (const def of defaultGroupDefs) {
-        try {
-          const existing = await this.groupRepo.findOne({
-            where: { tenantId, name: def.name },
-          });
-          if (!existing) {
-            const g = this.groupRepo.create({
-              tenantId,
-              companyId: companyId && companyId !== 'undefined' && companyId !== 'null' ? companyId : undefined,
-              name: def.name,
-              nature: def.nature,
-              isCreditorVendor: def.isCreditorVendor || false,
-              isDebtorCustomer: def.isDebtorCustomer || false,
-              isPredefined: true,
-            });
-            await this.groupRepo.save(g);
-          }
-        } catch {
-          // Ignore individual constraint errors during auto-seed
-        }
-      }
-
-      const freshGroups = await qb.orderBy('group.name', 'ASC').getMany();
-      const freshMap = new Map<string, LedgerGroup>();
-      for (const g of freshGroups) {
-        const key = (g.name || '').trim().toLowerCase();
-        if (!freshMap.has(key)) {
-          freshMap.set(key, g);
-        }
-      }
-      groups = Array.from(freshMap.values());
-    }
-    console.log(groups , "asdfjadf" )
-    return groups;
+    return Array.from(deduplicatedMap.values());
   }
 
   async createLedgerGroup(tenantId: string, companyId: string, data: Partial<LedgerGroup>) {
